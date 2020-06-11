@@ -1,7 +1,13 @@
 import sys
-import pandas as pd 
+import deepsleepcfg as cfg
+from getdata import getData
 # testing pbs batch system
-print(pd.__version__)
-print(f"Hello World {sys.argv[1]}")
-x = pd.DataFrame({'col1':[1,2,3]})
-x.to_pickle(f'{sys.argv[1]}_test.pkl')
+
+getData_cfg = {'files': ['MC_2017'], 'samples': [sys.argv[1]], 'outDir': 'test_ja_files/',
+                    'njets':cfg.ZHbbFitCut[1], 'maxJets':cfg.ZHbbFitMaxJets,
+                    'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True}
+#
+print('Running getData')
+getData(getData_cfg) # in the future this will return ak4, ak8, gen, rtc, and event data
+# for now just saves to pkl
+

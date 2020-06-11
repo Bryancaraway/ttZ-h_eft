@@ -15,15 +15,16 @@ import pickle
 import operator
 import re
 import time
-from collections import defaultdict
+from collections import defaultdict, UserDict
 from numba import njit, prange
 import concurrent.futures
 import deepsleepcfg as cfg
+from fun_library import fillne
 #
 import numpy as np
 np.random.seed(0)
 import pandas as pd
-from itertools import combinations
+import concurrent.futures
 ##
 
 
@@ -39,8 +40,8 @@ class getData :
     njets      = 2
     maxAk4Jets  = 6
     treeDir    = cfg.tree_dir
-    getGenData = False
-    getak8var  = False
+    getGenData = False # doesnt do anything atm
+    getak8var  = False # doesnt do anything atm
     
     
 
@@ -61,21 +62,20 @@ class getData :
                     t = tree_dir.get(sample)
                     self.DF_Container.set_current_tree_mask(t)
                     # 
-                    idx = pd.IndexSlice
                     ak4_df   = self.DF_Container(cfg.ak4lvec['TLVarsLC']+cfg.ak4vars,'ak4',   'AK4_Variables')
                     ak8_df   = self.DF_Container(cfg.ak8lvec['TLVarsLC']+cfg.ak8vars,'ak8',   'AK8_Variables')
-                    val_df   = self.DF_Container(cfg.valvars+cfg.sysvars,            'other', 'Event_Variables')
-                    gen_df   = self.DF_Container(cfg.genpvars,                       'other', 'GenPart_Variables')
+                    val_df   = self.DF_Container(cfg.valvars+cfg.sysvars,            'event', 'Event_Variables')
+                    gen_df   = self.DF_Container(cfg.genpvars,                       'gen', 'GenPart_Variables')
                     ##
-                    val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = self.DF_Container.n_ak4jets, self.DF_Container.n_ak8jets, 
-                    jet_df = pd.concat([ak4_df.df, ak8_df.df], keys=[ak4_df.name,ak8_df.name], names=['Jet_Type'])
+                    val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = self.DF_Container.n_ak4jets, self.DF_Container.n_ak8jets
                     #
-                    rtc_df = self.cleanRC(jet_df.loc[ak4_df.name][cfg.ak4lvec['TLVarsLC']].sum(axis=1).unstack().to_numpy())
+                    rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ak4lvec['TLVarsLC']).sum())
                     #
-                    jet_df   .to_pickle('test/'+sample+file_[-5:]+'_jet.pkl')# replace test at some point FIXME
-                    val_df.df.to_pickle('test/'+sample+file_[-5:]+'_val.pkl')# replace test at some point FIXME
-                    gen_df.df.to_pickle('test/'+sample+file_[-5:]+'_gen.pkl')# replace test at some point FIXME
-                    rtc_df   .to_pickle('test/'+sample+file_[-5:]+'_rtc.pkl')# replace test at some point FIXME
+                    ak4_df.df.to_pickle(self.outDir+sample+file_[-5:]+'_ak4.pkl')# replace test at some point FIXME
+                    ak8_df.df.to_pickle(self.outDir+sample+file_[-5:]+'_ak8.pkl')# replace test at some point FIXME
+                    val_df.df.to_pickle(self.outDir+sample+file_[-5:]+'_val.pkl')# replace test at some point FIXME
+                    gen_df.df.to_pickle(self.outDir+sample+file_[-5:]+'_gen.pkl')# replace test at some point FIXME
+                    rtc_df   .to_pickle(self.outDir+sample+file_[-5:]+'_rtc.pkl')# replace test at some point FIXME
                     #
                     finish = time.perf_counter()
                     print(f'\nTime to finish {sample}: {finish-start:.1f}\n')
@@ -83,23 +83,22 @@ class getData :
     #
     def cleanRC(self,ak4_LC):
         RC_ak4    = self.DF_Container(cfg.ak4lvec['TLVars'], 'other',   'RC_AK4LVec' )
-        RC_vars   = self.DF_Container(cfg.valRCvars,         'RC',   'RC_TopInfo' )
-        RC_vars = RC_vars.df.unstack().reindex(self.DF_Container.event_mask[self.DF_Container.event_mask].index, fill_value=np.nan)
+        RC_vars   = self.DF_Container(cfg.valRCvars,         'RC',      'RC_TopInfo' )
+        RC_vars   = RC_vars.df
         ##
-        ak4    = RC_ak4.df.sum(axis=1).unstack().to_numpy()
-        ###
-        RCj1, RCj2, RCj3 = RC_vars['ResolvedTopCandidate_j1Idx'].to_numpy(), RC_vars['ResolvedTopCandidate_j2Idx'].to_numpy(), RC_vars['ResolvedTopCandidate_j3Idx'].to_numpy()
+        ak4    = fillne(RC_ak4.df.sum())
+        RCj1, RCj2, RCj3 = fillne(RC_vars['ResolvedTopCandidate_j1Idx']), fillne(RC_vars['ResolvedTopCandidate_j2Idx']), fillne(RC_vars['ResolvedTopCandidate_j3Idx'])
         ##
-        mapLC = self.cleanMap(ak4_LC, ak4, np.full(ak4.shape,np.nan))
-        RCj1, RCj2, RCj3 = self.applyMap(mapLC, RCj1, RCj2, RCj3, np.full(RCj1.shape,np.nan))
+        mapLC = self.cleanMap(fillne(ak4_LC), ak4, np.full(ak4.shape,np.nan))
+        RCj1, RCj2, RCj3 = self.applyMap(mapLC, RCj1, RCj2, RCj3, np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan))
         RC_vars['ResolvedTopCandidate_j1Idx'], RC_vars['ResolvedTopCandidate_j2Idx'], RC_vars['ResolvedTopCandidate_j3Idx'] = RCj1, RCj2, RCj3
-        return RC_vars.stack(dropna=False)
+        return RC_vars
 
     @staticmethod
     @njit(parallel=True)
     def cleanMap(a,b, out):
         rows, a_cols = a.shape
-        b_cols = b.shape[1]
+        b_cols = b.shape[1]                    
         for i in prange(rows):
             for j in range(a_cols):
                 if np.isnan(a[i,j]):
@@ -110,12 +109,12 @@ class getData :
                         out[i,k] = int(j)
                         break
         return out
+    #
 
     @staticmethod
     @njit(parallel=True)
-    def applyMap(lc, j1, j2, j3, o1):
+    def applyMap(lc, j1, j2, j3, o1, o2, o3):
         rows, n_jcols = j1.shape
-        o2 = o3 = o1
         for i in prange(rows):
             for j in range(n_jcols):
                 if np.isnan(j1[i,j]):
@@ -135,7 +134,7 @@ class getData :
         container type must be ak4, ak8, or other
         '''
         current_tree = None
-        allowed_types = ['ak4', 'ak8', 'other', 'RC']
+        allowed_types = ['ak4', 'ak8', 'event', 'gen', 'RC', 'other']
     
         # pre-selection cuts need to be applied when getting data from tree to increase speed
         # object cuts: ak4jet_pt >= 30, |ak4jet_eta| <= 2.4 ... |ak8jet_eta| <= 2.0
@@ -156,14 +155,15 @@ class getData :
             self.df = self.extract_and_cut()
     
         def extract_and_cut(self):
-            idx = pd.IndexSlice
             tree_to_df = self.current_tree.pandas.df
             type_indexer = defaultdict(
-                None,{'ak4':  lambda v: self.apply_event_mask(tree_to_df(v)[self.ak4_mask]),
-                      'ak8':  lambda v: pd.concat([self.apply_event_mask(tree_to_df(v[:-2])[self.ak8_mask]),  # seperate subjet in config FIXME
-                                                  self.apply_event_mask(tree_to_df(v[-2:]))], axis='columns'),# seperate subjet in config FIXME 
-                      'other':lambda v: self.apply_event_mask(tree_to_df(v)),
-                      'RC':   lambda v: self.apply_event_mask(tree_to_df(v)[self.rtcd_mask])})
+                None,{'ak4':  lambda v: self.build_dict(v)[self.ak4_mask][self.event_mask],
+                      'ak8':  lambda v: self.AnaDict({**self.build_dict(v[:-2])[self.ak8_mask][self.event_mask],  # seperate subjet in config FIXME
+                                                      **self.build_dict(v[-2:])[self.event_mask]}),# seperate subjet in config FIXME 
+                      'event':lambda v: tree_to_df(v)[self.event_mask],
+                      'gen'  :lambda v: self.build_dict(v)[self.event_mask],
+                      'RC'   :lambda v: self.build_dict(v)[self.rtcd_mask][self.event_mask],
+                      'other':lambda v: self.build_dict(v)[self.event_mask]})
             try:
                 df = type_indexer[self.var_type](self.variables)
             except KeyError:
@@ -177,28 +177,66 @@ class getData :
         def set_current_tree_mask(cls,tree):
             cls.current_tree = tree
             #
-            jet_pt_eta    = tree.pandas.df(cfg.ak4lvec['TLVarsLC'][:2])
-            fatjet_pt_eta = tree.pandas.df(cfg.ak8lvec['TLVarsLC'][:2])
-            rtcd = tree.pandas.df(cfg.valRCvars[0])
-            jet_pt_key, jet_eta_key = list(jet_pt_eta.columns)
-            fatjet_pt_key, fatjet_eta_key = list(fatjet_pt_eta.columns)
+            jet_pt_eta    = cls.build_dict(cfg.ak4lvec['TLVarsLC'][:2])
+            fatjet_pt_eta = cls.build_dict(cfg.ak8lvec['TLVarsLC'][:2])
+            
+            rtcd = tree.array(cfg.valRCvars[0])
+            j_pt_key, j_eta_key   = cfg.ak4lvec['TLVarsLC'][:2]
+            fj_pt_key, fj_eta_key = cfg.ak8lvec['TLVarsLC'][:2]
+            
             #
-            cls.ak4_mask  = ((jet_pt_eta[jet_pt_key] >= 30) & (abs(jet_pt_eta[jet_eta_key]) <= 2.4))
-            cls.ak8_mask  = (abs(fatjet_pt_eta[fatjet_eta_key]) <= 2.0)
-            cls.rtcd_mask = (rtcd[cfg.valRCvars[0]] >= 0.75)
+            cls.ak4_mask  = ((jet_pt_eta[j_pt_key] >= 30) & (abs(jet_pt_eta[j_eta_key]) <= 2.4))
+            cls.ak8_mask  = (abs(fatjet_pt_eta[fj_eta_key]) <= 2.0)
+            cls.rtcd_mask = (rtcd >= 0.50)
             #
-            cls.n_ak4jets , cls.n_ak8jets = jet_pt_eta[jet_pt_key][cls.ak4_mask].count(level='entry'), fatjet_pt_eta[fatjet_pt_eta>=200][fatjet_pt_key][cls.ak8_mask].count(level='entry')
+            n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= 200) & (cls.ak8_mask)].counts
             del jet_pt_eta, fatjet_pt_eta
             #
-            cls.event_mask = ((cls.n_ak4jets >= getData.njets) & 
-                              (cls.n_ak4jets <= getData.maxAk4Jets) &
-                              (cls.n_ak8jets >= 1))
+            event_mask = ((n_ak4jets >= getData.njets) & 
+                          (n_ak4jets <= getData.maxAk4Jets) &
+                          (n_ak8jets >= 1))
+            cls.n_ak4jets , cls.n_ak8jets = n_ak4jets[event_mask] , n_ak8jets[event_mask]
+            cls.event_mask = event_mask
+            #
+        @classmethod
+        def build_dict(cls,keys):
+            executor = concurrent.futures.ThreadPoolExecutor()
+            return cls.AnaDict({k: cls.current_tree.array(k, executor=executor) for k in keys})
+            
+        class AnaDict (UserDict): # may want to move this to different file
+            ''' 
+            pythonic dictionary with the ability to apply numpy indexing
+            across all key values
+            '''
+            # methods
+            def loc(self,keys):
+                return self({k: self.data[k] for k in keys})
+            def sum(self):
+                    return sum(self.data.values())
+            def to_pickle(self, out_name):
+                with open(out_name, 'wb') as handle:
+                    pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            # magic methods
+            def __getitem__(self,key):
+                if type(key) is str:
+                    return self.data[key]
+                else:
+                    #self.data = {k: v[key] for k,v in self.items()}
+                    return self({k: v[key] for k,v in self.data.items()}) 
+            #class methods
+            @classmethod
+            def read_pickle(cls,input_name):
+                with open(input_name, 'rb') as handle:
+                    return cls(pickle.load(handle))
+            @classmethod
+            def __call__(cls,dict_):
+                return cls(dict_)
             
 ##
 
 if __name__ == '__main__':
     #
-    getData_cfg = {'files': ['result_2017'], 'samples': cfg.ZHbbFitCfg[1], 'outDir': cfg.skim_ZHbb_dir,
+    getData_cfg = {'files': ['MC_2017'], 'samples': cfg.ZHbbFitCfg[1], 'outDir': cfg.skim_ZHbb_dir,
                    'njets':cfg.ZHbbFitCut[1], 'maxJets':cfg.ZHbbFitMaxJets, 
                    'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True}
     #

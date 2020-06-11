@@ -6,7 +6,7 @@ import operator
 #
 master_file_path  = './files/'
 # Overhead #
-file_path         = master_file_path+'root/'
+file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/'
 files             = ['result_2016','result_2017','result_2018_AB','result_2018_CD', 'result_2018']
 tree_dir          = 'Training'
 MCsamples         = ['TTZ','DY','TTX','DiBoson','TTBarLep']

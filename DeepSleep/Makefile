@@ -3,9 +3,10 @@
 # Initialize working area my installing required pip packages
 hi:	
 	echo "hi"
+	echo "hello"
 init:
-	@echo 'init'
-    #pip install -r pip_packages.txt
+	@bash setup.sh
+	@pip install -r requirements.txt
 
 
-#.PHONY: hi init
+.PHONY: hi init
