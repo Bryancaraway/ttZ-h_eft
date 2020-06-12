@@ -6,9 +6,6 @@ eval 'cd /home/bcaraway/DeepSleep_v2/DeepSleep/ ; conda activate mlenv;'
 echo "$sample"
 eval 'python runAna.py $sample'
 
-
-
-
 # THIS WORKS FOR SIMPLE USE CASE qsub -v hi=1 test.py 
 # Can parralize this with a python script to do something like:
 # python runmanyjobs.py --> 

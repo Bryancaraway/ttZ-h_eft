@@ -17,10 +17,10 @@ getData_cfg = {'roofile': roofile, 'samples': [sys.argv[1]], 'outDir': 'files/',
                'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True}
 #
 print('Running getData...')
-ak4_df, ak8_df, val_df, gen_df, rtc_df = getData(getData_cfg) 
+ak4_df, ak8_df, val_df, gen_df, rtc_df = getData(getData_cfg).getdata()
 
 print('Running processAna...')
-processAna_cfg = {'outDir': 'files/', 'year':'2017', 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar
+processAna_cfg = {'outDir': 'files/', 'year':'2017', 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
                   'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df,
                   'sample':sys.argv[1]}
 processAna(processAna_cfg)

@@ -9,6 +9,7 @@ import deepsleepcfg as cfg
 # submit a job for each background / signal / data sample
 samples = cfg.ZHbbFitCfg[1]
 log_dir = 'log/'
+os.system('rm log/*')
 for sample in samples:
     command = f'qsub -o {log_dir}{sample}.out -e {log_dir}{sample}.err -v sample={sample} runAna.sh'
     print(command)

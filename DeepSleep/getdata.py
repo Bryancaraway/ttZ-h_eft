@@ -47,9 +47,8 @@ class getData :
 
     def __init__ (self, kwargs):
         [setattr(self,k,v) for k,v in kwargs.items() if k in getData.__dict__.keys()]
-        self.get_root_data()
 
-    def get_root_data(self):
+    def getdata(self):
         # open root file
         #if not os.path.exists(cfg.file_path+self.roofile+'.root') : raise
         with uproot.open(cfg.file_path+self.roofile+'.root') as f_:
@@ -202,11 +201,10 @@ class getData :
 
 if __name__ == '__main__':
     #
-    getData_cfg = {'files': ['MC_2017'], 'sample': 'TTZH', 'outDir': cfg.skim_ZHbb_dir,
+    getData_cfg = {'files': ['MC_2017'], 'sample': 'DY', 'outDir': cfg.skim_ZHbb_dir,
                    'njets':cfg.ZHbbFitCut[1], 'maxJets':cfg.ZHbbFitMaxJets, 
                    'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True,
                    'estop': None}
     #
-    _ = getData(getData_cfg)
-
+    _ = getData(getData_cfg).getdata()
              
