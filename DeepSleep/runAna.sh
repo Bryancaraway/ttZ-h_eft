@@ -4,7 +4,7 @@ cd $PBS_O_WORKDIR
 source /home/bcaraway/.bashrc
 eval 'cd /home/bcaraway/DeepSleep_v2/DeepSleep/ ; conda activate mlenv;'
 echo "$sample"
-eval 'python test.py $sample'
+eval 'python runAna.py $sample'
 
 
 

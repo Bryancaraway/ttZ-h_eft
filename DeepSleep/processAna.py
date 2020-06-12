@@ -8,19 +8,11 @@
 ##
 #
 
-import sys
-import os
-import math
-import pickle
-import operator
-import re
 import time
-from collections import defaultdict
 from numba import njit, prange
-import concurrent.futures
+from uproot_methods import TLorentzVectorArray
 #
 import deepsleepcfg as cfg
-#import kinematicFit as kFit
 import fun_library as lib
 from fun_library import fill1e, fillne, deltaR, deltaPhi, invM, calc_mtb
 from AnaDict import AnaDict
@@ -28,7 +20,6 @@ from AnaDict import AnaDict
 import numpy as np
 np.random.seed(0)
 import pandas as pd
-from itertools import combinations
 ##
 
 class processAna :
@@ -39,8 +30,10 @@ class processAna :
     the output are .pkl files ready for histogram analysis and Combine Tool
     '''
     # Allowed class variables
+    outDir   = 'files/'
+    year     = '2017'
     files    = None
-    samples  = None
+    sample   = None
     isData   = False
     isSignal = False
     isttbar  = False
@@ -64,12 +57,26 @@ class processAna :
 
     def process_data(self):
         # to contain lepCleaned_v2, match_gen, and ZHbbAna
-        self.lepCleaned_v2() # works 
-        #self.match_gen_tt() #works
-        #self.match_gen_lep() # works
-        #self.match_gen_sig() # works, Note: can be improved if ran after ZH is reconstructed and used to gen-reco match 
+        start = time.perf_counter()
+        self.lepCleaned_v2()
+        # might be better to reconstruct zh here, code kinda messy :(
+        if self.isSignal or self.isttbar:
+            self.match_gen_lep() 
+            if   self.isttbar:
+                self.match_gen_tt()  
+            elif self.isSignal:
+                # Note: can be improved if ran after ZH is reconstructed and used to gen-reco match 
+                self.match_gen_sig() 
+        #
         self.recoZh()
-        print(self.val_df)
+        #
+        self.ak4_df.to_pickle(f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_ak4.pkl")
+        self.ak8_df.to_pickle(f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_ak8.pkl")
+        self.val_df.to_pickle(f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_val.pkl")
+        self.gen_df.to_pickle(f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_gen.pkl")
+        self.rtc_df.to_pickle(f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_rtc.pkl")
+        finish = time.perf_counter()
+        print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
 
     def lepCleaned_v2(self):
         # Clean ak4 and ak8 jets within dR of 0.4 and 0.8 of Lepton
@@ -143,6 +150,10 @@ class processAna :
         self.val_df['matchedGenLep'] = ((lep_match_dr < .1).sum() > 0)
 
     def recoZh(self):
+        # Note: in order to take advatage of numpy methods with dimensionallity
+        # it is necessary to numpy-ize (rectangularize) jagged-arrays using custom (hacky)
+        # function 'fillne'
+        #
         # create event level variables here
         # get ak4, ak8,val variables needed for analysis #
         l = 'Lep_'
@@ -164,18 +175,7 @@ class processAna :
         Zh_reco_cut = ((ak8_pt >= self.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.0)) # in future, put kinem cut values in cfg file
         Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_E,Zh_M,Zh_wtag,Zh_ttag,Zh_bbtag=lib.sortbyscore(
             [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,ak8_E,sd_M,w_tag,t_tag,ak8_bbtag],ak8_Zhbbtag,Zh_reco_cut)
-        self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
-        # take the best tagged H/Z -> bb and compute combinitorix 
-        self.val_df['Zh_score']  = Zh_Zhbbtag[:,0]
-        self.val_df['Zh_pt']     = Zh_pt[:,0]
-        self.val_df['Zh_eta']    = Zh_eta[:,0]
-        self.val_df['Zh_phi']    = Zh_phi[:,0]
-        self.val_df['Zh_E']      = Zh_E[:,0]
-        self.val_df['Zh_M']      = Zh_M[:,0]
-        self.val_df['Zh_Wscore'] = Zh_wtag[:,0]
-        self.val_df['Zh_Tscore'] = Zh_ttag[:,0]
-        self.val_df['Zh_deepB']  = Zh_bbtag[:,0]
-        #
+        # compute subject info related to Zh candidate : have to sort out candidate with no subjet
         ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt, subj_btag] for id_ in [subj1, subj2]]
         ak8_sj1_sdM, ak8_sj2_sdM, ak8_sj1_Zhbb, ak8_sj2_Zhbb = [ak8_k[id_ != -1] for ak8_k in [sd_M, ak8_Zhbbtag] for id_ in [subj1, subj2]]
         Zh_kinem_sj1_cut = ((ak8_sj1_pt>=self.pt_cut) & (ak8_sj1_sdM >= 50) & (ak8_sj1_sdM <= 200) & (ak8_sj1_Zhbb >= 0.0))
@@ -189,6 +189,62 @@ class processAna :
         Zh_sj_pt12 = np.nan_to_num(np.column_stack([Zh_sj1_pt[:,0], Zh_sj2_pt[:,0]]) )
         Zh_sjpt12_over_fjpt = (Zh_sj_pt12[:,0] +  Zh_sj_pt12[:,1])/Zh_pt[:,0]
         Zh_sjpt1_over_fjpt, Zh_sjpt2_over_fjpt  = [(Zh_sj_pt12[:,i])/Zh_pt[:,0] for i in range(2)]
+        # Calculate sphericity and aplanarity of the event
+        spher, aplan = lib.calc_SandA(
+            np.append(fillne(ak4_pt),  lep_pt .to_numpy()[:,np.newaxis], axis=1),
+            np.append(fillne(ak4_eta), lep_eta.to_numpy()[:,np.newaxis], axis=1),
+            np.append(fillne(ak4_phi), lep_phi.to_numpy()[:,np.newaxis], axis=1)
+        )
+        # Caclulate combinatorix between Zh and ak4, b, q, l || l and b
+        Zh_ak4_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],ak4_eta,ak4_phi)
+        Zh_b_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],b_eta,b_phi)
+        Zh_q_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],q_eta,q_phi)
+        Zh_l_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lep_eta,lep_phi)
+        Zh_l_invM_sd = lib.invM_sdM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],lep_pt,lep_eta,lep_phi,lep_E)
+        l_b_dr = deltaR(lep_eta.values,lep_phi.values,*map(fillne,[b_eta,b_phi]))
+        l_b_invM_E = lib.invM_E(lep_pt.values,lep_eta.values,lep_phi.values,lep_E.values,*map(fillne,[b_pt,b_eta,b_phi,b_E]))
+        getTLV  = TLorentzVectorArray.from_ptetaphi
+        b_tlv   = getTLV( *map(lambda b : fillne(b).T, [b_pt,b_eta,b_phi,b_E]))
+        lep_tlv = getTLV( lep_pt,lep_eta,lep_phi,lep_E)
+        bl_tlv = lep_tlv + b_tlv
+        lb_mtb = lib.calc_mtb(bl_tlv.pt.T,bl_tlv.phi.T,met_pt.values,met_phi.values)            
+        #
+        ind_lb = np.argsort(l_b_dr,axis=1) 
+        l_b_invM_E_dRsort, l_b_mtb_dRsort, l_b_dr_dRsort = [np.take_along_axis(lb_comb,ind_lb,axis=1) for lb_comb in [l_b_invM_E,lb_mtb,l_b_dr]]
+        max_l_b_dr,  min_l_b_dr  = np.nanmax(l_b_dr_dRsort, axis=1),     np.nanmin(l_b_dr_dRsort, axis=1)
+        max_lb_invM, min_lb_invM = np.nanmax(l_b_invM_E_dRsort, axis=1), np.nanmin(l_b_invM_E_dRsort, axis=1)
+        #
+        n_b_outZhbb = (Zh_b_dr > .8).counts
+        n_q_outZhbb = (Zh_q_dr > .8).counts
+        n_b_inZhbb  = (Zh_b_dr < .8).counts
+        n_q_inZhbb  = (Zh_q_dr < .8).counts
+        Zh_ak4_dr, Zh_b_dr, Zh_q_dr = fillne(Zh_ak4_dr), fillne(Zh_b_dr), fillne(Zh_q_dr)
+        ind_Zh_b = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
+        b_pt_dRsort, b_eta_dRsort, b_phi_dRsort, b_E_dRsort, b_btag_dRsort  = [np.take_along_axis(fillne(b_k),ind_Zh_b,axis=1) for b_k in [b_pt,b_eta,b_phi,b_E, b_btag]]
+        b1_tlv_dRsort = getTLV(b_pt_dRsort[:,0],b_eta_dRsort[:,0],b_phi_dRsort[:,0],b_E_dRsort[:,0])
+        b2_tlv_dRsort = getTLV(b_pt_dRsort[:,1],b_eta_dRsort[:,1],b_phi_dRsort[:,1],b_E_dRsort[:,1])
+        b12_pt_dRsort =  (b1_tlv_dRsort+b2_tlv_dRsort).pt
+        Zh_b_invM_sd = lib.invM_sdM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0],Zh_M[:,0],b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_E_dRsort)
+        mtb1 = calc_mtb(b_pt_dRsort[:,0],b_phi_dRsort[:,0],met_pt,met_phi)
+        mtb2 = calc_mtb(b_pt_dRsort[:,1],b_phi_dRsort[:,1],met_pt,met_phi)
+        best_Wb_invM_sd = np.where(((mtb2 > mtb1) & (mtb2 != np.nan)), Zh_b_invM_sd[:,1], Zh_b_invM_sd[:,0]) 
+        # find best resolved top candidate from ak4 jets outside of Zh candidate
+        ak4_outZh= np.where(Zh_ak4_dr>=.8,Zh_ak4_dr,np.nan)
+        rt_disc = fillne(self.rtc_df['ResolvedTopCandidate_discriminator'])
+        rt_id1, rt_id2, rt_id3   = self.rtc_df.loc(['ResolvedTopCandidate_j1Idx','ResolvedTopCandidate_j2Idx','ResolvedTopCandidate_j3Idx']).values()
+        clean_rtc_fromZh = self.clean_rtc_Zh(rt_disc, rt_id1, rt_id2, rt_id3, ak4_outZh, np.full(rt_disc.shape, 0.0))
+        best_rt_score = np.nanmax(clean_rtc_fromZh, axis=1)
+        #
+        self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
+        self.val_df['Zh_score']  = Zh_Zhbbtag[:,0]
+        self.val_df['Zh_pt']     = Zh_pt[:,0]
+        self.val_df['Zh_eta']    = Zh_eta[:,0]
+        self.val_df['Zh_phi']    = Zh_phi[:,0]
+        self.val_df['Zh_E']      = Zh_E[:,0]
+        self.val_df['Zh_M']      = Zh_M[:,0]
+        self.val_df['Zh_Wscore'] = Zh_wtag[:,0]
+        self.val_df['Zh_Tscore'] = Zh_ttag[:,0]
+        self.val_df['Zh_deepB']  = Zh_bbtag[:,0]
         self.val_df['n_Zh_btag_sj'] = np.sum(Zh_sj_b12 >= self.b_wp, axis=1)
         self.val_df['n_Zh_sj']       = np.sum(Zh_sj_b12 >= 0, axis=1)
         self.val_df['Zh_bestb_sj']   = np.nan_to_num(np.nanmax(Zh_sj_b12, axis=1))
@@ -197,129 +253,69 @@ class processAna :
         self.val_df['sjpt12_over_Zhpt'] = Zh_sjpt12_over_fjpt
         self.val_df['sjpt1_over_Zhpt'] = Zh_sjpt1_over_fjpt
         self.val_df['sjpt2_over_Zhpt'] = Zh_sjpt2_over_fjpt
-        #
-        spher, aplan = lib.calc_SandA(
-            np.append(fillne(ak4_pt),  lep_pt .to_numpy()[:,np.newaxis], axis=1),
-            np.append(fillne(ak4_eta), lep_eta.to_numpy()[:,np.newaxis], axis=1),
-            np.append(fillne(ak4_phi), lep_phi.to_numpy()[:,np.newaxis], axis=1)
-        )
+
         self.val_df['spher'] = spher
         self.val_df['aplan'] = aplan
-        #
-        Zh_b_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],b_eta,b_phi)
-        Zh_q_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],q_eta,q_phi)
-        Zh_l_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lep_eta,lep_phi)
-        Zh_l_invmsd = lib.invM_sdM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],lep_pt,lep_eta,lep_phi,lep_E)
-        l_b_dr = deltaR(lep_eta.values,lep_phi.values,b_eta,b_phi)
-        l_b_invmE = lib.invM_E(lep_pt.values,lep_eta.values,lep_phi.values,lep_E.values,b_pt,b_eta,b_phi,b_E)
-        ##################################################3
-        import uproot_methods
-        b_tlv = uproot_methods.TLorentzVectorArray.from_ptetaphi( b_pt.T,b_eta.T,b_phi.T,b_E.T)
-        lep_tlv = uproot_methods.TLorentzVectorArray.from_ptetaphi( lep_pt,lep_eta,lep_phi,lep_E)
-        bl_tlv = lep_tlv + b_tlv
-        lb_mtb = lib.calc_mtb(bl_tlv.pt.T,bl_tlv.phi.T,met_pt.values,met_phi.values)            
-        #
-        ind_lb = np.argsort(lb_dr,axis=1) 
-        lb_invm_E_dRsort= np.take_along_axis(lb_invm_E,ind_lb,axis=1)
-        lb_mtb_dRsort   = np.take_along_axis(lb_mtb,ind_lb,axis=1)
-        lb_dr_dRsort    = np.take_along_axis(lb_dr,ind_lb,axis=1)
-        max_lb_dRsort = np.nanmax(lb_dr_dRsort, axis=1)
-        min_lb_dRsort = np.nanmin(lb_dr_dRsort, axis=1)
-        max_lb_invm = np.nanmax(lb_invm_E_dRsort, axis=1)
-        min_lb_invm = np.nanmin(lb_invm_E_dRsort, axis=1)
-        self.val_df['max_lb_dr'] = max_lb_dr
-        self.val_df['min_lb_dr'] = min_lb_dr
-        self.val_df['max_lb_invm'] = max_lb_invm
-        self.val_df['min_lb_invm'] = min_lb_invm
-        #
-        n_b_outZhbb = np.count_nonzero(Zh_b_dr > .8, axis=1)
-        n_q_outZhbb = np.count_nonzero(Zh_q_dr > .8, axis=1)
-        n_b_inZhbb  = np.count_nonzero(Zh_b_dr < .8, axis=1)
-        n_q_inZhbb  = np.count_nonzero(Zh_q_dr < .8, axis=1)
-        #
-        veto_dr = np.where(Zh_b_dr> 0, Zh_b_dr,Zh_q_dr)
-        veto_ind= np.where(veto_dr>=.8,veto_dr,np.nan)
-        # rewrite this section with numba ======================================================
-        rt_disc = df[key_]['valRC']['ResolvedTopCandidate_discriminator']
-        rt_id   = df[key_]['valRC']['ResolvedTopCandidate_j1j2j3Idx']
-        best_rt_score = []
-        for idx1_, (i,j) in enumerate(zip(veto_ind,rt_id)):
-            for idx2_, k in enumerate(j):                    
-                if (k == '0.0.0'):
-                    rt_disc[idx1_][idx2_] = np.nan
-                    continue
-                j1_ = int(k.split('.')[0])-1
-                j2_ = int(k.split('.')[1])-1
-                j3_ = int(k.split('.')[2])-1
-                if ((np.isnan(i[j1_])) or (np.isnan(i[j2_])) or (np.isnan(i[j3_]))):
-                    rt_disc[idx1_][idx2_] = np.nan
-            #
-            if (len(rt_disc[idx1_]) > 0):
-                best_rt_score.append(np.nanmax(rt_disc[idx1_]))
-            else:
-                best_rt_score.append(np.nan)
-        #
-        best_rt_score = np.nan_to_num(np.array(best_rt_score))
-        # end of numba rewrite =================================================================
-        #
-        ind = np.argsort(np.where(Zhb_dr > 0.8, Zhb_dr, np.nan),axis=1)
-        b_pt_dRsort  = np.take_along_axis(b_pt,ind,axis=1)
-        b_eta_dRsort = np.take_along_axis(b_eta,ind,axis=1)
-        b_phi_dRsort = np.take_along_axis(b_phi,ind,axis=1)
-        b_E_dRsort   = np.take_along_axis(b_E,ind,axis=1) 
-        b_disc_dRsort= np.take_along_axis(b_disc,ind,axis=1)
-        b1_tlv_dRsort = uproot_methods.TLorentzVectorArray.from_ptetaphi(b_pt_dRsort[:,0],b_eta_dRsort[:,0],b_phi_dRsort[:,0],b_E_dRsort[:,0])
-        b2_tlv_dRsort = uproot_methods.TLorentzVectorArray.from_ptetaphi(b_pt_dRsort[:,1],b_eta_dRsort[:,1],b_phi_dRsort[:,1],b_E_dRsort[:,1])
-        b12_pt_dRsort =  (b1_tlv_dRsort+b2_tlv_dRsort).pt
-        Zhb_invM_sd = lib.invM_sdM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0],Zh_M[:,0],b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_E_dRsort)
-        mtb1 = calc_mtb(b_pt_dRsort[:,0],b_phi_dRsort[:,0],met_pt,met_phi)
-        mtb2 = calc_mtb(b_pt_dRsort[:,1],b_phi_dRsort[:,1],met_pt,met_phi)
-        best_Wb_invM_sd = np.where(((mtb2 > mtb1) & (mtb2 != np.nan)), Zhb_invM_sd[:,1], Zhb_invM_sd[:,0]) 
-        #
-        self.val_df['b1_outZh_score'] = b_disc_dRsort[:,0]
-        self.val_df['b2_outZh_score'] = b_disc_dRsort[:,1]
+        
+        self.val_df['max_lb_dr'] = max_l_b_dr
+        self.val_df['min_lb_dr'] = min_l_b_dr
+        self.val_df['max_lb_invM'] = max_lb_invM
+        self.val_df['min_lb_invM'] = min_lb_invM
+
+        self.val_df['b1_outZh_score'] = b_btag_dRsort[:,0]
+        self.val_df['b2_outZh_score'] = b_btag_dRsort[:,1]
         self.val_df['b1_over_Zhpt']       = b_pt_dRsort[:,0]/Zh_pt[:,0]
         self.val_df['b2_over_Zhpt']       = b_pt_dRsort[:,1]/Zh_pt[:,0]
-        self.val_df['bboZhZpt']       = b12_pt_dRsort/Zh_pt[:,0]
-        self.val_df['mtb1_outZh']  = mtb1
-        self.val_df['mtb2_outZh']  = mtb2
-        self.val_df['best_Zh_b_invM_sd'] = best_Wb_invM_sd
-        self.val_df['Zh_b_invM1_sd']  = Zhb_invM_sd[:,0]
-        self.val_df['Zh_b_invM2_sd']  = Zhb_invM_sd[:,1]
-        self.val_df['nonZhbbq1_pt'] = -np.sort(-np.where(Zhq_dr > 0.8, j_pt, np.nan),axis = 1 )[:,0]
-        self.val_df['nonZhbbq2_pt'] = -np.sort(-np.where(Zhq_dr > 0.8, j_pt, np.nan),axis = 1 )[:,1]
-        self.val_df['nonZhbbq1_dr'] = np.sort(np.where(Zhq_dr > 0.8, Zhq_dr, np.nan),axis = 1 )[:,0]
-        self.val_df['nonZhbbq2_dr'] = np.sort(np.where(Zhq_dr > 0.8, Zhq_dr, np.nan),axis = 1 )[:,1]
-        self.val_df['nonZhbb_b1_dr'] = np.sort(np.where(Zhb_dr > 0.8, Zhb_dr, np.nan),axis = 1 )[:,0]
-        self.val_df['nonZhbb_b2_dr'] = np.sort(np.where(Zhb_dr > 0.8, Zhb_dr, np.nan),axis = 1 )[:,1]
-        self.val_df['n_b_outZh'] = n_b_outZhbb
-        self.val_df['n_b_inZh'] = n_b_inZhbb
-        self.val_df['n_q_outZh'] = n_q_outZhbb
-        self.val_df['n_q_inZh'] = n_q_inZhbb
-        
-        self.val_df['Zh_l_dr']  = Zh_l_dr
-        self.val_df['Zh_l_invm_sd']  = Zh_l_invm_sd
+        self.val_df['bb_over_Zhpt']       = b12_pt_dRsort/Zh_pt[:,0]
+        self.val_df['best_Zh_b_invM_sd']  = best_Wb_invM_sd
+        self.val_df['Zh_b1_invM_sd'] = Zh_b_invM_sd[:,0]
+        self.val_df['Zh_b2_invM_sd'] = Zh_b_invM_sd[:,1]
+        self.val_df['nonZhbb_q1_pt'] = -np.sort(-np.where(Zh_q_dr > 0.8, fillne(q_pt), np.nan),axis = 1 )[:,0]
+        self.val_df['nonZhbb_q2_pt'] = -np.sort(-np.where(Zh_q_dr > 0.8, fillne(q_pt), np.nan),axis = 1 )[:,1]
+        self.val_df['nonZhbb_q1_dr'] =  np.sort( np.where(Zh_q_dr > 0.8, Zh_q_dr, np.nan),axis = 1 )[:,0]
+        self.val_df['nonZhbb_q2_dr'] =  np.sort( np.where(Zh_q_dr > 0.8, Zh_q_dr, np.nan),axis = 1 )[:,1]
+        self.val_df['nonZhbb_b1_dr'] =  np.sort( np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis = 1 )[:,0]
+        self.val_df['nonZhbb_b2_dr'] =  np.sort( np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis = 1 )[:,1]
+        self.val_df['n_b_outZh']     = n_b_outZhbb
+        self.val_df['n_b_inZh']      = n_b_inZhbb
+        self.val_df['n_q_outZh']     = n_q_outZhbb
+        self.val_df['n_q_inZh']      = n_q_inZhbb
+        self.val_df['Zh_l_dr']       = Zh_l_dr
+        self.val_df['Zh_l_invM_sd']  = Zh_l_invM_sd
         self.val_df['best_rt_score'] = best_rt_score
-
-        self.val_df['l_b_mtb1'] = l_b_mtb_dRsort[:,0]
-        self.val_df['l_b_invm1'] = l_b_invm_E_dRsort[:,0]
-        self.val_df['l_b_dr1'] = l_b_dr_dRsort[:,0]
-        self.val_df['l_b_mtb2'] = l_b_mtb_dRsort[:,1]
-        self.val_df['l_b_invm2'] = l_b_invm_E_dRsort[:,1]
-        self.val_df['l_b_dr2'] = l_b_dr_dRsort[:,1]
+        self.val_df['l_b1_mtb']  = l_b_mtb_dRsort[:,0]
+        self.val_df['l_b1_invM'] = l_b_invM_E_dRsort[:,0]
+        self.val_df['l_b1_dr']   = l_b_dr_dRsort[:,0]
+        self.val_df['l_b2_mtb']  = l_b_mtb_dRsort[:,1]
+        self.val_df['l_b2_invM'] = l_b_invM_E_dRsort[:,1]
+        self.val_df['l_b2_dr']   = l_b_dr_dRsort[:,1]
         #####################################################
-        
+
+    @staticmethod
+    @njit(parallel=True)
+    def clean_rtc_Zh(rtd, j1, j2, j3, ak4, out):
+        rows, cols = out.shape
+        for i in prange(rows):
+            for j in prange(cols):
+                if np.isnan(j1[i,j]) | np.isnan(j2[i,j]) | np.isnan(j3[i,j]):
+                    continue
+                if np.isnan(ak4[i,int(j1[i,j])]) | np.isnan(ak4[i,int(j2[i,j])]) | np.isnan(ak4[i,int(j3[i,j])]):
+                    continue
+                else:
+                    out[i,j] = rtd[i,j]
+        return out        
 
 if __name__ == '__main__':
     #
     # will need to open pkl files for testing
+    sample = 'DY'
     print('Reading Files...')
     dir_ = 'test_ja_files/'
-    ak4_df = AnaDict.read_pickle(dir_+'TTZH_2017_ak4.pkl')
-    ak8_df = AnaDict.read_pickle(dir_+'TTZH_2017_ak8.pkl')
-    val_df = pd     .read_pickle(dir_+'TTZH_2017_val.pkl')
-    gen_df = AnaDict.read_pickle(dir_+'TTZH_2017_gen.pkl')
-    rtc_df = AnaDict.read_pickle(dir_+'TTZH_2017_rtc.pkl')
+    ak4_df = AnaDict.read_pickle(dir_+f'{sample}_2017_ak4.pkl')
+    ak8_df = AnaDict.read_pickle(dir_+f'{sample}_2017_ak8.pkl')
+    val_df = pd     .read_pickle(dir_+f'{sample}_2017_val.pkl')
+    gen_df = AnaDict.read_pickle(dir_+f'{sample}_2017_gen.pkl')
+    rtc_df = AnaDict.read_pickle(dir_+f'{sample}_2017_rtc.pkl')
     print('Processing data...')
-    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df}
+    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample}
     processAna(process_ana_dict)

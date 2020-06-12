@@ -14,6 +14,7 @@ import time
 from collections import defaultdict
 from numba import njit, prange
 import concurrent.futures
+import functools
 #
 import deepsleepcfg as cfg
 from fun_library import fillne
@@ -31,15 +32,17 @@ class getData :
     and transform into pandas dataframes 
     '''
     # Allowed class variables
-    files      = cfg.files
-    sample     = None
-    outDir     = cfg.skim_dir
+    isData     = False
+    roofile    = 'MC_2017'
+    sample     = 'TTZH'
+    outDir     = 'files'
     njets      = 2
-    maxAk4Jets  = 6
+    maxAk4Jets = 6
     treeDir    = cfg.tree_dir
     getGenData = False # doesnt do anything atm
     getak8var  = False # doesnt do anything atm
-    
+    estart     = None
+    estop      = None
     
 
     def __init__ (self, kwargs):
@@ -48,34 +51,28 @@ class getData :
 
     def get_root_data(self):
         # open root file
-        for file_ in self.files: 
-            if not os.path.exists(cfg.file_path+file_+'.root') : continue
-            with uproot.open(cfg.file_path+file_+'.root') as f_:
-                print(f'Opening File:\t{file_}')
-                tree_dir = f_.get(self.treeDir)
-                print(self.sample)
-                start = time.perf_counter()
-                t = tree_dir.get(self.sample)
-                self.DF_Container.set_current_tree_mask(t)
-                # 
-                ak4_df   = self.DF_Container(cfg.ak4lvec['TLVarsLC']+cfg.ak4vars,'ak4',   'AK4_Variables')
-                ak8_df   = self.DF_Container(cfg.ak8lvec['TLVarsLC']+cfg.ak8vars,'ak8',   'AK8_Variables')
-                val_df   = self.DF_Container(cfg.valvars+cfg.sysvars,            'event', 'Event_Variables')
-                gen_df   = self.DF_Container(cfg.genpvars,                       'gen', 'GenPart_Variables')
-                ##
-                val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = self.DF_Container.n_ak4jets, self.DF_Container.n_ak8jets
-                #
-                rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ak4lvec['TLVarsLC']).sum())
-                #
-                ak4_df.df.to_pickle(self.outDir+self.sample+file_[-5:]+'_ak4.pkl')# replace test at some point FIXME
-                ak8_df.df.to_pickle(self.outDir+self.sample+file_[-5:]+'_ak8.pkl')# replace test at some point FIXME
-                val_df.df.to_pickle(self.outDir+self.sample+file_[-5:]+'_val.pkl')# replace test at some point FIXME
-                gen_df.df.to_pickle(self.outDir+self.sample+file_[-5:]+'_gen.pkl')# replace test at some point FIXME
-                rtc_df   .to_pickle(self.outDir+self.sample+file_[-5:]+'_rtc.pkl')# replace test at some point FIXME
-                #
-                finish = time.perf_counter()
-                print(f'\nTime to finish {self.sample}: {finish-start:.1f}\n')
-                #
+        #if not os.path.exists(cfg.file_path+self.roofile+'.root') : raise
+        with uproot.open(cfg.file_path+self.roofile+'.root') as f_:
+            print(f'Opening File:\t{self.roofile}')
+            tree_dir = f_.get(self.treeDir)
+            print(self.sample)
+            start = time.perf_counter()
+            t = tree_dir.get(self.sample)
+            self.DF_Container.set_current_tree_mask(t)
+            # 
+            ak4_df   = self.DF_Container(cfg.ak4lvec['TLVarsLC']+cfg.ak4vars,'ak4',   'AK4_Variables')
+            ak8_df   = self.DF_Container(cfg.ak8lvec['TLVarsLC']+cfg.ak8vars,'ak8',   'AK8_Variables')
+            val_df   = self.DF_Container(cfg.valvars+cfg.sysvars,            'event', 'Event_Variables')
+            gen_df   = self.DF_Container(cfg.genpvars,                       'gen', 'GenPart_Variables')
+            ##
+            val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = self.DF_Container.n_ak4jets, self.DF_Container.n_ak8jets
+            #
+            rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ak4lvec['TLVarsLC']).sum())
+            #
+            finish = time.perf_counter()
+            print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
+            return ak4_df.df, ak8_df.df, val_df.df, gen_df.df, rtc_df
+            #
     #
     def cleanRC(self,ak4_LC):
         RC_ak4    = self.DF_Container(cfg.ak4lvec['TLVars'], 'other',   'RC_AK4LVec' )
@@ -127,9 +124,10 @@ class getData :
         '''
         container to dynamically handle root variables
         and save to .pkl files for further analysis
-        container type must be ak4, ak8, or other
+        container type must be ak4, ak8, event, gen, RC, or other
         '''
-        current_tree = None
+        tarray       = None
+        tpandas      = None
         allowed_types = ['ak4', 'ak8', 'event', 'gen', 'RC', 'other']
     
         # pre-selection cuts need to be applied when getting data from tree to increase speed
@@ -151,12 +149,11 @@ class getData :
             self.df = self.extract_and_cut()
     
         def extract_and_cut(self):
-            tree_to_df = self.current_tree.pandas.df
             type_indexer = defaultdict(
                 None,{'ak4':  lambda v: self.build_dict(v)[self.ak4_mask][self.event_mask],
                       'ak8':  lambda v: AnaDict({**self.build_dict(v[:-2])[self.ak8_mask][self.event_mask],  # seperate subjet in config FIXME
                                                  **self.build_dict(v[-2:])[self.event_mask]}),# seperate subjet in config FIXME 
-                      'event':lambda v: tree_to_df(v)[self.event_mask],
+                      'event':lambda v: self.tpandas(v)[self.event_mask],
                       'gen'  :lambda v: self.build_dict(v)[self.event_mask],
                       'RC'   :lambda v: self.build_dict(v)[self.rtcd_mask][self.event_mask],
                       'other':lambda v: self.build_dict(v)[self.event_mask]})
@@ -171,12 +168,13 @@ class getData :
     
         @classmethod
         def set_current_tree_mask(cls,tree):
-            cls.current_tree = tree
+            cls.tarray  = functools.partial(tree.array,      entrystop=getData.estop)
+            cls.tpandas = functools.partial(tree.pandas.df , entrystop=getData.estop)
             #
             jet_pt_eta    = cls.build_dict(cfg.ak4lvec['TLVarsLC'][:2])
             fatjet_pt_eta = cls.build_dict(cfg.ak8lvec['TLVarsLC'][:2])
             
-            rtcd = tree.array(cfg.valRCvars[0])
+            rtcd = cls.tarray(cfg.valRCvars[0])
             j_pt_key, j_eta_key   = cfg.ak4lvec['TLVarsLC'][:2]
             fj_pt_key, fj_eta_key = cfg.ak8lvec['TLVarsLC'][:2]
             
@@ -197,17 +195,18 @@ class getData :
         @classmethod
         def build_dict(cls,keys):
             executor = concurrent.futures.ThreadPoolExecutor()
-            return AnaDict({k: cls.current_tree.array(k, executor=executor) for k in keys})
+            return AnaDict({k: cls.tarray(k, executor=executor) for k in keys})
             
 
 ##
 
 if __name__ == '__main__':
     #
-    getData_cfg = {'files': ['MC_2017'], 'samples': cfg.ZHbbFitCfg[1], 'outDir': cfg.skim_ZHbb_dir,
+    getData_cfg = {'files': ['MC_2017'], 'sample': 'TTZH', 'outDir': cfg.skim_ZHbb_dir,
                    'njets':cfg.ZHbbFitCut[1], 'maxJets':cfg.ZHbbFitMaxJets, 
-                   'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True}
+                   'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True,
+                   'estop': None}
     #
-    getData(getData_cfg)
+    _ = getData(getData_cfg)
 
              

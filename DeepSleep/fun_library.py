@@ -18,8 +18,6 @@ import pickle
 import math
 #
 import deepsleepcfg as cfg
-import processData  as prD 
-import kinematicFit as kFit
 #
 import numpy as np
 import pandas as pd
@@ -242,7 +240,7 @@ def StackedHisto(df_, kinem_, range_, xlabel_, n_bins=20):
                   df_[key_]['val']['BTagWeight'][base_cuts]*df_[key_]['val']['puWeight'][base_cuts]*df_[key_]['val']['PrefireWeight'][base_cuts])
         n_, bins_,_ = plt.hist(h[i_], weights=w[i_])
         integral.append( sum(n_[:]))
-        la_label, color = kFit.getLaLabel(key_)
+        la_label, color = getLaLabel(key_)
         labels.append( la_label + ' ({0:3.1f})'.format(integral[i_]))
         colors.append( color)
         plt.close('all')
@@ -287,6 +285,53 @@ def StackedHisto(df_, kinem_, range_, xlabel_, n_bins=20):
     plt.close(fig)
     #    
 # 
+def getLaLabel(str_):
+    str_ = str_.split('_201')[0] # get rid of year suffix
+    la_str = ''
+    col_str= ''
+    la_col_map = {
+        'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
+                            'tab:blue'],
+        'TTZH':            [r't$\mathregular{\bar{t}}$Z/H',
+                            'tab:blue'],
+        'TTZH_GenMatch':   [r't$\mathregular{\bar{t}}$Z/H_genMatchedZHbb',
+                            'indianred'],
+        'TTZH_noGenMatch': [r't$\mathregular{\bar{t}}$Z/H_nogenMatchedZHbb',
+                            'black'],
+        'TTZH_genZbb':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedZbb',
+                            'tab:blue'],
+        'TTZH_genZqq':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedZqq',
+                            'darkgreen'],
+        'TTZH_genHbb':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedHbb',
+                            'gold'],
+        'TTZH_Zbb':        [r't$\mathregular{\bar{t}}$Ztobb',
+                            'tab:blue'],
+        'TTZH_Zqq':        [r't$\mathregular{\bar{t}}$Ztoqq',
+                            'darkgreen'],
+        'TTZH_Hbb':        [r't$\mathregular{\bar{t}}$Htobb',
+                            'gold'],
+        'DY':              ['Drell-Yan',
+                            'tab:orange'],
+        'DiBoson':         ['VV',
+                            'tab:olive'],
+        'TriBoson':        ['VVV',
+                            'tab:pink'],
+        'TTX':             [r't($\mathregular{\bar{t}}$)X',
+                            'tab:red'],
+        'TTBarLep':        [r't$\mathregular{\bar{t}}$',
+                            'tab:green'],
+        'TTBarHad':        [r't$\mathregular{\bar{t}}$',
+                            'tab:brown'],
+        'WJets':           [r'W$+$jets',
+                            'tab:cyan'],
+        'ZJets':           [r'Z$+$jets',
+                            'tab:gray'],
+        'QCD':             [r'QCD',
+                            'tab:purple']
+    }
+    la_str, col_str = la_col_map[str_]
+    return la_str, col_str
+
 def calc_Kappa(df_,nn_range):
     sig = 'TTZH'
     bkg = 'TTBarLep'
