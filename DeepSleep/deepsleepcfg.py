@@ -15,6 +15,7 @@ skim_kinemFit_dir = master_file_path+'skim_kinemFit/'
 skim_Zinv_dir     = master_file_path+'skim_Zinv/'
 ##
 skim_ZHbb_dir     = master_file_path+'skim_ZHbb_200/' # skim_ZHbb
+ZHptcut           = 200
 ##
 ##############
 sample_maxJets  = {'DiLep':{'DY':14, 'TTZ':14, 'TTX':14, 'TTBarLep':11, 'DiBoson':11, 'TriBoson':10},
@@ -46,6 +47,7 @@ ZHbbFitCfg    = (['result_2017'],#
 ZHbbFitCut    = (operator.ge, 4)
 ZHbbFitoverlap = 0
 ZHbbFitMaxJets = 100
+ZHbb_btagWP    = .4941 # Med for 2017
 # ttZ/H->bb SM x-section
 ZHbbXsec = {'ttZbb': .1157,
             'ttHbb': .2934 }
