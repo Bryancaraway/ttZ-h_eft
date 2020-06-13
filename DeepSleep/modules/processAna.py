@@ -11,11 +11,11 @@
 import time
 from numba import njit, prange
 from uproot_methods import TLorentzVectorArray
-#
-import deepsleepcfg as cfg
-import fun_library as lib
-from fun_library import fill1e, fillne, deltaR, deltaPhi, invM, calc_mtb
-from AnaDict import AnaDict
+# Custom cfg, lib, modules
+from cfg import deepsleepcfg as cfg
+import lib.fun_library as lib
+from lib.fun_library import fill1e, fillne, deltaR, deltaPhi, invM, calc_mtb
+from modules.AnaDict import AnaDict
 #
 import numpy as np
 np.random.seed(0)

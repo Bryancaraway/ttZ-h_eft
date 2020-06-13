@@ -1,8 +1,8 @@
 import sys
 import time
-import deepsleepcfg as cfg
-from getdata import getData
-from processAna import processAna
+import cfg.deepsleepcfg as cfg
+from modules.getdata import getData
+from modules.processAna import processAna
 # testing pbs batch system
 start = time.perf_counter()
 #####
@@ -12,7 +12,7 @@ isData   = 'Data' in roofile
 isSignal = 'TTZH'     in sample
 isttbar  = 'TTBarLep' in sample
 
-getData_cfg = {'roofile': roofile, 'samples': [sys.argv[1]], 'outDir': 'files/',
+getData_cfg = {'roofile': roofile, 'sample': sys.argv[1], 'outDir': 'files/',
                'njets':cfg.ZHbbFitCut[1], 'maxJets':cfg.ZHbbFitMaxJets,
                'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True}
 #

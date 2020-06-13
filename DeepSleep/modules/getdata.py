@@ -16,9 +16,9 @@ from numba import njit, prange
 import concurrent.futures
 import functools
 #
-import deepsleepcfg as cfg
-from fun_library import fillne
-from AnaDict import AnaDict
+from cfg import deepsleepcfg as cfg
+from lib.fun_library import fillne
+from modules.AnaDict import AnaDict
 #
 import numpy as np
 np.random.seed(0)

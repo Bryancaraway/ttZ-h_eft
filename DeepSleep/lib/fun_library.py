@@ -17,7 +17,7 @@ import os
 import pickle
 import math
 #
-import deepsleepcfg as cfg
+from cfg import deepsleepcfg as cfg
 #
 import numpy as np
 import pandas as pd
