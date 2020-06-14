@@ -8,5 +8,8 @@ init:
 	@bash setup.sh
 	@pip install -r requirements.txt
 
+.PHONY: hi init clean
+clean:
+	@rm -rf  *~
+	@rm -rf */*~
 
-.PHONY: hi init

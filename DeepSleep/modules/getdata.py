@@ -17,7 +17,7 @@ import concurrent.futures
 import functools
 #
 from cfg import deepsleepcfg as cfg
-from lib.fun_library import fillne
+from lib.fun_library import fillne, t2Run
 from modules.AnaDict import AnaDict
 #
 import numpy as np
@@ -59,23 +59,24 @@ class getData :
             t = tree_dir.get(self.sample)
             self.DF_Container.set_current_tree_mask(t)
             # 
-            ak4_df   = self.DF_Container(cfg.ak4lvec['TLVarsLC']+cfg.ak4vars,'ak4',   'AK4_Variables')
-            ak8_df   = self.DF_Container(cfg.ak8lvec['TLVarsLC']+cfg.ak8vars,'ak8',   'AK8_Variables')
-            val_df   = self.DF_Container(cfg.valvars+cfg.sysvars,            'event', 'Event_Variables')
-            gen_df   = self.DF_Container(cfg.genpvars,                       'gen', 'GenPart_Variables')
+            ak4_df   = self.DF_Container('ak4',   'AK4_Variables')
+            ak8_df   = self.DF_Container('ak8',   'AK8_Variables')
+            val_df   = self.DF_Container('event', 'Event_Variables')
+            gen_df   = self.DF_Container('gen', 'GenPart_Variables')
             ##
             val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = self.DF_Container.n_ak4jets, self.DF_Container.n_ak8jets
             #
-            rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ak4lvec['TLVarsLC']).sum())
+            rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ana_vars['ak4lvec']['TLVarsLC']).sum())
             #
             finish = time.perf_counter()
             print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
             return ak4_df.df, ak8_df.df, val_df.df, gen_df.df, rtc_df
             #
     #
+    #@t2Run
     def cleanRC(self,ak4_LC):
-        RC_ak4    = self.DF_Container(cfg.ak4lvec['TLVars'], 'other',   'RC_AK4LVec' )
-        RC_vars   = self.DF_Container(cfg.valRCvars,         'RC',      'RC_TopInfo' )
+        RC_ak4    = self.DF_Container('other',   'RC_AK4LVec', var=cfg.ana_vars['ak4lvec']['TLVars'])
+        RC_vars   = self.DF_Container('RC',      'RC_TopInfo' )
         RC_vars   = RC_vars.df
         ##
         ak4    = fillne(RC_ak4.df.sum())
@@ -140,18 +141,30 @@ class getData :
         n_ak4jets  = None
         n_ak8jets  = None
         
-        def __init__(self, variables, var_type, name):
-            self.variables = variables
+        def __init__(self, var_type, name, var=None,):
+            self.variables = (self.var_dict(var_type) if var is None else var)
+        
             self.var_type  = var_type
             self.name      = name
             # handle df depending on type 
             self.df = self.extract_and_cut()
-    
+
+        @staticmethod
+        def var_dict(_type):
+            _dict  = {
+                'ak4'   : cfg.ana_vars['ak4lvec']['TLVarsLC']+cfg.ana_vars['ak4vars'],
+                'ak8'   : cfg.ana_vars['ak8lvec']['TLVarsLC']+cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8sj'],
+                'event' : cfg.ana_vars['valvars']+([] if getData.isData else cfg.ana_vars['sysvars']),
+                'gen'   : cfg.ana_vars['genpvars'],
+                'RC'    : cfg.ana_vars['valRCvars']}
+            return _dict[_type]
+
+        #@t2Run
         def extract_and_cut(self):
             type_indexer = defaultdict(
                 None,{'ak4':  lambda v: self.build_dict(v)[self.ak4_mask][self.event_mask],
-                      'ak8':  lambda v: AnaDict({**self.build_dict(v[:-2])[self.ak8_mask][self.event_mask],  # seperate subjet in config FIXME
-                                                 **self.build_dict(v[-2:])[self.event_mask]}),# seperate subjet in config FIXME 
+                      'ak8':  lambda v: AnaDict({**self.build_dict(v[:-2])[self.ak8_mask][self.event_mask],# super hacky but works
+                                                 **self.build_dict(v[-2:])[self.event_mask]}),
                       'event':lambda v: self.tpandas(v)[self.event_mask],
                       'gen'  :lambda v: self.build_dict(v)[self.event_mask],
                       'RC'   :lambda v: self.build_dict(v)[self.rtcd_mask][self.event_mask],
@@ -159,23 +172,23 @@ class getData :
             try:
                 df = type_indexer[self.var_type](self.variables)
             except KeyError:
-                raise KeyError(f"Name '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
+                raise KeyError(f"At least one variable not found:{self.variables}\nName '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
             return df
             
         def apply_event_mask(self,df):
             return df[self.event_mask[df.index.get_level_values('entry')].values]
-    
+            
         @classmethod
         def set_current_tree_mask(cls,tree):
             cls.tarray  = functools.partial(tree.array,      entrystop=getData.estop)
             cls.tpandas = functools.partial(tree.pandas.df , entrystop=getData.estop)
             #
-            jet_pt_eta    = cls.build_dict(cfg.ak4lvec['TLVarsLC'][:2])
-            fatjet_pt_eta = cls.build_dict(cfg.ak8lvec['TLVarsLC'][:2])
+            jet_pt_eta    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:2])
+            fatjet_pt_eta = cls.build_dict(cfg.ana_vars['ak8lvec']['TLVarsLC'][:2])
             
-            rtcd = cls.tarray(cfg.valRCvars[0])
-            j_pt_key, j_eta_key   = cfg.ak4lvec['TLVarsLC'][:2]
-            fj_pt_key, fj_eta_key = cfg.ak8lvec['TLVarsLC'][:2]
+            rtcd = cls.tarray(cfg.ana_vars['valRCvars'][0])
+            j_pt_key, j_eta_key   = cfg.ana_vars['ak4lvec']['TLVarsLC'][:2]
+            fj_pt_key, fj_eta_key = cfg.ana_vars['ak8lvec']['TLVarsLC'][:2]
             
             #
             cls.ak4_mask  = ((jet_pt_eta[j_pt_key] >= 30) & (abs(jet_pt_eta[j_eta_key]) <= 2.4))

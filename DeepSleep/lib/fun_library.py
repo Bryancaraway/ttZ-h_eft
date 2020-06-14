@@ -16,6 +16,8 @@ import sys
 import os
 import pickle
 import math
+import time
+from numba import njit, jit, prange
 #
 from cfg import deepsleepcfg as cfg
 #
@@ -28,8 +30,21 @@ np.random.seed(0)
 ######## Basic Calculations ########
 def fill1e(one_d_array):
     return pd.DataFrame.from_records(one_d_array).values.flatten()
-def fillne(n_d_array):
+def old_fillne(n_d_array):
     return pd.DataFrame.from_records(n_d_array).values
+    #
+def fillne(nd_array):
+    counts_ = np.array(nd_array.counts)
+    rect_ , flat_ = np.full((len(nd_array),max(counts_)),np.nan), np.array(nd_array.flatten())
+    @njit
+    def c_fillne(ja, o, c):
+        rows, _ = o.shape
+        c_i = 0
+        for i in range(rows):
+            o[i,:c[i]] = ja[c_i:c_i+c[i]]
+            c_i += c[i]
+        return o
+    return c_fillne(flat_, rect_, counts_)
     #
 def sortbyscore(vars_, score_, cut_):
     ret_vars_ = []
@@ -426,3 +441,13 @@ def calc_Kappa(df_,nn_range):
         [bl_eff,az_eff,ah_eff,br_eff],
         [bl_eff_err,az_eff_err,ah_eff_err,br_eff_err]
     ]
+
+# decorator to display the time it takes to run function
+def t2Run(func):
+    def wrapper(*args,**kwargs):
+        start  = time.perf_counter()
+        out = func(*args, **kwargs)
+        finish = time.perf_counter()
+        print(f'\nTime to finish {func.__name__}: {finish-start:.2f}\n')
+        return out
+    return wrapper
