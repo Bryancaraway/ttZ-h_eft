@@ -6,7 +6,7 @@ import operator
 #
 master_file_path  = './files/'
 # Overhead #
-file_path         = master_file_path+'root/'
+file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/'
 files             = ['result_2016','result_2017','result_2018_AB','result_2018_CD', 'result_2018']
 tree_dir          = 'Training'
 MCsamples         = ['TTZ','DY','TTX','DiBoson','TTBarLep']
@@ -15,6 +15,7 @@ skim_kinemFit_dir = master_file_path+'skim_kinemFit/'
 skim_Zinv_dir     = master_file_path+'skim_Zinv/'
 ##
 skim_ZHbb_dir     = master_file_path+'skim_ZHbb_200/' # skim_ZHbb
+ZHptcut           = 200
 ##
 ##############
 sample_maxJets  = {'DiLep':{'DY':14, 'TTZ':14, 'TTX':14, 'TTBarLep':11, 'DiBoson':11, 'TriBoson':10},
@@ -46,6 +47,7 @@ ZHbbFitCfg    = (['result_2017'],#
 ZHbbFitCut    = (operator.ge, 4)
 ZHbbFitoverlap = 0
 ZHbbFitMaxJets = 100
+ZHbb_btagWP    = .4941 # Med for 2017
 # ttZ/H->bb SM x-section
 ZHbbXsec = {'ttZbb': .1157,
             'ttHbb': .2934 }
@@ -64,34 +66,39 @@ val_dir        = master_file_path+'val/'
 # Input Variables #
 LC = '_drLeptonCleaned'
 #
-ak4vars = ['Jet_btagCSVV2'+LC,'Jet_btagDeepB'+LC]#'Jet_qgl'+LC]
-ak4lvec = {'TLV'         :['JetTLV'+LC],
-           'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_E'+LC],
-           'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_E'],
-           'jesTotUp'    :['Jet_pt_jesTotalUp', 'Jet_eta' 'Jet_phi', 'Jet_mass_jesTotalUp'],
-           'jesTotDown'  :['Jet_pt_jesTotalDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jesTotalDown'],
-           'jerUp'       :['Jet_pt_jerUp', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerUp'],
-           'jerDown'     :['Jet_pt_jerDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerDown'],
-       }
+ana_vars = {
+    'ak4vars'    : ['Jet_btagDeepB'+LC],
+    'ak4lvec'    : {'TLV'         :['JetTLV'+LC],
+                    'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
+                    'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass'],
+                    'jesTotUp'    :['Jet_pt_jesTotalUp', 'Jet_eta' 'Jet_phi', 'Jet_mass_jesTotalUp'],
+                    'jesTotDown'  :['Jet_pt_jesTotalDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jesTotalDown'],
+                    'jerUp'       :['Jet_pt_jerUp', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerUp'],
+                    'jerDown'     :['Jet_pt_jerDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerDown'],
+                },
 #
-ak8vars = ['FatJet_tau1'+LC,'FatJet_tau2'+LC,'FatJet_tau3'+LC,'FatJet_tau4'+LC,
-           'FatJet_deepTag_WvsQCD'+LC,'FatJet_deepTag_TvsQCD'+LC,'FatJet_deepTag_ZvsQCD'+LC,
-           'FatJet_msoftdrop'+LC,'FatJet_mass'+LC,'FatJet_btagDeepB'+LC,'FatJet_btagHbb'+LC,
-           'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC,'SubJet_pt', 'SubJet_btagDeepB']
-ak8lvec = {'TLV'      :['FatJetTLV'+LC],
-           'TLVarsLC' :['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_E'+LC],
-           'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_E']}
+    'ak8vars'    : ['FatJet_tau1'+LC,'FatJet_tau2'+LC,'FatJet_tau3'+LC,'FatJet_tau4'+LC,
+                    'FatJet_deepTag_WvsQCD'+LC,'FatJet_deepTag_TvsQCD'+LC,'FatJet_deepTag_ZvsQCD'+LC,
+                    'FatJet_msoftdrop'+LC,'FatJet_btagDeepB'+LC,'FatJet_btagHbb'+LC,
+                    'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC],
+    'ak8lvec'    : {'TLV'      :['FatJetTLV'+LC],
+                    'TLVarsLC' :['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC],
+                    'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass']},
+    'ak8sj'      : ['SubJet_pt', 'SubJet_btagDeepB'],
 #
-genpvars   = ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_E', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother']
-genLevCuts = ['passGenCuts','isZToLL']
-valvars    = ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
-              'bestRecoZPt', 'bestRecoZEta', 'bestRecoZPhi', 'bestRecoZM',
-              'MET_phi', 'MET_pt', 'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
-              'passElecZinvSelOnZMassPeak','passMuZinvSelOnZMassPeak','genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight']
-sysvars   = ['BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 'pdfWeight_Up','pdfWeight_Down',
-             'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down']
-valRCvars  = ['ResolvedTopCandidate_discriminator', 'ResolvedTopCandidate_j1Idx', 'ResolvedTopCandidate_j2Idx', 'ResolvedTopCandidate_j3Idx']
-label      = ['isTAllHad']
+    'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_E', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother'], # these are MC only
+    'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
+    'valvars'    : ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
+                    'MET_phi', 'MET_pt', 'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
+                    'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
+                    'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
+                    'Pass_trigger_muon', 'Pass_trigger_electron'],
+    'sysvars'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight', # these are MC only
+                    'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 'pdfWeight_Up','pdfWeight_Down',
+                   'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down'],
+    'valRCvars'  : ['ResolvedTopCandidate_discriminator', 'ResolvedTopCandidate_j1Idx', 'ResolvedTopCandidate_j2Idx', 'ResolvedTopCandidate_j3Idx'],
+    'label'      : ['isTAllHad']
+}
 
 # Derived Varialbes #
 ak4comb = 'true'

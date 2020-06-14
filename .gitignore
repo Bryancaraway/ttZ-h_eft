@@ -118,7 +118,7 @@ var
 sdist
 develop-eggs
 .installed.cfg
-lib
+
 lib64
 __pycache__
 
@@ -200,7 +200,7 @@ Build
 !Build/
 Build.bat
 .last_cover_stats
-Makefile
+
 Makefile.old
 MANIFEST.bak
 META.yml
