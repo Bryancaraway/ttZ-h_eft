@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 np.random.seed(0)
+np.seterr(invalid='ignore')
 
 
 ######## Basic Calculations ########
@@ -37,14 +38,14 @@ def fillne(nd_array):
     counts_ = np.array(nd_array.counts)
     rect_ , flat_ = np.full((len(nd_array),max(counts_)),np.nan), np.array(nd_array.flatten())
     @njit
-    def c_fillne(ja, o, c):
+    def cfillne(ja, o, c):
         rows, _ = o.shape
         c_i = 0
         for i in range(rows):
             o[i,:c[i]] = ja[c_i:c_i+c[i]]
             c_i += c[i]
         return o
-    return c_fillne(flat_, rect_, counts_)
+    return cfillne(flat_, rect_, counts_)
     #
 def sortbyscore(vars_, score_, cut_):
     ret_vars_ = []
@@ -62,23 +63,33 @@ def deltaR(eta1,phi1,eta2,phi2):
         deta = eta1 - eta2
         dphi = phi1 - phi2
     #
-    dphi[((dphi > math.pi)   & (dphi != np.nan))] = dphi[((dphi > math.pi)   & (dphi != np.nan))] - 2*math.pi
-    dphi[((dphi <= -math.pi) & (dphi != np.nan))] = dphi[((dphi <= -math.pi) & (dphi != np.nan))] + 2*math.pi
+    try:
+        dphi = np.where(~np.isnan(dphi),np.where(dphi >   math.pi, dphi-2*math.pi, dphi),dphi)
+        dphi = np.where(~np.isnan(dphi),np.where(dphi <= -math.pi, dphi+2*math.pi, dphi),dphi)
+    except (SystemError):
+        dphi[((dphi > math.pi)   & (dphi != np.nan))] = dphi[((dphi > math.pi)   & (dphi != np.nan))] - 2*math.pi
+        dphi[((dphi <= -math.pi) & (dphi != np.nan))] = dphi[((dphi <= -math.pi) & (dphi != np.nan))] + 2*math.pi
     #
     delta_r = np.sqrt(np.add(np.power(deta,2),np.power(dphi,2)))
     return delta_r
     #
-def invM(pt1,eta1,phi1,pt2,eta2,phi2):
+def invM(pt1,eta1,phi1,m1,pt2,eta2,phi2,m2):
+    m1sq = np.power(m1,2)
+    m2sq = np.power(m2,2)
+    pt1cosheta1_sq = np.power(pt1,2)*np.power(np.cosh(eta1),2)
+    pt2cosheta2_sq = np.power(pt2,2)*np.power(np.cosh(eta2),2)
     try:
-        pt1pt2 = (pt1*pt2.T).T
-        cosheta1eta2 = np.cosh((eta1-eta2.T).T)
-        cosphi1phi2  = np.cos(deltaPhi(phi1,phi2))
-    except (AttributeError) :
-        pt1pt2 = pt1*pt2
-        cosheta1eta2 = np.cosh(eta1-eta2)
-        cosphi1phi2  = np.cos(deltaPhi(phi1,phi2))
-    #
-    invm2 = 2*pt1pt2*(cosheta1eta2-cosphi1phi2)
+        E1pE22 = np.power((np.sqrt(pt1cosheta1_sq+m1sq)+np.sqrt(pt2cosheta2_sq+m2sq).T).T,2)
+        cosphi1phi2 = np.cos(deltaPhi(phi1,phi2))
+        sinheta1Xsinheta2 = (np.sinh(eta1)*np.sinh(eta2).T).T
+        p1dotp2 = (pt1*pt2.T).T*(cosphi1phi2 + sinheta1Xsinheta2)
+        invm2 = E1pE22  - (pt1cosheta1_sq + pt2cosheta2_sq.T).T - 2*p1dotp2
+    except (AttributeError):
+        E1pE22 = np.power(np.sqrt(pt1cosheta1_sq+m1sq)+np.sqrt(pt2cosheta2_sq+m2sq),2)
+        cosphi1phi2 = np.cos(deltaPhi(phi1,phi2))
+        sinheta1Xsinheta2 = np.sinh(eta1)*np.sinh(eta2)
+        p1dotp2 = pt1*pt2*(cosphi1phi2 + sinheta1Xsinheta2)
+        invm2 = E1pE22  - pt1cosheta1_sq - pt2cosheta2_sq - 2*p1dotp2
     return np.sqrt(invm2)
 def invM_sdM(pt1,eta1,phi1,m1,pt2,eta2,phi2,E2):
     m1sq = np.power(m1,2)
@@ -97,18 +108,22 @@ def invM_sdM(pt1,eta1,phi1,m1,pt2,eta2,phi2,E2):
         p1dotp2 = pt1*pt2*(cosphi1phi2 + sinheta1Xsinheta2)
         invm2 = E1pE22  - pt1cosheta1_sq - pt2cosheta2_sq - 2*p1dotp2
     return np.sqrt(invm2)
-def invM_E(pt1,eta1,phi1,E1,pt2,eta2,phi2,E2):
+def invM_Em(pt1,eta1,phi1,E1,pt2,eta2,phi2,m2):
+    m2sq = np.power(m2,2)
     pt1cosheta1_sq = np.power(pt1,2)*np.power(np.cosh(eta1),2)
     pt2cosheta2_sq = np.power(pt2,2)*np.power(np.cosh(eta2),2)
-    cosphi1phi2 = np.cos(deltaPhi(phi1,phi2))
     try:
-        sinheta1Xsinheta2 = (np.sinh(eta1)*(np.sinh(eta2)).T).T
+        E1pE22 = np.power((E1+np.sqrt(pt2cosheta2_sq+m2sq).T).T,2)
+        cosphi1phi2 = np.cos(deltaPhi(phi1,phi2))
+        sinheta1Xsinheta2 = (np.sinh(eta1)*np.sinh(eta2).T).T
         p1dotp2 = (pt1*pt2.T).T*(cosphi1phi2 + sinheta1Xsinheta2)
-        invm2 = np.power(E1+E2.T,2).T - (pt1cosheta1_sq + (pt2cosheta2_sq + 2*p1dotp2).T).T
-    except (AttributeError) :
+        invm2 = E1pE22  - (pt1cosheta1_sq + pt2cosheta2_sq.T).T - 2*p1dotp2
+    except (AttributeError):
+        E1pE22 = np.power(E1+np.sqrt(pt2cosheta2_sq+m2sq),2)
+        cosphi1phi2 = np.cos(deltaPhi(phi1,phi2))
         sinheta1Xsinheta2 = np.sinh(eta1)*np.sinh(eta2)
         p1dotp2 = pt1*pt2*(cosphi1phi2 + sinheta1Xsinheta2)
-        invm2 = np.power(E1+E2,2) - pt1cosheta1_sq - pt2cosheta2_sq - 2*p1dotp2 
+        invm2 = E1pE22  - pt1cosheta1_sq - pt2cosheta2_sq - 2*p1dotp2
     return np.sqrt(invm2)
     #
 def deltaPhi(phi1, phi2):

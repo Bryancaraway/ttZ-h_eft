@@ -12,4 +12,5 @@ done
 
 mkdir pdf 
 mkdir log
+mkdir NN_output
 

@@ -6,10 +6,13 @@ hi:
 	echo "hello"
 init:
 	@bash setup.sh
-	@pip install -r requirements.txt
+	@pip install -r packages/requirements.txt
 
 .PHONY: hi init clean
+
 clean:
 	@rm -rf  *~
 	@rm -rf */*~
+	@rm -rf *#
+	@rm -rf */*#
 
