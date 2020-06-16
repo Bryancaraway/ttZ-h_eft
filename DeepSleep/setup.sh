@@ -12,5 +12,5 @@ done
 
 mkdir pdf 
 mkdir log
-mkdir NN_output
-
+mkdir NN_files
+cp /cms/data/store/user/ttxeft/NN_files/* NN_files/
