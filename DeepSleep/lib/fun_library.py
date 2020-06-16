@@ -63,12 +63,8 @@ def deltaR(eta1,phi1,eta2,phi2):
         deta = eta1 - eta2
         dphi = phi1 - phi2
     #
-    try:
-        dphi = np.where(~np.isnan(dphi),np.where(dphi >   math.pi, dphi-2*math.pi, dphi),dphi)
-        dphi = np.where(~np.isnan(dphi),np.where(dphi <= -math.pi, dphi+2*math.pi, dphi),dphi)
-    except (SystemError):
-        dphi[((dphi > math.pi)   & (dphi != np.nan))] = dphi[((dphi > math.pi)   & (dphi != np.nan))] - 2*math.pi
-        dphi[((dphi <= -math.pi) & (dphi != np.nan))] = dphi[((dphi <= -math.pi) & (dphi != np.nan))] + 2*math.pi
+    dphi[((dphi > math.pi)   & (dphi != np.nan))] = dphi[((dphi > math.pi)   & (dphi != np.nan))] - 2*math.pi
+    dphi[((dphi <= -math.pi) & (dphi != np.nan))] = dphi[((dphi <= -math.pi) & (dphi != np.nan))] + 2*math.pi
     #
     delta_r = np.sqrt(np.add(np.power(deta,2),np.power(dphi,2)))
     return delta_r

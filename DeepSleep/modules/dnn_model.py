@@ -3,7 +3,6 @@ import pandas as pd
 import os
 
 import tensorflow as tf
-print(tf.__version__)
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import backend as K
