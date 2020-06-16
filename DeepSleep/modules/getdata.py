@@ -35,9 +35,9 @@ class getData :
     isData     = False
     roofile    = 'MC_2017'
     sample     = 'TTZH'
-    outDir     = 'files'
-    njets      = 2
-    maxAk4Jets = 6
+    outDir     = 'files/'
+    njets      = 4
+    maxAk4Jets = 100
     treeDir    = cfg.tree_dir
     getGenData = False # doesnt do anything atm
     getak8var  = False # doesnt do anything atm
@@ -45,7 +45,7 @@ class getData :
     estop      = None
     
 
-    def __init__ (self, kwargs):
+    def __init__ (self, kwargs=None):
         [setattr(self,k,v) for k,v in kwargs.items() if k in getData.__dict__.keys()]
 
     def getdata(self):
@@ -57,20 +57,26 @@ class getData :
             print(self.sample)
             start = time.perf_counter()
             t = tree_dir.get(self.sample)
+            self.DF_Container.set_attr(self.isData,self.njets, self.maxAk4Jets, self.estart, self.estop)
             self.DF_Container.set_current_tree_mask(t)
             # 
             ak4_df   = self.DF_Container('ak4',   'AK4_Variables')
             ak8_df   = self.DF_Container('ak8',   'AK8_Variables')
             val_df   = self.DF_Container('event', 'Event_Variables')
-            gen_df   = self.DF_Container('gen', 'GenPart_Variables')
             ##
             val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = self.DF_Container.n_ak4jets, self.DF_Container.n_ak8jets
             #
             rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ana_vars['ak4lvec']['TLVarsLC']).sum())
             #
-            finish = time.perf_counter()
-            print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
-            return ak4_df.df, ak8_df.df, val_df.df, gen_df.df, rtc_df
+            if self.isData:
+                finish = time.perf_counter()
+                print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
+                return ak4_df.df, ak8_df.df, val_df.df, rtc_df
+            else:
+                gen_df   = self.DF_Container('gen', 'GenPart_Variables')
+                finish = time.perf_counter()
+                print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
+                return ak4_df.df, ak8_df.df, val_df.df, rtc_df, gen_df.df
             #
     #
     #@t2Run
@@ -131,7 +137,7 @@ class getData :
         allowed_types = ['ak4', 'ak8', 'event', 'gen', 'RC', 'other']
     
         # pre-selection cuts need to be applied when getting data from tree to increase speed
-        # object cuts: ak4jet_pt >= 30, |ak4jet_eta| <= 2.4 ... |ak8jet_eta| <= 2.0
+        # object cuts: ak4jet_pt >= 30, |ak4jet_eta| <= 2.4 ... |ak8jet_eta| <= 2.4
         # event cuts:  n_ak4jets >= 4, n_ak4bottoms >= 2, n_ak8jets(pt>=200) >= 1
         ak4_mask   = None
         ak8_mask   = None
@@ -149,12 +155,12 @@ class getData :
             # handle df depending on type 
             self.df = self.extract_and_cut()
 
-        @staticmethod
-        def var_dict(_type):
+            
+        def var_dict(self,_type):
             _dict  = {
                 'ak4'   : cfg.ana_vars['ak4lvec']['TLVarsLC']+cfg.ana_vars['ak4vars'],
                 'ak8'   : cfg.ana_vars['ak8lvec']['TLVarsLC']+cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8sj'],
-                'event' : cfg.ana_vars['valvars']+([] if getData.isData else cfg.ana_vars['sysvars']),
+                'event' : cfg.ana_vars['valvars']+([] if self.isData else cfg.ana_vars['sysvars']),
                 'gen'   : cfg.ana_vars['genpvars'],
                 'RC'    : cfg.ana_vars['valRCvars']}
             return _dict[_type]
@@ -164,7 +170,7 @@ class getData :
             type_indexer = defaultdict(
                 None,{'ak4':  lambda v: self.build_dict(v)[self.ak4_mask][self.event_mask],
                       'ak8':  lambda v: AnaDict({**self.build_dict(v[:-2])[self.ak8_mask][self.event_mask],# super hacky but works
-                                                 **self.build_dict(v[-2:])[self.event_mask]}),
+                                                 **self.build_dict(v[-2:])[self.event_mask]}), # fix in future, prone to break
                       'event':lambda v: self.tpandas(v)[self.event_mask],
                       'gen'  :lambda v: self.build_dict(v)[self.event_mask],
                       'RC'   :lambda v: self.build_dict(v)[self.rtcd_mask][self.event_mask],
@@ -179,9 +185,17 @@ class getData :
             return df[self.event_mask[df.index.get_level_values('entry')].values]
             
         @classmethod
+        def set_attr(cls,isData, njets, maxAk4Jets, estart, estop):
+            cls.isData = isData
+            cls.njets  = njets
+            cls.maxAk4Jets = maxAk4Jets
+            cls.estart = estart
+            cls.estop  = estop
+
+        @classmethod
         def set_current_tree_mask(cls,tree):
-            cls.tarray  = functools.partial(tree.array,      entrystop=getData.estop)
-            cls.tpandas = functools.partial(tree.pandas.df , entrystop=getData.estop)
+            cls.tarray  = functools.partial(tree.array,      entrystop=cls.estop)
+            cls.tpandas = functools.partial(tree.pandas.df , entrystop=cls.estop)
             #
             jet_pt_eta    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:2])
             fatjet_pt_eta = cls.build_dict(cfg.ana_vars['ak8lvec']['TLVarsLC'][:2])
@@ -198,8 +212,8 @@ class getData :
             n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
             del jet_pt_eta, fatjet_pt_eta
             #
-            event_mask = ((n_ak4jets >= getData.njets) & 
-                          (n_ak4jets <= getData.maxAk4Jets) &
+            event_mask = ((n_ak4jets >= cls.njets) & 
+                          (n_ak4jets <= cls.maxAk4Jets) &
                           (n_ak8jets >= 1))
             cls.n_ak4jets , cls.n_ak8jets = n_ak4jets[event_mask] , n_ak8jets[event_mask]
             cls.event_mask = event_mask
@@ -215,7 +229,7 @@ class getData :
 if __name__ == '__main__':
     #
     getData_cfg = {'files': ['MC_2017'], 'sample': 'DY', 'outDir': cfg.skim_ZHbb_dir,
-                   'njets':cfg.ZHbbFitCut[1], 'maxJets':cfg.ZHbbFitMaxJets, 
+                   'njets':cfg.ZHbbFitMinJets, 'maxAK4Jets':cfg.ZHbbFitMaxJets, 
                    'treeDir':cfg.tree_dir+'_bb', 'getGenData':True, 'getak8var':True,
                    'estop': None}
     #
