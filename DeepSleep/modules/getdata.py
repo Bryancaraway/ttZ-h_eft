@@ -34,6 +34,7 @@ class getData :
     # Allowed class variables
     isData     = False
     roofile    = 'MC_2017'
+    year       = '2017'
     sample     = 'TTZH'
     outDir     = 'files/'
     njets      = 4
@@ -57,7 +58,7 @@ class getData :
             print(self.sample)
             start = time.perf_counter()
             t = tree_dir.get(self.sample)
-            self.DF_Container.set_attr(self.isData,self.njets, self.maxAk4Jets, self.estart, self.estop)
+            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.estart, self.estop)
             self.DF_Container.set_current_tree_mask(t)
             # 
             ak4_df   = self.DF_Container('ak4',   'AK4_Variables')
@@ -160,7 +161,7 @@ class getData :
             _dict  = {
                 'ak4'   : cfg.ana_vars['ak4lvec']['TLVarsLC']+cfg.ana_vars['ak4vars'],
                 'ak8'   : cfg.ana_vars['ak8lvec']['TLVarsLC']+cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8sj'],
-                'event' : cfg.ana_vars['valvars']+([] if self.isData else cfg.ana_vars['sysvars']),
+                'event' : cfg.ana_vars['valvars']+([] if self.isData else cfg.ana_vars[f'sysvars_{self.year}']),
                 'gen'   : cfg.ana_vars['genpvars'],
                 'RC'    : cfg.ana_vars['valRCvars']}
             return _dict[_type]
@@ -185,8 +186,9 @@ class getData :
             return df[self.event_mask[df.index.get_level_values('entry')].values]
             
         @classmethod
-        def set_attr(cls,isData, njets, maxAk4Jets, estart, estop):
+        def set_attr(cls,isData, year, njets, maxAk4Jets, estart, estop):
             cls.isData = isData
+            cls.year   = year
             cls.njets  = njets
             cls.maxAk4Jets = maxAk4Jets
             cls.estart = estart

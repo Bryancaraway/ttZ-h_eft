@@ -9,19 +9,22 @@ file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/'
 tree_dir          = 'Training'
 ##
 ZHptcut           = 200
+Years             = ['2016','2017','2018']
+MC_samples        = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'DiBoson', 'TriBoson', 'TTBarLep']#,'ZJets']
+Data_samples      = ['EleData','MuData']
+Lumi              = {'2016': 35.9,
+                     '2017': 41.9,
+                     '2018': 58.9
+                  } 
 ##
 ##############
 ##### TTZ, Z to bb CONFIG #####
-ZHbbFitCfg    = (['result_2017'],#
-                 #['WJets','ZJets','DY','DiBoson','TriBoson','TTX','QCD','TTBarHad','TTBarLep','TTZ/H'],
-                 [ 'TTZH', 'QCD',  'TTX',  'DY', 'WJets', 'TTBarHad',  'DiBoson',  'TriBoson', 'TTBarLep','ZJets'],
-                 #[ 'TTZH', 'QCD',  'TTX',  'DY', 'WJets', 'DiBoson',  'TriBoson', 'TTBarLep'],#'ZJets'],
-                 
-#                 ['TTBarLep'],
-)
 ZHbbFitMinJets = 4
 ZHbbFitMaxJets = 100
-ZHbb_btagWP    = .4941 # Med for 2017
+ZHbb_btagWP    = {'2016': 0.6321, # Med for 2016
+                  '2017': 0.4941, # Med for 2017
+                  '2018': 0.4148  # Med for 2018
+                  }
 # ttZ/H->bb SM x-section
 ZHbbXsec = {'ttZbb': .1157,
             'ttHbb': .2934 }
@@ -61,13 +64,34 @@ ana_vars = {
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother'], # these are MC only
     'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
     'valvars'    : ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
+                    'passSingleLepElec', 'passSingleLepMu',
                     'MET_phi', 'MET_pt', 'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
-                    'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
-    'sysvars'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight', # these are MC only
-                    'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 'pdfWeight_Up','pdfWeight_Down',
-                   'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down'],
+    'sysvars_2016'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight', # these are MC only
+                         #'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
+                         #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
+                         'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
+                         'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
+                         'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
+                         'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
+                         'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
+                         'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
+                         'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
+                         'pdfWeight_Up','pdfWeight_Down',
+                         'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down'],
+    'sysvars_2017'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight', # these are MC only
+                         'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
+                         #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
+                         'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
+                         'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
+                         'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
+                         'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
+                         'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
+                         'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
+                         'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
+                         'pdfWeight_Up','pdfWeight_Down',
+                         'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down'],
     'valRCvars'  : ['ResolvedTopCandidate_discriminator', 'ResolvedTopCandidate_j1Idx', 'ResolvedTopCandidate_j2Idx', 'ResolvedTopCandidate_j3Idx'],
     'label'      : ['isTAllHad']
 }
