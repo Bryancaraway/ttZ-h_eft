@@ -61,7 +61,7 @@ class Plotter :
         if self.addData:
             data_dir = f'{self.pklDir}{self.year}/data_files/'
             self.real_data  = {'Data': np.clip(np.hstack(
-                [self.apply_cuts(pd.read_pickle(f'{data_dir}{sample}_val.pkl'))[self.kinem].values 
+                [self.apply_data_cuts(sample,pd.read_pickle(f'{data_dir}{sample}_val.pkl'))[self.kinem].values 
                  for sample in self.data_samples]),self.bin_range[0],self.bin_range[-1])}
         #
         self.data = data
@@ -69,20 +69,31 @@ class Plotter :
         #
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
                        #* (137/41.9) \
-                       #* (v['Stop0l_topptWeight'] if self.year == '2017' else 1.0)
-                       * (v['Stop0l_topMGPowWeight'] 
-                          if self.year == '2017' else 1.0)
-                       * (v['Stop0l_trigger_eff_Electron_pt']*v['Stop0l_trigger_eff_Electron_eta'] 
-                          if 'trigger_electron' in self.add_cuts else 1.0)
-                       * (v['Stop0l_trigger_eff_Muon_pt']*v['Stop0l_trigger_eff_Muon_eta']
-                          if 'trigger_muon'     in self.add_cuts  else 1.0)
-                       * v['BTagWeight'] * v['puWeight']  * v['PrefireWeight'] 
+                       * (v['Stop0l_topptWeight'] if self.year == '2017' else 1.0)
+                       #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
+                       #* (1-(1-v['Stop0l_trigger_eff_Electron_pt'])*(1-v['Stop0l_trigger_eff_Muon_pt']))
+                       * pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index()
+                       #* v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1]
+                       #* v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]
+                       * v['BTagWeight'] 
+                       * v['puWeight']  
+                       * v['PrefireWeight'] 
                        * v['ISRWeight']  #* v['pdfWeight']
                        for k,v in self.data.items()}
+
         self.i_dict = {k: sum(v) for k,v in self.w_dict.items()}
         #
         self.data = {k: np.clip(v[self.kinem],self.bin_range[0],self.bin_range[-1]) for k,v in self.data.items()}
-            
+    
+    def apply_data_cuts(self, leptype, df):
+        temp_add_cuts = self.add_cuts
+        add_by_lep = {'EleData':';passSingleLepElec==1',
+                      'MuData' :';passSingleLepMu==1'}
+        self.add_cuts += add_by_lep[leptype]
+        df = self.apply_cuts(df)
+        self.add_cuts = temp_add_cuts
+        return df
+
     def apply_cuts(self,df):
         #df_mask = ((df['Pass_trigger_muon']) | (df['Pass_trigger_electron']))
         #print(df['Stop0l_trigger_eff_Electron_pt'])
@@ -147,13 +158,14 @@ class Plotter :
 
     @property
     def retData(self):
+        k_    = np.array([k for k in self.data])
         h_   = np.array([self.data[k].to_numpy()    for k in self.data])
         w_   = np.array([self.w_dict[k].to_numpy()  for k in self.data])
         i_   = np.array([self.i_dict[k]             for k in self.data])
         l_,c_ = np.array([np.array(getLaLabel(k))   for k in self.data]).T
         l_   = np.array([f'{x} ({y:3.1f})' for x,y in zip(l_,i_)])
         #print( h_,w_,i_,c_,l_)
-        return h_,w_,i_,c_,l_
+        return k_,h_,w_,i_,c_,l_
 
     @property
     def beginPlt(self):
@@ -245,7 +257,7 @@ class StackedHist(Plotter) :
         self.ax.errorbar(x=bin_c, y = n_data if not self.doNorm else np.divide(n_data,np.sum(n_data)), 
                          xerr=bin_w/2, yerr=np.sqrt(n_data),
                          fmt='.',  color='k',
-                         label='Data')
+                         label=f'Data ({sum(n_data)})')
         #
         y = n_data/n_mc
         yerr = y*np.sqrt(np.power(np.sqrt(n_data)/n_data,2)+np.power(0/n_mc,2))
@@ -262,10 +274,15 @@ class StackedHist(Plotter) :
         self.ax2.set_ylabel('data/MC')
 
     def sortInputs(self):
-        h_,w_,i_,c_,l_ = self.retData
+        k_,h_,w_,i_,c_,l_ = self.retData
+        # insert signal in first slot for stack plot
+        sig = np.argwhere(k_=='TTZH')
+        sigh, sigw, sigi, sigc, sigl = map(lambda x: x[sig], [h_,w_,i_,c_,l_])
+        h_,w_,i_,c_,l_ = map(lambda x: np.delete(x,sig), [h_,w_,i_,c_,l_])
         #
         ind_ = np.argsort(i_)
-        h_,w_,i_,c_,l_ = map(lambda x: x[ind_], [h_,w_,i_,c_,l_])
+        h_,w_,i_,c_,l_ = [np.insert(x[ind_],0,y) 
+                          for x,y in zip([h_,w_,i_,c_,l_],[sigh, sigw, sigi, sigc, sigl])]
         return h_,w_,i_,c_,l_
 
     
@@ -290,7 +307,7 @@ class Hist (Plotter) :
     def makePlot(self):
         self.beginPlt
         #
-        h, w, i, c, l = self.retData
+        k, h, w, i, c, l = self.retData
         n_, bins_, patches_ = self.ax.hist(
             h,
             bins=self.bins, 
