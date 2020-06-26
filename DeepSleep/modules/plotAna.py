@@ -32,6 +32,7 @@ class Plotter :
     w_dict    = None
     i_dict    = None
     real_data = None
+    HEM_opt   = ''
 
     def __init__(self,samples, kinem, bin_range, 
                  xlabel=None, n_bins=20, 
@@ -44,7 +45,7 @@ class Plotter :
         self.bin_range  = bin_range
         self.xlabel     = kinem if xlabel is None else xlabel
         self.n_bins     = n_bins
-        self.bins       = np.arange(bin_range[0],bin_range[-1]+((bin_range[-1])/n_bins) , (bin_range[-1])/n_bins)
+        self.bins       = np.arange(bin_range[0],bin_range[-1]+((bin_range[-1]-bin_range[0])/n_bins) , (bin_range[-1]-bin_range[0])/n_bins)
         self.doLog      = doLog
         self.doNorm     = doNorm
         self.doShow     = doShow
@@ -66,19 +67,18 @@ class Plotter :
         #
         self.data = data
         self.sepData()
+        print(self.year+self.HEM_opt)
         #
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
-                       #* (137/41.9) \
-                       * (v['Stop0l_topptWeight'] if self.year == '2017' else 1.0)
+                       * (self.lumi/cfg.Lumi[self.year])
+                       * v['Stop0l_topptWeight']
+                       * (v['SAT_HEMVetoWeight']  if self.year+self.HEM_opt == '2018' else 1.0 )
                        #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
-                       #* (1-(1-v['Stop0l_trigger_eff_Electron_pt'])*(1-v['Stop0l_trigger_eff_Muon_pt']))
-                       * pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index()
-                       #* v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1]
-                       #* v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]
+                       * (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index() if self.year != '2016' else 1.0)
                        * v['BTagWeight'] 
                        * v['puWeight']  
-                       * v['PrefireWeight'] 
-                       * v['ISRWeight']  #* v['pdfWeight']
+                       * (v['PrefireWeight'] if self.year != '2018' else 1.0)
+                       * v['ISRWeight']  
                        for k,v in self.data.items()}
 
         self.i_dict = {k: sum(v) for k,v in self.w_dict.items()}
@@ -87,19 +87,21 @@ class Plotter :
     
     def apply_data_cuts(self, leptype, df):
         temp_add_cuts = self.add_cuts
-        add_by_lep = {'EleData':';passSingleLepElec==1',
-                      'MuData' :';passSingleLepMu==1'}
-        self.add_cuts += add_by_lep[leptype]
+        add_by_lep = {'EleData':'passSingleLepElec==1',
+                      'MuData' :'passSingleLepMu==1'}
+        add_by_HEM = {'preHEM' :';run<319077',
+                      'postHEM':';run>=319077',
+                      '':''}
+        data_cuts = add_by_lep[leptype]+add_by_HEM[self.HEM_opt]
+        if self.add_cuts is '':
+            self.add_cuts = data_cuts
+        else:
+            self.add_cuts += ';'+data_cuts
         df = self.apply_cuts(df)
         self.add_cuts = temp_add_cuts
         return df
 
     def apply_cuts(self,df):
-        #df_mask = ((df['Pass_trigger_muon']) | (df['Pass_trigger_electron']))
-        #print(df['Stop0l_trigger_eff_Electron_pt'])
-        #print(df['Stop0l_trigger_eff_Muon_pt'])
-        #if not self.doCuts         : return df#df[df_mask]
-        #df_mask = df_mask & self.cut_func(df)
         df_mask = self.cut_func(df) if self.doCuts else True
         if self.add_cuts is '': 
             if self.doCuts:
@@ -192,7 +194,7 @@ class Plotter :
         self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
         self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
         plt.xlabel(self.xlabel, fontsize = self.fontsize)
-        self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {self.bin_range[-1]/self.n_bins:.2f}")#fontsize = self.fontsize)
+        self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_range[-1]-self.bin_range[0])/self.n_bins:.2f}")#fontsize = self.fontsize)
         plt.xlim(self.bin_range)
         if self.doLog: self.ax.set_yscale('log')
         plt.grid(True)
@@ -203,11 +205,12 @@ class Plotter :
         plt.close(self.fig)
 
     @classmethod
-    def load_data(cls,year='2017'):
+    def load_data(cls,year='2017',HEM_opt=''):
         cls.year = year
-        cls.lumi = cfg.Lumi[year]
+        cls.HEM_opt = HEM_opt
+        cls.lumi = cfg.Lumi[year+HEM_opt]
         cls.data_dict = {sample: pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl') 
-                         for sample in cfg.MC_samples}
+                         for sample in (cfg.MC_samples if year != '2018' else cfg.MC_samples+cfg.Pow_samples)}
         
 
 class StackedHist(Plotter) :

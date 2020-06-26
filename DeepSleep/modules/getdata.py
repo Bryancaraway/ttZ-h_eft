@@ -33,9 +33,9 @@ class getData :
     '''
     # Allowed class variables
     isData     = False
-    roofile    = 'MC_2017'
-    year       = '2017'
-    sample     = 'TTZH'
+    roofile    = None
+    year       = None
+    sample     = None
     outDir     = 'files/'
     njets      = 4
     maxAk4Jets = 100
@@ -140,6 +140,9 @@ class getData :
         # pre-selection cuts need to be applied when getting data from tree to increase speed
         # object cuts: ak4jet_pt >= 30, |ak4jet_eta| <= 2.4 ... |ak8jet_eta| <= 2.4
         # event cuts:  n_ak4jets >= 4, n_ak4bottoms >= 2, n_ak8jets(pt>=200) >= 1
+        isData     = False
+        year       = None
+
         ak4_mask   = None
         ak8_mask   = None
         rtcd_mask  = None
@@ -161,7 +164,7 @@ class getData :
             _dict  = {
                 'ak4'   : cfg.ana_vars['ak4lvec']['TLVarsLC']+cfg.ana_vars['ak4vars'],
                 'ak8'   : cfg.ana_vars['ak8lvec']['TLVarsLC']+cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8sj'],
-                'event' : cfg.ana_vars['valvars']+([] if self.isData else cfg.ana_vars[f'sysvars_{self.year}']),
+                'event' : cfg.ana_vars['valvars']+(['run'] if self.isData else cfg.ana_vars[f'sysvars_{self.year}'])+(cfg.ana_vars['HEM_veto'] if self.year == '2018' else []),
                 'gen'   : cfg.ana_vars['genpvars'],
                 'RC'    : cfg.ana_vars['valRCvars']}
             return _dict[_type]
@@ -217,6 +220,10 @@ class getData :
             event_mask = ((n_ak4jets >= cls.njets) & 
                           (n_ak4jets <= cls.maxAk4Jets) &
                           (n_ak8jets >= 1))
+            #handle HEM Vetor for 2018 Data
+            if cls.isData and cls.year == '2018':
+                passHEMVeto = cls.tarray('SAT_Pass_HEMVeto_DataOnly_drLeptonCleaned')
+                event_mask = (event_mask & (passHEMVeto == True))
             cls.n_ak4jets , cls.n_ak8jets = n_ak4jets[event_mask] , n_ak8jets[event_mask]
             cls.event_mask = event_mask
             #

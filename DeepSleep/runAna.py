@@ -6,7 +6,7 @@ from modules.getdata import getData
 from modules.processAna import processAna
 
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
-parser.add_argument('-s', dest='sample', type=str, choices=cfg.MC_samples+cfg.Data_samples, 
+parser.add_argument('-s', dest='sample', type=str, choices=cfg.MC_samples+cfg.Data_samples+cfg.Pow_samples, 
                     required=True, help='sample to analyze')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
                     required=True, help='year')
