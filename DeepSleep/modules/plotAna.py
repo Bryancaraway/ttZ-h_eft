@@ -72,9 +72,9 @@ class Plotter :
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
                        * (self.lumi/cfg.Lumi[self.year])
                        * v['Stop0l_topptWeight']
-                       * (v['SAT_HEMVetoWeight']  if self.year+self.HEM_opt == '2018' else 1.0 )
+                       * (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
                        #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
-                       * (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index() if self.year != '2016' else 1.0)
+                       * (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index() if self.year != '2015' else 1.0)
                        * v['BTagWeight'] 
                        * v['puWeight']  
                        * (v['PrefireWeight'] if self.year != '2018' else 1.0)
@@ -210,7 +210,7 @@ class Plotter :
         cls.HEM_opt = HEM_opt
         cls.lumi = cfg.Lumi[year+HEM_opt]
         cls.data_dict = {sample: pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl') 
-                         for sample in (cfg.MC_samples if year != '2018' else cfg.MC_samples+cfg.Pow_samples)}
+                         for sample in (cfg.MC_samples if year != '2018' else cfg.MC_samples)}
         
 
 class StackedHist(Plotter) :

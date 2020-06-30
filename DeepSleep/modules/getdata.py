@@ -164,7 +164,9 @@ class getData :
             _dict  = {
                 'ak4'   : cfg.ana_vars['ak4lvec']['TLVarsLC']+cfg.ana_vars['ak4vars'],
                 'ak8'   : cfg.ana_vars['ak8lvec']['TLVarsLC']+cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8sj'],
-                'event' : cfg.ana_vars['valvars']+(['run'] if self.isData else cfg.ana_vars[f'sysvars_{self.year}'])+(cfg.ana_vars['HEM_veto'] if self.year == '2018' else []),
+                'event' : cfg.ana_vars['valvars']+(['run']+cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}'] if self.isData else 
+                                                   cfg.ana_vars['sysvars_mc']+cfg.ana_vars[f'sysvars_{self.year}'])+
+                (cfg.ana_vars['HEM_veto'] if self.year == '2018' else []),
                 'gen'   : cfg.ana_vars['genpvars'],
                 'RC'    : cfg.ana_vars['valRCvars']}
             return _dict[_type]

@@ -58,6 +58,7 @@ class processAna :
 
     def __init__(self, kwargs):
         [setattr(self,k,v) for k,v in kwargs.items() if k in processAna.__dict__.keys()]
+        self.b_wp = cfg.ZHbb_btagWP[self.year]
         self.process_data()
 
     def process_data(self):
@@ -76,6 +77,10 @@ class processAna :
                 self.match_gen_sig() 
         #
         self.applyDNN()
+        # add hlt variables into MC and set to True for convience later
+        if not self.isData:
+            self.addHLT_to_MC()
+        self.passHLT_by_year()
         #
         out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_"
         self.ak4_df.to_pickle(out_path+"ak4.pkl")
@@ -335,6 +340,25 @@ class processAna :
         self.val_df.loc[:,'NN'] = -1.
         self.val_df.loc[base_cuts,'NN'] = pred
         #
+    def addHLT_to_MC(self):
+        # add hlt variables into MC and set them to 1
+        for var in cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}']:
+            self.val_df[var] = True
+
+    def passHLT_by_year(self):
+        # determine if data/MC passes trigger criteria by year
+        elec_dict = {
+            '2016': (lambda df: ((df['HLT_Ele27_WPTight_Gsf']==True) | (df['HLT_Photon175']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True))),
+            '2017': (lambda df: ((df['HLT_Ele32_WPTight_Gsf_L1DoubleEG']==True) | (df['HLT_Ele35_WPTight_Gsf']==True) | (df['HLT_Photon200']==True))),
+            '2018': (lambda df: ((df['HLT_Ele32_WPTight_Gsf']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Photon200']==True)))
+        }
+        muon_dict = {
+            '2016': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_IsoTkMu24']==True) | (df['HLT_Mu50']==True))),
+            '2017': (lambda df: ((df['HLT_IsoMu27']==True) | (df['HLT_Mu50']==True))), #| (df[]==True) | (df[]==True)),
+            '2018': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True)))
+        }
+        self.val_df['pbt_elec'] = elec_dict[self.year](self.val_df)
+        self.val_df['pbt_muon'] = muon_dict[self.year](self.val_df)
 
     @staticmethod
     @njit(parallel=True)

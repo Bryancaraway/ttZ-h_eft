@@ -74,31 +74,7 @@ ana_vars = {
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
     'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
                          'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
-    'sysvars_2016'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight', # these are MC only
-                         'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
-                         #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
-                         'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
-                         'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
-                         'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
-                         'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
-                         'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
-                         'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
-                         'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
-                         'pdfWeight_Up','pdfWeight_Down',
-                         'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down'],
-    'sysvars_2017'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight', # these are MC only
-                         'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
-                         #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
-                         'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
-                         'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
-                         'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
-                         'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
-                         'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
-                         'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
-                         'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
-                         'pdfWeight_Up','pdfWeight_Down',
-                         'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down'],
-    'sysvars_2018'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight', # these are MC only
+    'sysvars_mc'      : ['genWeight','weight','BTagWeight','puWeight','ISRWeight',# these are MC only
                          'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
                          #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
                          'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
@@ -110,6 +86,16 @@ ana_vars = {
                          'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
                          'pdfWeight_Up','pdfWeight_Down',
                          'ISRWeight_Up','ISRWeight_Down'],
+    'sysvars_2016'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
+    'sysvars_2017'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
+    'sysvars_2018'    : [],
+    'dataHLT_all'     : [ 'HLT_IsoMu24' , 'HLT_IsoMu27', 'HLT_Mu50',
+                          'HLT_Ele27_WPTight_Gsf', 'HLT_Photon175'],
+    'dataHLT_2016'    : ['HLT_IsoTkMu24','HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165','HLT_Ele115_CaloIdVT_GsfTrkIdT'],
+    'dataHLT_2017'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG','HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150'],
+    'dataHLT_2018'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG', 'HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150',
+                         'HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165','HLT_Ele115_CaloIdVT_GsfTrkIdT','HLT_Ele32_WPTight_Gsf',
+                         'HLT_OldMu100','HLT_TkMu100'],
     'valRCvars'  : ['ResolvedTopCandidate_discriminator', 'ResolvedTopCandidate_j1Idx', 'ResolvedTopCandidate_j2Idx', 'ResolvedTopCandidate_j3Idx'],
     'label'      : ['isTAllHad']
 }
