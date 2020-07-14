@@ -33,8 +33,9 @@ class getData :
     '''
     # Allowed class variables
     isData     = False
-    roofile    = 'MC_2017'
-    sample     = 'TTZH'
+    roofile    = None
+    year       = None
+    sample     = None
     outDir     = 'files/'
     njets      = 4
     maxAk4Jets = 100
@@ -57,7 +58,7 @@ class getData :
             print(self.sample)
             start = time.perf_counter()
             t = tree_dir.get(self.sample)
-            self.DF_Container.set_attr(self.isData,self.njets, self.maxAk4Jets, self.estart, self.estop)
+            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.estart, self.estop)
             self.DF_Container.set_current_tree_mask(t)
             # 
             ak4_df   = self.DF_Container('ak4',   'AK4_Variables')
@@ -134,11 +135,17 @@ class getData :
         '''
         tarray       = None
         tpandas      = None
+        estop        = None
         allowed_types = ['ak4', 'ak8', 'event', 'gen', 'RC', 'other']
     
         # pre-selection cuts need to be applied when getting data from tree to increase speed
         # object cuts: ak4jet_pt >= 30, |ak4jet_eta| <= 2.4 ... |ak8jet_eta| <= 2.4
         # event cuts:  n_ak4jets >= 4, n_ak4bottoms >= 2, n_ak8jets(pt>=200) >= 1
+        isData     = False
+        year       = None
+        minAk4Jets = 4
+        maxAk4Jets = 99
+
         ak4_mask   = None
         ak8_mask   = None
         rtcd_mask  = None
@@ -160,7 +167,9 @@ class getData :
             _dict  = {
                 'ak4'   : cfg.ana_vars['ak4lvec']['TLVarsLC']+cfg.ana_vars['ak4vars'],
                 'ak8'   : cfg.ana_vars['ak8lvec']['TLVarsLC']+cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8sj'],
-                'event' : cfg.ana_vars['valvars']+([] if self.isData else cfg.ana_vars['sysvars']),
+                'event' : cfg.ana_vars['valvars']+(['run']+cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}'] if self.isData else 
+                                                   cfg.ana_vars['sysvars_mc']+cfg.ana_vars[f'sysvars_{self.year}'])+
+                (cfg.ana_vars['HEM_veto'] if self.year == '2018' else []),
                 'gen'   : cfg.ana_vars['genpvars'],
                 'RC'    : cfg.ana_vars['valRCvars']}
             return _dict[_type]
@@ -185,9 +194,10 @@ class getData :
             return df[self.event_mask[df.index.get_level_values('entry')].values]
             
         @classmethod
-        def set_attr(cls,isData, njets, maxAk4Jets, estart, estop):
+        def set_attr(cls,isData, year, njets, maxAk4Jets, estart, estop):
             cls.isData = isData
-            cls.njets  = njets
+            cls.year   = year
+            cls.minAk4Jets = njets
             cls.maxAk4Jets = maxAk4Jets
             cls.estart = estart
             cls.estop  = estop
@@ -212,9 +222,13 @@ class getData :
             n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
             del jet_pt_eta, fatjet_pt_eta
             #
-            event_mask = ((n_ak4jets >= cls.njets) & 
+            event_mask = ((n_ak4jets >= cls.minAk4Jets) & 
                           (n_ak4jets <= cls.maxAk4Jets) &
                           (n_ak8jets >= 1))
+            #handle HEM Vetor for 2018 Data
+            if cls.isData and cls.year == '2018':
+                passHEMVeto = cls.tarray('SAT_Pass_HEMVeto_DataOnly_drLeptonCleaned')
+                event_mask = (event_mask & (passHEMVeto == True))
             cls.n_ak4jets , cls.n_ak8jets = n_ak4jets[event_mask] , n_ak8jets[event_mask]
             cls.event_mask = event_mask
             #

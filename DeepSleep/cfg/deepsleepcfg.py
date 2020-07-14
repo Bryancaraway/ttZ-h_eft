@@ -9,19 +9,26 @@ file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/'
 tree_dir          = 'Training'
 ##
 ZHptcut           = 200
+Years             = ['2016','2017','2018']
+MC_samples        = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'DiBoson', 'TriBoson', 'TTBarLep']#,'ZJets']
+Pow_samples       = ['TTBarHad_pow', 'TTBarLep_pow']
+MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep_pow']
+Data_samples      = ['EleData','MuData']
+Lumi              = {'2016': 35.9,
+                     '2017': 41.9,
+                     '2018': 58.9,
+                     '2018preHEM' : 21.1,
+                     '2018postHEM': 38.6
+                  } 
 ##
 ##############
 ##### TTZ, Z to bb CONFIG #####
-ZHbbFitCfg    = (['result_2017'],#
-                 #['WJets','ZJets','DY','DiBoson','TriBoson','TTX','QCD','TTBarHad','TTBarLep','TTZ/H'],
-                 [ 'TTZH', 'QCD',  'TTX',  'DY', 'WJets', 'TTBarHad',  'DiBoson',  'TriBoson', 'TTBarLep','ZJets'],
-                 #[ 'TTZH', 'QCD',  'TTX',  'DY', 'WJets', 'DiBoson',  'TriBoson', 'TTBarLep'],#'ZJets'],
-                 
-#                 ['TTBarLep'],
-)
 ZHbbFitMinJets = 4
 ZHbbFitMaxJets = 100
-ZHbb_btagWP    = .4941 # Med for 2017
+ZHbb_btagWP    = {'2016': 0.6321, # Med for 2016
+                  '2017': 0.4941, # Med for 2017
+                  '2018': 0.4148  # Med for 2018
+                  }
 # ttZ/H->bb SM x-section
 ZHbbXsec = {'ttZbb': .1157,
             'ttHbb': .2934 }
@@ -30,7 +37,41 @@ ZHbbtotXsec = ZHbbXsec['ttZbb'] + ZHbbXsec['ttHbb']
 n_ZHbbMC_dict      = {'ttZbb': 163876,
                       'ttHbb': 5698653 }
 n_ZHbbMC           = n_ZHbbMC_dict['ttZbb'] + n_ZHbbMC_dict['ttHbb']
+#
+hlt_path = {
+    'muon'    :{ '2016': (lambda x : ((x['HLT_IsoMu24']) | 
+                                      (x['HLT_IsoTkMu24']) | 
+                                      (x['HLT_Mu50']) | 
+                                      (x['HLT_TkMu50']))),
 
+                 '2017': (lambda x : ((x['HLT_IsoMu27']) | 
+                                      (x['HLT_Mu50']) | 
+                                      (x['HLT_OldMu100']) | 
+                                      (x['HLT_TkMu100']))),
+
+                 '2018': (lambda x : ((x['HLT_IsoMu24']) | 
+                                      (x['HLT_Mu50']) | 
+                                      (x['HLT_OldMu100']) | 
+                                      (x['HLT_TkMu100']))),
+             },
+    'electron':{ '2016': (lambda x : ((x['HLT_Ele27_WPTight_Gsf']) | 
+                                      (x['HLT_Photon175']) | 
+                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']) | 
+                                      (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
+                                      (x['HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50']))),
+
+                 '2017': (lambda x : ((x['HLT_Ele32_WPTight_Gsf_L1DoubleEG']) | 
+                                      (x['HLT_Ele35_WPTight_Gsf']) | 
+                                      (x['HLT_Photon200']) | 
+                                      (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
+                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']))),
+
+                 '2018': (lambda x : ((x['HLT_Ele32_WPTight_Gsf']) | 
+                                      (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
+                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']) | 
+                                      (x['HLT_Photon200'])))
+             }
+}
 ###################
 # Input Variables #
 LC = '_drLeptonCleaned'
@@ -61,13 +102,35 @@ ana_vars = {
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother'], # these are MC only
     'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
     'valvars'    : ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
+                    'passSingleLepElec', 'passSingleLepMu',
                     'MET_phi', 'MET_pt', 'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
-                    'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
-    'sysvars'    : ['genWeight','weight','BTagWeight','puWeight','ISRWeight','PrefireWeight', # these are MC only
-                    'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 'pdfWeight_Up','pdfWeight_Down',
-                   'ISRWeight_Up','ISRWeight_Down','PrefireWeight_Up','PrefireWeight_Down'],
+    'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
+                         'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
+    'sysvars_mc'      : ['genWeight','weight','BTagWeight','puWeight','ISRWeight',# these are MC only
+                         'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
+                         #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
+                         'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
+                         'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
+                         'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
+                         'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
+                         'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
+                         'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
+                         'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
+                         'pdfWeight_Up','pdfWeight_Down',
+                         'ISRWeight_Up','ISRWeight_Down'],
+    'sysvars_2016'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
+    'sysvars_2017'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
+    'sysvars_2018'    : [],
+    'dataHLT_all'     : [ 'HLT_IsoMu24' , 'HLT_IsoMu27', 'HLT_Mu50','HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165',
+                          'HLT_Ele27_WPTight_Gsf', 'HLT_Photon175','HLT_Ele115_CaloIdVT_GsfTrkIdT'],
+    'dataHLT_2016'    : ['HLT_IsoTkMu24','HLT_TkMu50','HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50'],
+    'dataHLT_2017'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG', 'HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150',
+                         'HLT_OldMu100','HLT_TkMu100'],
+    'dataHLT_2018'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG', 'HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150',
+                         'HLT_Ele32_WPTight_Gsf',
+                         'HLT_OldMu100','HLT_TkMu100'],
     'valRCvars'  : ['ResolvedTopCandidate_discriminator', 'ResolvedTopCandidate_j1Idx', 'ResolvedTopCandidate_j2Idx', 'ResolvedTopCandidate_j3Idx'],
     'label'      : ['isTAllHad']
 }

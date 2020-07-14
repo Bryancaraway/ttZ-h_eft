@@ -1,4 +1,4 @@
-########################A
+########################AAA
 ### process code     ###
 ### for analysis     ###
 ########################
@@ -8,14 +8,18 @@
 ##
 #
 
+import os
+import sys
+if __name__ == '__main__':
+    sys.path.insert(1,'/home/bcaraway/ttZh_ana/DeepSleep')
 import time
 import re
 from numba import njit, prange
 from uproot_methods import TLorentzVectorArray
 # Custom cfg, lib, modules
-from cfg import deepsleepcfg as cfg
+import cfg.deepsleepcfg  as cfg
 import lib.fun_library as lib
-from lib.fun_library import fill1e, fillne, deltaR, deltaPhi, invM, calc_mtb
+from lib.fun_library import fill1e, fillne, deltaR, deltaPhi, invM, calc_mtb, t2Run
 #
 import numpy as np
 np.random.seed(0)
@@ -32,6 +36,7 @@ class processAna :
     '''
     # Allowed class variables
     outDir   = 'files/'
+    outTag   = ''
     year     = '2017'
     files    = None
     sample   = None
@@ -41,7 +46,7 @@ class processAna :
     # 
     lc     = '_drLeptonCleaned'
     pt_cut = cfg.ZHptcut
-    b_wp   = cfg.ZHbb_btagWP
+    b_wp   = cfg.ZHbb_btagWP[year]
     #
     ak4_df = None
     ak8_df = None
@@ -54,13 +59,16 @@ class processAna :
 
     def __init__(self, kwargs):
         [setattr(self,k,v) for k,v in kwargs.items() if k in processAna.__dict__.keys()]
+        self.b_wp = cfg.ZHbb_btagWP[self.year]
         self.process_data()
 
     def process_data(self):
         # to contain lepCleaned_v2, match_gen, and ZHbbAna
         start = time.perf_counter()
         self.lepCleaned_v2()
-        # might be better to reconstruct zh here, code kinda messy :(
+        #
+        self.recoZh()
+        #
         if self.isSignal or self.isttbar:
             self.match_gen_lep() 
             if   self.isttbar:
@@ -69,10 +77,14 @@ class processAna :
                 # Note: can be improved if ran after ZH is reconstructed and used to gen-reco match 
                 self.match_gen_sig() 
         #
-        self.recoZh()
         self.applyDNN()
+        # add hlt variables into MC and set to True for convience later
+        if not self.isData:
+            self.addHLT_to_MC()
+            self.getMuonEff()
+        self.passHLT_by_year()
         #
-        out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_"
+        out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}{self.outTag}_"
         self.ak4_df.to_pickle(out_path+"ak4.pkl")
         self.ak8_df.to_pickle(out_path+"ak8.pkl")
         self.val_df.to_pickle(out_path+"val.pkl")
@@ -94,22 +106,37 @@ class processAna :
         #
     def match_gen_tt(self):
         # match tt or ttZ/h gen particles to recontructed objects
-        gen_ids = self.gen_df['GenPart_pdgId']
-        gen_mom = self.gen_df['GenPart_genPartIdxMother']
-        is_tt_bb = (((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) > 6)).sum() >= 2)
+        #gen_ids = self.gen_df['GenPart_pdgId']
+        #gen_mom = self.gen_df['GenPart_genPartIdxMother']
+        #gen_st  = self.gen_df['GenPart_status']
+        g = 'GenPart_' 
+        gen_ids, gen_mom, gen_st, gen_eta, gen_phi = self.gen_df.loc(
+            [g+'pdgId',g+'genPartIdxMother',g+'status',g+'eta',g+'phi']
+        ).values()
+        rZh_eta = self.val_df['Zh_eta'].values
+        rZh_phi = self.val_df['Zh_phi'].values
+        #is_tt_bb = (((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) > 6)).sum() >= 2)
+        extra_bb  = ((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) != 6) & ((gen_st == 23) | (gen_st == 21)))
+        is_tt_bb  = ((extra_bb).sum() >= 2)
+        extra_bb_dr = deltaR(rZh_eta,rZh_phi,gen_eta,gen_phi)
         self.val_df['tt_bb'] = is_tt_bb
+        print(np.nansum( self.val_df['tt_bb']))
+        self.val_df['genMatched_tt_bb'] = (((extra_bb_dr < 1.2) & (extra_bb)).sum() >= 2)
+        print(np.nansum(self.val_df['genMatched_tt_bb']))
         
     def match_gen_sig(self):
         # match tt or ttZ/h gen particles to recontructed objects
-        g = 'GenPart_'
+        g = 'GenPart_' 
         gen_ids, gen_mom, gen_pt, gen_eta, gen_phi = self.gen_df.loc(
             [g+'pdgId',g+'genPartIdxMother',g+'pt',g+'eta',g+'phi']
         ).values()
         #
-        fj= 'FatJet_'
-        ak8_pt, ak8_eta, ak8_phi, ak8_Zhbbtag = self.ak8_df.loc(
-            [fj+'pt'+self.lc,fj+'eta'+self.lc,fj+'phi'+self.lc, fj+'btagHbb'+self.lc]
-        )[self.ak8_df[fj+'lep_mask']].values()
+        #fj= 'FatJet_'
+        #ak8_pt, ak8_eta, ak8_phi, ak8_Zhbbtag = self.ak8_df.loc(
+        #    [fj+'pt'+self.lc,fj+'eta'+self.lc,fj+'phi'+self.lc, fj+'btagHbb'+self.lc]
+        #)[self.ak8_df[fj+'lep_mask']].values()
+        rZh_eta = self.val_df['Zh_eta'].values
+        rZh_phi = self.val_df['Zh_phi'].values
         #
         isbb_fromZ = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 23))
         isqq_fromZ = ((abs(gen_ids) <  5) & (gen_ids[gen_mom] == 23))
@@ -123,9 +150,11 @@ class processAna :
         zh_eta = fill1e(gen_eta[isZH]).flatten()
         zh_phi = fill1e(gen_phi[isZH]).flatten()
         #
-        zh_match_dR = deltaR(zh_eta,zh_phi,ak8_eta,ak8_phi)
-        zh_match = ((ak8_pt >= self.pt_cut ) & (ak8_Zhbbtag >= 0.0) &  
-                    (zh_match_dR <= 0.8) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
+        zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
+        #zh_match_dR = deltaR(zh_eta,zh_phi,ak8_eta,ak8_phi)
+        #zh_match = ((ak8_pt >= self.pt_cut ) & (ak8_Zhbbtag >= 0.0) &  
+        #            (zh_match_dR <= 0.8) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
+        zh_match = ((zh_match_dR <= 0.8) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
         #
         self.val_df['Zbb']= (isZbb.sum() > 0)
         self.val_df['Hbb']= (isHbb.sum() > 0)
@@ -305,11 +334,7 @@ class processAna :
         trainX   = dnn.resetIndex(train_df.drop(columns=[ 'Signal',*re.findall(r'\w*weight', ' '.join(train_df.keys()))]))
         nn_model = dnn.Build_Model(len(trainX.keys()),1,trainX.mean().values,trainX.std().values)
         #
-        base_cuts = (
-            (self.val_df['n_b_outZh']  >= 2) & 
-            (self.val_df['n_ak8_Zhbb'] >  0) &
-            (self.val_df['Zh_M']       >= 50)&
-            (self.val_df['Zh_M']       <= 200))
+        base_cuts = lib.getZhbbBaseCuts(self.val_df)
         #
         pred_df = self.val_df[cfg.dnn_ZH_vars][base_cuts]
         pred = nn_model.predict(pred_df.values).flatten()
@@ -317,6 +342,47 @@ class processAna :
         self.val_df.loc[:,'NN'] = -1.
         self.val_df.loc[base_cuts,'NN'] = pred
         #
+    def addHLT_to_MC(self):
+        # add hlt variables into MC and set them to 1
+        for var in cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}']:
+            self.val_df[var] = True
+
+    def getMuonEff(self):
+        lep_pt = self.val_df['Lep_pt']
+        eff_fun_dict = {'2016': (lambda x : 1),
+                        '2017': (lambda x : 1),
+                        '2018': self.calcMuonEff_2018}
+        self.val_df['Muon_eff'] = eff_fun_dict[self.year](lep_pt)
+        
+    @staticmethod
+    def calcMuonEff_2018(pt_dist):
+        b_update = pd.read_pickle('muonSF2018_beforeupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
+        a_update = pd.read_pickle('muonSF2018_afterupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
+        # weighting calculated from: 2018 muon runs 315257 -> 325172 which has 477 total runs
+        b_weight = 76/477  # 76  runs before run 316361
+        a_weight = 401/477 # 401 runs after  run 316361
+        bins=[2, 18, 22, 24, 26, 30, 40, 50, 60, 120, 200, 300, 500, 700, 1200] # from MUON POG for 2018 HLT_IsoMu24
+        digi_pt = pd.cut(pt_dist.clip(bins[0],bins[-1]), bins=bins, labels= sorted(b_update.keys(), key= lambda z : float(z.split('[')[1].split(',')[0]))) # key has format 'pt:[low_edge,hi_edge]'
+        muon_eff = digi_pt.map(lambda k: a_update[k]['value']*a_weight + b_update[k]['value']*b_weight)
+        return muon_eff.to_numpy(dtype=float)
+
+    def passHLT_by_year(self):
+        # determine if data/MC passes trigger criteria by year
+        elec_dict = {
+            '2016': (lambda df: ((df['HLT_Ele27_WPTight_Gsf']==True) | (df['HLT_Photon175']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | 
+                                 (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50']==True))),
+            '2017': (lambda df: ((df['HLT_Ele32_WPTight_Gsf_L1DoubleEG']==True) | (df['HLT_Ele35_WPTight_Gsf']==True) | (df['HLT_Photon200']==True) | 
+                                 (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True))),
+            '2018': (lambda df: ((df['HLT_Ele32_WPTight_Gsf']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Photon200']==True))) 
+        }
+        muon_dict = {
+            '2016': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_IsoTkMu24']==True) | (df['HLT_Mu50']==True) | 
+                                 (df['HLT_TkMu50']==True))), 
+            '2017': (lambda df: ((df['HLT_IsoMu27']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True))), 
+            '2018': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True)))
+        }
+        self.val_df['pbt_elec'] = elec_dict[self.year](self.val_df)
+        self.val_df['pbt_muon'] = muon_dict[self.year](self.val_df)
 
     @staticmethod
     @njit(parallel=True)
@@ -337,14 +403,14 @@ if __name__ == '__main__':
 
     from modules.AnaDict import AnaDict
     # will need to open pkl files for testing
-    sample = 'DY'
+    sample = 'TTBarLep'
     print('Reading Files...')
-    dir_ = 'test_ja_files/'
-    ak4_df = AnaDict.read_pickle(dir_+f'{sample}_2017_ak4.pkl')
-    ak8_df = AnaDict.read_pickle(dir_+f'{sample}_2017_ak8.pkl')
-    val_df = pd     .read_pickle(dir_+f'{sample}_2017_val.pkl')
-    gen_df = AnaDict.read_pickle(dir_+f'{sample}_2017_gen.pkl')
-    rtc_df = AnaDict.read_pickle(dir_+f'{sample}_2017_rtc.pkl')
+    dir_ = 'files/2017/mc_files/'
+    ak4_df = AnaDict.read_pickle(dir_+f'{sample}_ak4.pkl')
+    ak8_df = AnaDict.read_pickle(dir_+f'{sample}_ak8.pkl')
+    val_df = pd     .read_pickle(dir_+f'{sample}_val.pkl')
+    gen_df = AnaDict.read_pickle(dir_+f'{sample}_gen.pkl')
+    rtc_df = AnaDict.read_pickle(dir_+f'{sample}_rtc.pkl')
     print('Processing data...')
-    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample}
+    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample, 'year':'2017', 'isData':False, 'isSignal': False, 'isttbar':True, 'outDir': 'files/'}
     processAna(process_ana_dict)

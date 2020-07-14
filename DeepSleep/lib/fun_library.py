@@ -17,13 +17,13 @@ import os
 import pickle
 import math
 import time
+from functools import reduce
 from numba import njit, jit, prange
 #
 from cfg import deepsleepcfg as cfg
 #
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 np.random.seed(0)
 np.seterr(invalid='ignore')
 
@@ -152,13 +152,17 @@ def calc_SandA(pt_,eta_,phi_): # sphericity and aplanarity
     a_ = (3/2)*eig_[:,2]
     return s_, a_
 ########### Auxihilary Functions #############
-def getZHbbBaseCuts(dict_):
+def compose(*functions):
+    return reduce(lambda f, g: lambda x: f(g(x)), functions, lambda x: x)
+
+def getZhbbBaseCuts(df_):
     base_cuts = (
-        (dict_['ak8']['n_nonHbb'] >= 2)    &
-        (dict_['ak8']['nhbbFatJets'] > 0)  &
-        (dict_['ak8']['H_pt']       >= 200)&
-        (dict_['ak8']['H_M']         > 50) &
-        (dict_['ak8']['H_M']         < 200))
+        (df_['n_b_outZh']   >= 2)          &
+        (df_['n_ak8_Zhbb']  >  0)          &
+        (df_['Zh_pt']       >= cfg.ZHptcut)& # 200
+        (df_['Zh_M']        >= 50)         &
+        (df_['MET_pt']      >= 20)         &
+        (df_['Zh_M']        <= 200))
     return base_cuts
 #
 def weighted_quantile(values, quantiles, sample_weight=None, 
@@ -196,121 +200,22 @@ def weighted_quantile(values, quantiles, sample_weight=None,
         weighted_quantiles /= np.sum(sample_weight)
     return np.interp(quantiles, weighted_quantiles, values)
 #
-def StackedHisto(df_, kinem_, range_, xlabel_, n_bins=20):
-    from matplotlib import rc
-    #
-    fontsize = 12    
-    rc("savefig", dpi=250)
-    #rc("figure", figsize=(3.375, 3.375*(6./8.)), dpi=250)                                                            
-    #rc("text.latex", preamble=r"\usepackage{amsmath}")                                                             
-    #rc('font',**{'family':'serif','serif':['Times']})
-    #rc("hatch", linewidth=0.0) 
-    #
-    h        = []
-    h_sum    = []
-    w        = []
-    integral = []
-    labels   = []
-    colors   = []
-    #
 
-    bins = np.arange(range_[0],range_[-1]+((range_[-1])/n_bins) , (range_[-1])/n_bins)
-    #                                                                                                
-    for i_, key_ in enumerate(df_.keys()):
-        if (kinem_ in df_[key_]['df'].keys()):
-            kinem     = df_[key_]['df'][kinem_]
-        elif (kinem_ in df_[key_]['val'].keys()):
-            kinem     = df_[key_]['val'][kinem_]
-        elif (kinem_ in df_[key_]['valRC'].keys()):
-            kinem     = df_[key_]['valRC'][kinem_]
-        try:
-            if (kinem_ in df_[key_]['ak8'].keys()):
-                kinem = df_[key_]['ak8'][kinem_]
-        except:
-            pass
-        base_cuts = (
-            #(df_[key_]['val']['NN'] <  .85) & 
-            (df_[key_]['val']['NN'] >= 0.0) & 
-            
-            (df_[key_]['ak8']['H_pt'] >= 200)       &
-            #(df_[key_]['ak8']['H_pt'] < 300)       &
-            #(df_[key_]['val']['genZHpt'] >= 300)       &
-            #(df_[key_]['val']['genZHpt'] < 350)       &
-            #(df_[key_]['ak8']['n_H_sj_btag'] == 2) &
-            #(df_[key_]['ak8']['n_b_Hbb'] == 2) &
-            
-            (df_[key_]['ak8']['n_nonHbb'] >= 2)    &
-            (df_[key_]['ak8']['nhbbFatJets'] > 0)  &
-            (df_[key_]['ak8']['H_M']         > 50) &  
-            (df_[key_]['ak8']['H_M']         < 200)& 
-            (df_[key_]['val']['MET_pt']      >= 0))# &
-        if ('_GenMatch' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['matchedGen_ZHbb'] == True)
-        if ('_noGenMatch' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['matchedGen_ZHbb'] == False) & (df_[key_]['val']['matchedGen_Zqq'] == False) 
-        if ('_genZbb' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['matchedGen_Zbb'] == True)
-        if ('_genZqq' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['matchedGen_Zqq'] == True)
-        if ('_genHbb' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['matchedGen_Hbb'] == True)
-        if ('_Zbb' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['Zbb'] == True)
-        if ('_Zqq' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['Zqq'] == True)
-        if ('_Hbb' in key_):
-            base_cuts = base_cuts & (df_[key_]['val']['Hbb'] == True)
-        ########
-        h.append( np.clip(kinem[base_cuts], bins[0], bins[-1]))
-        w.append( df_[key_]['val']['weight'][base_cuts] * np.sign(df_[key_]['val']['genWeight'][base_cuts]) * (137/41.9)*\
-                  df_[key_]['val']['BTagWeight'][base_cuts]*df_[key_]['val']['puWeight'][base_cuts]*df_[key_]['val']['PrefireWeight'][base_cuts])
-        n_, bins_,_ = plt.hist(h[i_], weights=w[i_])
-        integral.append( sum(n_[:]))
-        la_label, color = getLaLabel(key_)
-        labels.append( la_label + ' ({0:3.1f})'.format(integral[i_]))
-        colors.append( color)
-        plt.close('all')
-    #          
-    fig, ax = plt.subplots()
-    fig.subplots_adjust(
-        top=0.88,
-        bottom=0.11,
-        left=0.11,
-        right=0.88,
-        hspace=0.2,
-        wspace=0.2
-    )
-    #fig.subplots_adjust(left=0.03, right=0.97, bottom=0.05, top=0.92)
-    perc_plot = False
-    n_, bins_, patches_ = ax.hist(h,
-                                  bins=bins, stacked=False,# fill=True,
-                                  #range=range_,
-                                  histtype='step',
-                                  density=False,
-                                  #linewidth=0,
-                                  weights= w if not perc_plot else np.divide(w,integral),
-                                  color  = colors,
-                                  label= labels)
-    #
-    #ax.grid(True)
-    from matplotlib.ticker import AutoMinorLocator
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    fig.text(0.12,0.89, r"$\bf{CMS}$ $Simulation$",   fontsize = fontsize)
-    fig.text(0.64,0.89, r'137 fb$^{-1}$ (13 TeV)', fontsize = fontsize)
-    plt.xlabel(xlabel_, fontsize = fontsize)
-    plt.ylabel(f"{'%' if perc_plot else 'Events'} / {range_[-1]/n_bins:.2f}", 
-               fontsize = fontsize)
-    plt.xlim(range_)
-    if not perc_plot: plt.yscale('log')
-    plt.grid(True)
-    #plt.setp(patches_, linewidth=0)
-    plt.legend(framealpha = 1, ncol=2)
-    plt.savefig('money_pdf/moneyplot'+xlabel_+'_.pdf', dpi = 300)
-    plt.show()
-    plt.close(fig)
-    #    
-# 
+def clop_pear_ci(k,n,cl=0.68, return_error=False):
+    import scipy.stats
+    alpha = 1-cl
+    """
+    http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+    alpha confidence intervals for a binomial distribution of k expected successes on n trials
+    Clopper Pearson intervals are a conservative estimate.
+    """
+    lo = scipy.stats.beta.ppf(alpha/2, k, n-k+1)
+    hi = scipy.stats.beta.ppf(1 - alpha/2, k+1, n-k)
+    #lo, hi = map(np.nan_to_num,[lo, hi])
+    if return_error: return [np.nan_to_num(abs(lo-(k/n))), np.nan_to_num(abs(hi-(k/n)))]
+    return [lo,hi]
+    
+
 def getLaLabel(str_):
     str_ = str_.split('_201')[0] # get rid of year suffix
     la_str = ''
@@ -344,9 +249,21 @@ def getLaLabel(str_):
                             'tab:pink'],
         'TTX':             [r't($\mathregular{\bar{t}}$)X',
                             'tab:red'],
-        'TTBarLep':        [r't$\mathregular{\bar{t}}$',
+        'TTBarLep':        [r't$\mathregular{\bar{t}}$Lep',
                             'tab:green'],
-        'TTBarHad':        [r't$\mathregular{\bar{t}}$',
+        'TTBarLep_pow':        [r't$\mathregular{\bar{t}}$Lep',
+                            'tab:green'],
+        'TTBarLep_bb':     [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$',
+                            'tab:grey'],
+        'TTBarLep_nobb':   [r't$\mathregular{\bar{t}}$',
+                            'tab:green'],
+        'TTBarLep_bbGenMatch': [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_genMatched',
+                             'tab:grey'],
+        'TTBarLep_nobbGenMatch':[r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_nogenMatched',
+                             'tab:green'],
+        'TTBarHad':        [r't$\mathregular{\bar{t}}$Had',
+                            'tab:brown'],
+        'TTBarHad_pow':        [r't$\mathregular{\bar{t}}$Had',
                             'tab:brown'],
         'WJets':           [r'W$+$jets',
                             'tab:cyan'],
@@ -356,102 +273,7 @@ def getLaLabel(str_):
                             'tab:purple']
     }
     la_str, col_str = la_col_map[str_]
-    return la_str, col_str
-
-def calc_Kappa(df_,nn_range):
-    sig = 'TTZH'
-    bkg = 'TTBarLep'
-    suffix = '_2017'
-    def bin_counts(key_):
-        base_cuts = (
-            (df_[key_]['ak8']['n_nonHbb'] >= 2)    &
-            (df_[key_]['ak8']['nhbbFatJets'] > 0)  &
-            (df_[key_]['ak8']['H_M']         > 50) &
-            (df_[key_]['ak8']['H_M']         < 200))
-        if ('TTZH' in key_ ):
-            base_cuts = base_cuts & (df_[key_]['val']['matchedGen_ZHbb'] == True)
-        w = df_[key_]['val']['weight'][base_cuts] * np.sign(df_[key_]['val']['genWeight'][base_cuts]) * (137/41.9)
-        a_cut = (
-            (df_[key_]['ak8']['H_M'] > 70) & (df_[key_]['ak8']['H_M'] < 145) &
-            (df_[key_]['val']['NN'] >= .95))
-        az_cut, ah_cut = a_cut & (df_[key_]['ak8']['H_M'] <= 100), a_cut & (df_[key_]['ak8']['H_M'] > 100)
-        b_cut = (
-            (((df_[key_]['ak8']['H_M']> 50) & (df_[key_]['ak8']['H_M'] <= 70)) | ((df_[key_]['ak8']['H_M'] >= 145) & (df_[key_]['ak8']['H_M'] < 200))) &
-            (df_[key_]['val']['NN'] >= .95))
-        bl_cut, br_cut = b_cut & (df_[key_]['ak8']['H_M'] <= 70), b_cut & (df_[key_]['ak8']['H_M'] >= 145)
-        c_cut = (
-            (df_[key_]['ak8']['H_M'] > 70) & (df_[key_]['ak8']['H_M'] < 145) &
-            (df_[key_]['val']['NN'] < nn_range[1]) & (df_[key_]['val']['NN'] >= nn_range[0]))
-        cz_cut, ch_cut = c_cut & (df_[key_]['ak8']['H_M'] <= 100), c_cut & (df_[key_]['ak8']['H_M'] > 100)
-        d_cut = (
-            (((df_[key_]['ak8']['H_M']> 50) & (df_[key_]['ak8']['H_M'] <= 70)) | ((df_[key_]['ak8']['H_M'] >= 145) & (df_[key_]['ak8']['H_M'] < 200))) &
-            (df_[key_]['val']['NN'] < nn_range[1]) & (df_[key_]['val']['NN'] >= nn_range[0]))
-        dl_cut, dr_cut = d_cut & (df_[key_]['ak8']['H_M'] <= 70), d_cut & (df_[key_]['ak8']['H_M'] >= 145)
-        return [w[a_cut].sum(), w[az_cut].sum(), w[ah_cut].sum(),
-                w[b_cut].sum(), w[bl_cut].sum(), w[br_cut].sum(),
-                w[c_cut].sum(), w[cz_cut].sum(), w[ch_cut].sum(),
-                w[d_cut].sum(), w[dl_cut].sum(), w[dr_cut].sum()]
-    #
-    a_sig, az_sig, ah_sig, b_sig, bl_sig, br_sig, c_sig, cz_sig, ch_sig, d_sig, dl_sig, dr_sig = bin_counts(sig+suffix)
-    a_sig_err, az_sig_err, ah_sig_err, b_sig_err, bl_sig_err, br_sig_err, c_sig_err, cz_sig_err, ch_sig_err, d_sig_err, dl_sig_err, dr_sig_err = np.sqrt([
-        a_sig, az_sig, ah_sig, b_sig, bl_sig, br_sig, c_sig, cz_sig, ch_sig, d_sig, dl_sig, dr_sig])
-    a_bkg, az_bkg, ah_bkg, b_bkg, bl_bkg, br_bkg, c_bkg, cz_bkg, ch_bkg, d_bkg, dl_bkg, dr_bkg = bin_counts(bkg+suffix)
-    a_bkg_err, az_bkg_err, ah_bkg_err, b_bkg_err, bl_bkg_err, br_bkg_err, c_bkg_err, cz_bkg_err, ch_bkg_err, d_bkg_err, dl_bkg_err, dr_bkg_err = np.sqrt([
-        a_bkg, az_bkg, ah_bkg, b_bkg, bl_bkg, br_bkg, c_bkg, cz_bkg, ch_bkg, d_bkg, dl_bkg, dr_bkg])
-    #
-    k_bkg     = (b_bkg * c_bkg)/(a_bkg * d_bkg)
-    k_bkg_err = abs(k_bkg)*np.sqrt(np.power(a_bkg_err/a_bkg,2) + np.power(b_bkg_err/b_bkg,2) + np.power(c_bkg_err/c_bkg,2) + np.power(d_bkg_err/d_bkg,2)) 
-    a_eff     = (a_sig/a_bkg)
-    a_eff_err = abs(a_eff)*np.sqrt(np.power(a_sig_err/a_sig,2) + np.power(a_bkg_err/a_bkg,2))
-    c_eff = (c_sig/c_bkg)
-    c_eff_err = abs(c_eff)*np.sqrt(np.power(c_sig_err/c_sig,2) + np.power(c_bkg_err/c_bkg,2))
-    print('\nFor NN score range: {0:1.2f}-->{1:1.2f}\n'\
-          '=========================================\n'\
-          'Bin_A sig/bkg efficiency: {2:2.2f} +/- {3:2.2f}%\n'\
-          'Bin_C sig/bkg efficiency: {4:2.2f} +/- {5:2.2f}%\n'\
-          'Kappa: {6:1.2f} +/- {7:1.2f}\n'.format(nn_range[0], nn_range[1], a_eff*100, a_eff_err*100, c_eff*100, c_eff_err*100, k_bkg, k_bkg_err))
-    kz_bkg = (bl_bkg * br_bkg  * cz_bkg)/(az_bkg * dl_bkg * dr_bkg)
-    kz_bkg_err = abs(kz_bkg)*np.sqrt(np.power(az_bkg_err/az_bkg,2) + np.power(bl_bkg_err/bl_bkg,2) + np.power(br_bkg_err/br_bkg,2) + 
-                                     np.power(cz_bkg_err/cz_bkg,2) + np.power(dl_bkg_err/dl_bkg,2) + np.power(dr_bkg_err/dr_bkg,2))
-    kh_bkg = (bl_bkg * br_bkg  * ch_bkg)/(ah_bkg * dl_bkg * dr_bkg)
-    kh_bkg_err = abs(kh_bkg)*np.sqrt(np.power(ah_bkg_err/ah_bkg,2) + np.power(bl_bkg_err/bl_bkg,2) + np.power(br_bkg_err/br_bkg,2) + 
-                                     np.power(ch_bkg_err/ch_bkg,2) + np.power(dl_bkg_err/dl_bkg,2) + np.power(dr_bkg_err/dr_bkg,2))
-    az_eff, ah_eff = (az_sig/az_bkg), (ah_sig/ah_bkg)
-    az_eff_err, ah_eff_err = abs(az_eff)*np.sqrt(np.power(az_sig_err/az_sig,2) + np.power(az_bkg_err/az_bkg,2)), abs(ah_eff)*np.sqrt(np.power(ah_sig_err/ah_sig,2) + np.power(ah_bkg_err/ah_bkg,2))
-    cz_eff, ch_eff = (cz_sig/cz_bkg), (ch_sig/ch_bkg)
-    cz_eff_err, ch_eff_err = abs(cz_eff)*np.sqrt(np.power(cz_sig_err/cz_sig,2) + np.power(cz_bkg_err/cz_bkg,2)), abs(ch_eff)*np.sqrt(np.power(ch_sig_err/ch_sig,2) + np.power(ch_bkg_err/ch_bkg,2))
-    print(
-        '=========================================\n'\
-        'Bin_AZ sig/bkg efficiency: {2:2.2f} +/- {3:2.2f}%\n'\
-        'Bin_CZ sig/bkg efficiency: {4:2.2f} +/- {5:2.2f}%\n'\
-        'KappaZ: {6:1.2f} +/- {7:1.2f}\n'\
-        '--\t--\t--\t--\t--\t--\n'\
-        'Bin_AH sig/bkg efficiency: {8:2.2f} +/- {9:2.2f}%\n'\
-        'Bin_CH sig/bkg efficiency: {10:2.2f} +/- {11:2.2f}%\n'\
-        'KappaH: {12:1.2f} +/- {13:1.2f}\n'.format(
-            nn_range[0], nn_range[1],
-            az_eff*100, az_eff_err*100, 
-            cz_eff*100, cz_eff_err*100, 
-            kz_bkg, kz_bkg_err, 
-            ah_eff*100, ah_eff_err*100, 
-            ch_eff*100, ch_eff_err*100, 
-            kh_bkg, kh_bkg_err))
-    #
-    #return k_bkg, k_bkg_err, c_eff, c_eff_err
-    bdl_bkg , bdl_bkg_err = bl_bkg/dl_bkg, abs(bl_bkg/dl_bkg)*np.sqrt(np.power(bl_bkg_err/bl_bkg,2) + np.power(dl_bkg_err/dl_bkg,2))
-    bdr_bkg , bdr_bkg_err = br_bkg/dr_bkg, abs(br_bkg/dr_bkg)*np.sqrt(np.power(br_bkg_err/br_bkg,2) + np.power(dr_bkg_err/dr_bkg,2))
-    acz_bkg , acz_bkg_err = az_bkg/cz_bkg, abs(az_bkg/cz_bkg)*np.sqrt(np.power(az_bkg_err/az_bkg,2) + np.power(cz_bkg_err/cz_bkg,2))
-    ach_bkg , ach_bkg_err = ah_bkg/ch_bkg, abs(ah_bkg/ch_bkg)*np.sqrt(np.power(ah_bkg_err/ah_bkg,2) + np.power(ch_bkg_err/ch_bkg,2))
-    #
-    bl_eff, br_eff = (bl_sig/bl_bkg), (br_sig/br_bkg)
-    bl_eff_err, br_eff_err = abs(bl_eff)*np.sqrt(np.power(bl_sig_err/bl_sig,2) + np.power(bl_bkg_err/bl_bkg,2)), abs(br_eff)*np.sqrt(np.power(br_sig_err/br_sig,2) + np.power(br_bkg_err/br_bkg,2))
-    #
-    return [
-        [bdl_bkg,acz_bkg,ach_bkg,bdr_bkg],
-        [bdl_bkg_err,acz_bkg_err,ach_bkg_err,bdr_bkg_err],
-        [bl_eff,az_eff,ah_eff,br_eff],
-        [bl_eff_err,az_eff_err,ah_eff_err,br_eff_err]
-    ]
+    return [la_str, col_str]
 
 # decorator to display the time it takes to run function
 def t2Run(func):
