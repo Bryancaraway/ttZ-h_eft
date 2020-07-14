@@ -37,7 +37,41 @@ ZHbbtotXsec = ZHbbXsec['ttZbb'] + ZHbbXsec['ttHbb']
 n_ZHbbMC_dict      = {'ttZbb': 163876,
                       'ttHbb': 5698653 }
 n_ZHbbMC           = n_ZHbbMC_dict['ttZbb'] + n_ZHbbMC_dict['ttHbb']
+#
+hlt_path = {
+    'muon'    :{ '2016': (lambda x : ((x['HLT_IsoMu24']) | 
+                                      (x['HLT_IsoTkMu24']) | 
+                                      (x['HLT_Mu50']) | 
+                                      (x['HLT_TkMu50']))),
 
+                 '2017': (lambda x : ((x['HLT_IsoMu27']) | 
+                                      (x['HLT_Mu50']) | 
+                                      (x['HLT_OldMu100']) | 
+                                      (x['HLT_TkMu100']))),
+
+                 '2018': (lambda x : ((x['HLT_IsoMu24']) | 
+                                      (x['HLT_Mu50']) | 
+                                      (x['HLT_OldMu100']) | 
+                                      (x['HLT_TkMu100']))),
+             },
+    'electron':{ '2016': (lambda x : ((x['HLT_Ele27_WPTight_Gsf']) | 
+                                      (x['HLT_Photon175']) | 
+                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']) | 
+                                      (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
+                                      (x['HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50']))),
+
+                 '2017': (lambda x : ((x['HLT_Ele32_WPTight_Gsf_L1DoubleEG']) | 
+                                      (x['HLT_Ele35_WPTight_Gsf']) | 
+                                      (x['HLT_Photon200']) | 
+                                      (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
+                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']))),
+
+                 '2018': (lambda x : ((x['HLT_Ele32_WPTight_Gsf']) | 
+                                      (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
+                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']) | 
+                                      (x['HLT_Photon200'])))
+             }
+}
 ###################
 # Input Variables #
 LC = '_drLeptonCleaned'
@@ -89,12 +123,13 @@ ana_vars = {
     'sysvars_2016'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
     'sysvars_2017'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
     'sysvars_2018'    : [],
-    'dataHLT_all'     : [ 'HLT_IsoMu24' , 'HLT_IsoMu27', 'HLT_Mu50',
-                          'HLT_Ele27_WPTight_Gsf', 'HLT_Photon175'],
-    'dataHLT_2016'    : ['HLT_IsoTkMu24','HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165','HLT_Ele115_CaloIdVT_GsfTrkIdT'],
-    'dataHLT_2017'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG','HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150'],
+    'dataHLT_all'     : [ 'HLT_IsoMu24' , 'HLT_IsoMu27', 'HLT_Mu50','HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165',
+                          'HLT_Ele27_WPTight_Gsf', 'HLT_Photon175','HLT_Ele115_CaloIdVT_GsfTrkIdT'],
+    'dataHLT_2016'    : ['HLT_IsoTkMu24','HLT_TkMu50','HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50'],
+    'dataHLT_2017'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG', 'HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150',
+                         'HLT_OldMu100','HLT_TkMu100'],
     'dataHLT_2018'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG', 'HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150',
-                         'HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165','HLT_Ele115_CaloIdVT_GsfTrkIdT','HLT_Ele32_WPTight_Gsf',
+                         'HLT_Ele32_WPTight_Gsf',
                          'HLT_OldMu100','HLT_TkMu100'],
     'valRCvars'  : ['ResolvedTopCandidate_discriminator', 'ResolvedTopCandidate_j1Idx', 'ResolvedTopCandidate_j2Idx', 'ResolvedTopCandidate_j3Idx'],
     'label'      : ['isTAllHad']

@@ -27,6 +27,7 @@ class Plotter :
     saveDir  = 'pdf/'
     pklDir   = 'files/'
     data_samples = ['MuData','EleData']
+    mc_samples = None
     year      = None
     data_dict = None
     w_dict    = None
@@ -35,7 +36,7 @@ class Plotter :
     HEM_opt   = ''
 
     def __init__(self,samples, kinem, bin_range, 
-                 xlabel=None, n_bins=20, 
+                 xlabel=None, n_bins=20, bins=None,
                  doLog=True, doNorm=False, 
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,sepGenOpt=None,addData=False):
@@ -45,7 +46,7 @@ class Plotter :
         self.bin_range  = bin_range
         self.xlabel     = kinem if xlabel is None else xlabel
         self.n_bins     = n_bins
-        self.bins       = np.arange(bin_range[0],bin_range[-1]+((bin_range[-1]-bin_range[0])/n_bins) , (bin_range[-1]-bin_range[0])/n_bins)
+        self.bins       = np.arange(bin_range[0],bin_range[-1]+((bin_range[-1]-bin_range[0])/n_bins) , (bin_range[-1]-bin_range[0])/n_bins) if bins is None else bins
         self.doLog      = doLog
         self.doNorm     = doNorm
         self.doShow     = doShow
@@ -67,19 +68,22 @@ class Plotter :
         #
         self.data = data
         self.sepData()
-        print(self.year+self.HEM_opt)
+        
         #
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
                        * (self.lumi/cfg.Lumi[self.year])
                        * v['Stop0l_topptWeight']
                        * (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
                        #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
-                       * (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index() if self.year != '2015' else 1.0)
+                       * (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index() if self.year != '2014' else 1.0)
+                       #* (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Muon_eff'][v['passSingleLepMu']==1]]).sort_index() if self.year == '2018' else 1.0)
+                       #* v['Muon_eff']
                        * v['BTagWeight'] 
                        * v['puWeight']  
                        * (v['PrefireWeight'] if self.year != '2018' else 1.0)
                        * v['ISRWeight']  
                        for k,v in self.data.items()}
+
 
         self.i_dict = {k: sum(v) for k,v in self.w_dict.items()}
         #
@@ -205,23 +209,24 @@ class Plotter :
         plt.close(self.fig)
 
     @classmethod
-    def load_data(cls,year='2017',HEM_opt=''):
+    def load_data(cls,year='2017',HEM_opt='',samples=None,tag=None):
         cls.year = year
+        cls.mc_samples = samples if samples is not None else cfg.MC_samples
         cls.HEM_opt = HEM_opt
         cls.lumi = cfg.Lumi[year+HEM_opt]
-        cls.data_dict = {sample: pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl') 
-                         for sample in (cfg.MC_samples if year != '2018' else cfg.MC_samples)}
-        
+        cls.data_dict = {(sample.replace(tag,'') if tag is not None else sample):
+                         pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl') 
+                         for sample in cls.mc_samples}
 
 class StackedHist(Plotter) :
     #Creates stacked histograms
     
     def __init__(self,samples, kinem, bin_range, 
-                 xlabel=None, n_bins=20, 
+                 xlabel=None, n_bins=20, bins=None,
                  doLog=True, doNorm=False, 
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,sepGenOpt=None,addData=False):
-        super().__init__(samples,kinem,bin_range,xlabel,n_bins,doLog,doNorm, 
+        super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
                          doShow,doSave,doCuts,add_cuts,sepGenOpt,addData)
         #
         self.makePlot()
@@ -293,12 +298,12 @@ class Hist (Plotter) :
     # creats hists for 1-to-1 comparison
     def __init__(self,samples, kinem, bin_range, 
                  droptt=False, dropNoGenM=True, dropZqq=False,
-                 xlabel=None, n_bins=20, 
+                 xlabel=None, n_bins=20, bins=None,
                  doLog=False, doNorm=True, 
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,sepGenOpt=None,addData=False):
 
-        super().__init__(samples,kinem,bin_range,xlabel,n_bins,doLog,doNorm, 
+        super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
                          doShow,doSave,doCuts,add_cuts,sepGenOpt,addData)
 
         if dropNoGenM: [self.data.pop(k) for k in re.findall(r'\w*_no\w*GenMatch',' '.join(self.data)) if k in self.data]

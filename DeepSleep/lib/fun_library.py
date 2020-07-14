@@ -24,7 +24,6 @@ from cfg import deepsleepcfg as cfg
 #
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 np.random.seed(0)
 np.seterr(invalid='ignore')
 
@@ -201,6 +200,22 @@ def weighted_quantile(values, quantiles, sample_weight=None,
         weighted_quantiles /= np.sum(sample_weight)
     return np.interp(quantiles, weighted_quantiles, values)
 #
+
+def clop_pear_ci(k,n,cl=0.68, return_error=False):
+    import scipy.stats
+    alpha = 1-cl
+    """
+    http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+    alpha confidence intervals for a binomial distribution of k expected successes on n trials
+    Clopper Pearson intervals are a conservative estimate.
+    """
+    lo = scipy.stats.beta.ppf(alpha/2, k, n-k+1)
+    hi = scipy.stats.beta.ppf(1 - alpha/2, k+1, n-k)
+    #lo, hi = map(np.nan_to_num,[lo, hi])
+    if return_error: return [np.nan_to_num(abs(lo-(k/n))), np.nan_to_num(abs(hi-(k/n)))]
+    return [lo,hi]
+    
+
 def getLaLabel(str_):
     str_ = str_.split('_201')[0] # get rid of year suffix
     la_str = ''

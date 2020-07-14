@@ -4,7 +4,7 @@ import pandas as pd
 import cfg.deepsleepcfg as cfg
 ###----=======-----###
 
-#sepGenOpt :'sepGenSig','sepGenBkg','sepGenMatchedSig','sepGenMatchedBkg'
+#sepGenOpt ; 'sepGenSig','sepGenBkg','sepGenMatchedSig','sepGenMatchedBkg'
 
 ###----=======-----###
 
@@ -20,8 +20,8 @@ import cfg.deepsleepcfg as cfg
 #StackedHist(cfg.MC_samples,'Lep_pt',    bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1',    n_bins=1, doCuts=False, addData=True)
 #StackedHist(cfg.MC_samples,'Pass_trigger_electron',    bin_range=[-1,2],   add_cuts='MET_pt>=20;passSingleLepElec==1',    n_bins=3, doCuts=False, addData=True)
 #Plotter.load_data('2018','preHEM')
-#Plotter.load_data('2016')
-#StackedHist(cfg.MC_samples,'Lep_pt',    bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1;Pass_trigger_electron==1',    n_bins=20, doCuts=False, addData=True)
+Plotter.load_data('2016')
+Hist(['TTZH','TTBarLep'],'Lep_pt',    bin_range=[0,500],   add_cuts='MET_pt>=20',   bins=[30,40,50,60,120,200,300,500], doNorm=True, doCuts=False)
 #StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Elec_pt',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1',    n_bins=20, doCuts=False, addData=True)
 #StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Elec_pt',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1;Pass_trigger_electron==1',    n_bins=20, doCuts=False, addData=True)
 #StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Mu_pt',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1',    n_bins=20, doCuts=False, addData=True)
@@ -31,9 +31,22 @@ import cfg.deepsleepcfg as cfg
 for y in cfg.Years:
     Plotter.load_data(y)
     StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Elec_pt',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1',    n_bins=50, doCuts=False, addData=True)
-    StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Elec_pt_pass_trigger_electron',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1;Pass_trigger_electron==1',    n_bins=50, doCuts=False, addData=True)
+    StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Elec_pt_pass_trigger_electron_pbt',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1;pbt_elec==1',    n_bins=50, doCuts=False, addData=True)
+    StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Elec_pt_pass_trigger_electron_pst',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1;Pass_trigger_electron==1',    n_bins=50, doCuts=False, addData=True)
+    #StackedHist(['TTZH','TTBarLep'],'Lep_pt',  xlabel='Mu_pt',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1',    n_bins=50, doCuts=False, addData=True)
+    #StackedHist(cfg.MC_samples,'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon_pbt',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;pbt_muon==1',    n_bins=50, doCuts=False, addData=True)
+    #StackedHist(['TTZH','TTBarLep'],'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon_HLT24',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;HLT_IsoMu24==1',    n_bins=50, doCuts=False, addData=True)
+    
     StackedHist(cfg.MC_samples,'Lep_pt',  xlabel='Mu_pt',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1',    n_bins=50, doCuts=False, addData=True)
-    StackedHist(cfg.MC_samples,'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;Pass_trigger_muon==1',    n_bins=50, doCuts=False, addData=True)
+    StackedHist(cfg.MC_samples,'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon_pbt',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;pbt_muon==1',    n_bins=50, doCuts=False, addData=True)
+    StackedHist(cfg.MC_samples,'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon_pst',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;Pass_trigger_muon==1',    n_bins=50, doCuts=False, addData=True)
+    #StackedHist(['TTZH','TTBarLep'],'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon_HLT24',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;HLT_IsoMu24==1',    n_bins=50, doCuts=False, addData=True)
+    #StackedHist(cfg.MC_samples,'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon_HLT24_50',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;pbt_muon==1',    n_bins=50, doCuts=False, addData=True)
+    #StackedHist(cfg.MC_samples,'Lep_pt',  xlabel='Mu_pt_pass_trigger_muon_HLT24',  bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;HLT_TkMu100==1;HLT_OldMu100==1',    n_bins=50, doCuts=False, addData=True)
+
+    
+    #StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Elec_pt',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepElec==1;Pass_trigger_electron==1',    n_bins=50, doCuts=False, addData=True)
+    #StackedHist(cfg.MC_samples,'Lep_pt', xlabel='Mu_pt',   bin_range=[0,500],   add_cuts='MET_pt>=20;passSingleLepMu==1;Pass_trigger_muon==1',    n_bins=50, doCuts=False, addData=True)
 exit()
 #StackedHist(cfg.MC_samples,'Pass_trigger_electron',    bin_range=[-1,2],   add_cuts='MET_pt>=20;passSingleLepElec==1',    n_bins=3, doCuts=False, addData=True)
 #StackedHist(cfg.MC_samples,'Pass_trigger_muon',    bin_range=[-1,2],   add_cuts='MET_pt>=20;passSingleLepMu==1',    n_bins=3, doCuts=False, addData=True)

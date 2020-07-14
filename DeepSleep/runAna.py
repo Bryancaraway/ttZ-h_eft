@@ -10,13 +10,15 @@ parser.add_argument('-s', dest='sample', type=str, choices=cfg.MC_samples+cfg.Da
                     required=True, help='sample to analyze')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
                     required=True, help='year')
+parser.add_argument('-i', dest='roofile', type=str, required=False, help="Optional input root file, leave out '.root'", default=None)
+parser.add_argument('-t', dest='tag', type=str, required=False, help='Optional tag to add to output file', default='')
 args = parser.parse_args()
 
 class runAna ():
     start = time.perf_counter()
     #####
     sample   = args.sample # should change to parsargs  at some point
-    roofile  = (f'Data_{args.year}' if 'Data' in args.sample else f'MC_{args.year}')
+    roofile  = (args.roofile if args.roofile is not None else (f'Data_{args.year}' if 'Data' in args.sample else f'MC_{args.year}') ) 
     isData   = 'Data' in roofile
     isSignal = 'TTZH'     in sample
     isttbar  = 'TTBarLep' in sample
@@ -36,7 +38,7 @@ class runAna ():
 
     #####
     print('Running processAna...')
-    processAna_cfg = {'outDir': 'files/', 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
+    processAna_cfg = {'outDir': 'files/', 'outTag':args.tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
                       'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df,
                       'sample':sample}
     processAna(processAna_cfg)

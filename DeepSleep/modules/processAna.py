@@ -36,6 +36,7 @@ class processAna :
     '''
     # Allowed class variables
     outDir   = 'files/'
+    outTag   = ''
     year     = '2017'
     files    = None
     sample   = None
@@ -80,9 +81,10 @@ class processAna :
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
             self.addHLT_to_MC()
+            self.getMuonEff()
         self.passHLT_by_year()
         #
-        out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_"
+        out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}{self.outTag}_"
         self.ak4_df.to_pickle(out_path+"ak4.pkl")
         self.ak8_df.to_pickle(out_path+"ak8.pkl")
         self.val_df.to_pickle(out_path+"val.pkl")
@@ -345,16 +347,38 @@ class processAna :
         for var in cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}']:
             self.val_df[var] = True
 
+    def getMuonEff(self):
+        lep_pt = self.val_df['Lep_pt']
+        eff_fun_dict = {'2016': (lambda x : 1),
+                        '2017': (lambda x : 1),
+                        '2018': self.calcMuonEff_2018}
+        self.val_df['Muon_eff'] = eff_fun_dict[self.year](lep_pt)
+        
+    @staticmethod
+    def calcMuonEff_2018(pt_dist):
+        b_update = pd.read_pickle('muonSF2018_beforeupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
+        a_update = pd.read_pickle('muonSF2018_afterupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
+        # weighting calculated from: 2018 muon runs 315257 -> 325172 which has 477 total runs
+        b_weight = 76/477  # 76  runs before run 316361
+        a_weight = 401/477 # 401 runs after  run 316361
+        bins=[2, 18, 22, 24, 26, 30, 40, 50, 60, 120, 200, 300, 500, 700, 1200] # from MUON POG for 2018 HLT_IsoMu24
+        digi_pt = pd.cut(pt_dist.clip(bins[0],bins[-1]), bins=bins, labels= sorted(b_update.keys(), key= lambda z : float(z.split('[')[1].split(',')[0]))) # key has format 'pt:[low_edge,hi_edge]'
+        muon_eff = digi_pt.map(lambda k: a_update[k]['value']*a_weight + b_update[k]['value']*b_weight)
+        return muon_eff.to_numpy(dtype=float)
+
     def passHLT_by_year(self):
         # determine if data/MC passes trigger criteria by year
         elec_dict = {
-            '2016': (lambda df: ((df['HLT_Ele27_WPTight_Gsf']==True) | (df['HLT_Photon175']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True))),
-            '2017': (lambda df: ((df['HLT_Ele32_WPTight_Gsf_L1DoubleEG']==True) | (df['HLT_Ele35_WPTight_Gsf']==True) | (df['HLT_Photon200']==True))),
-            '2018': (lambda df: ((df['HLT_Ele32_WPTight_Gsf']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Photon200']==True)))
+            '2016': (lambda df: ((df['HLT_Ele27_WPTight_Gsf']==True) | (df['HLT_Photon175']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | 
+                                 (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50']==True))),
+            '2017': (lambda df: ((df['HLT_Ele32_WPTight_Gsf_L1DoubleEG']==True) | (df['HLT_Ele35_WPTight_Gsf']==True) | (df['HLT_Photon200']==True) | 
+                                 (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True))),
+            '2018': (lambda df: ((df['HLT_Ele32_WPTight_Gsf']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Photon200']==True))) 
         }
         muon_dict = {
-            '2016': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_IsoTkMu24']==True) | (df['HLT_Mu50']==True))),
-            '2017': (lambda df: ((df['HLT_IsoMu27']==True) | (df['HLT_Mu50']==True))), #| (df[]==True) | (df[]==True)),
+            '2016': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_IsoTkMu24']==True) | (df['HLT_Mu50']==True) | 
+                                 (df['HLT_TkMu50']==True))), 
+            '2017': (lambda df: ((df['HLT_IsoMu27']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True))), 
             '2018': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True)))
         }
         self.val_df['pbt_elec'] = elec_dict[self.year](self.val_df)

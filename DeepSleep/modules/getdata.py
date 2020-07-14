@@ -135,6 +135,7 @@ class getData :
         '''
         tarray       = None
         tpandas      = None
+        estop        = None
         allowed_types = ['ak4', 'ak8', 'event', 'gen', 'RC', 'other']
     
         # pre-selection cuts need to be applied when getting data from tree to increase speed
@@ -142,6 +143,8 @@ class getData :
         # event cuts:  n_ak4jets >= 4, n_ak4bottoms >= 2, n_ak8jets(pt>=200) >= 1
         isData     = False
         year       = None
+        minAk4Jets = 4
+        maxAk4Jets = 99
 
         ak4_mask   = None
         ak8_mask   = None
@@ -194,7 +197,7 @@ class getData :
         def set_attr(cls,isData, year, njets, maxAk4Jets, estart, estop):
             cls.isData = isData
             cls.year   = year
-            cls.njets  = njets
+            cls.minAk4Jets = njets
             cls.maxAk4Jets = maxAk4Jets
             cls.estart = estart
             cls.estop  = estop
@@ -219,7 +222,7 @@ class getData :
             n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
             del jet_pt_eta, fatjet_pt_eta
             #
-            event_mask = ((n_ak4jets >= cls.njets) & 
+            event_mask = ((n_ak4jets >= cls.minAk4Jets) & 
                           (n_ak4jets <= cls.maxAk4Jets) &
                           (n_ak8jets >= 1))
             #handle HEM Vetor for 2018 Data
