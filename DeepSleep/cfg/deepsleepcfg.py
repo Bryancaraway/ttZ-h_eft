@@ -64,18 +64,40 @@ hlt_path = {
                                       (x['HLT_Ele35_WPTight_Gsf']) | 
                                       (x['HLT_Photon200']) | 
                                       (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
-                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']))),
+                                      (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']) #|
+                                      #(x['HLT_Ele28_eta2p1_WPTight_Gsf_HT150']) # trying this out
+                                  )),
 
                  '2018': (lambda x : ((x['HLT_Ele32_WPTight_Gsf']) | 
                                       (x['HLT_Ele115_CaloIdVT_GsfTrkIdT']) | 
                                       (x['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']) | 
-                                      (x['HLT_Photon200'])))
+                                      (x['HLT_Photon200']) #|
+                                      #(x['HLT_Ele28_eta2p1_WPTight_Gsf_HT150']) # trying this out
+                                  ))
              }
 }
 ###################
 # Input Variables #
 LC = '_drLeptonCleaned'
 #
+lep_sel_vars = {'muon'    : ['Muon_pt','Muon_eta','Muon_phi','Muon_mass',
+                             'Muon_miniPFRelIso_all','Muon_FlagId'],
+                'electron': ['Electron_pt','Electron_eta','Electron_phi','Electron_mass',
+                             'Electron_miniPFRelIso_all', 'Electron_cutBasedNoIso']}
+
+lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30) & (abs(x['Muon_eta']) < 2.4) &
+                                     (x['Muon_FlagId'] >= 1) & (x['Muon_miniPFRelIso_all'] < 0.2) )),
+                'electron': {'2016': (lambda x : ((x['Electron_pt'] > 30) & (abs(x['Electron_eta']) < 2.5) & 
+                                                  (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                             '2017': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & 
+                                                  (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                             '2018': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & 
+                                                  (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                             }
+                }
+                         
+    
+
 ana_vars = {
     'ak4vars'    : ['Jet_btagDeepB'+LC, 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
     'ak4lvec'    : {'TLV'         :['JetTLV'+LC],
@@ -103,7 +125,7 @@ ana_vars = {
     'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
     'valvars'    : ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
                     'passSingleLepElec', 'passSingleLepMu',
-                    'MET_phi', 'MET_pt', 'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
+                    'MET_phi', 'MET_pt', #'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
     'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
