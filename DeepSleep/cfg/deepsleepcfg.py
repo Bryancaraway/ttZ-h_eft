@@ -86,7 +86,9 @@ lep_sel_vars = {'muon'    : ['Muon_pt','Muon_eta','Muon_phi','Muon_mass',
                              'Electron_miniPFRelIso_all', 'Electron_cutBasedNoIso']}
 
 lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30) & (abs(x['Muon_eta']) < 2.4) &
-                                     (x['Muon_FlagId'] >= 1) & (x['Muon_miniPFRelIso_all'] < 0.2) )),
+                                    #(x['Muon_FlagId'] >= 0) & (x['Muon_miniPFRelIso_all'] < .4) )), # loose id, loose miniIso
+                                    (x['Muon_FlagId'] >= 1) & (x['Muon_miniPFRelIso_all'] < 0.2) )),
+
                 'electron': {'2016': (lambda x : ((x['Electron_pt'] > 30) & (abs(x['Electron_eta']) < 2.5) & 
                                                   (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
                              '2017': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & 

@@ -14,7 +14,7 @@ year = sys.argv[1]
 
 def pickle_mcdata():
 
-    roodir  = '/cms/data/store/user/ttxeft/Skim_nanoAOD/' 
+    roodir  = '/cms/data/store/user/ttxeft/Skim_nanoAOD/lep_study_files/' 
     
     n_events = AnaDict()
 
@@ -60,41 +60,51 @@ def calc_lepSel_eff(mu, el, mc, gen):
     gen_mu = gen[abs(gen['GenPart_pdgId']) == 13]
     gen_el = gen[abs(gen['GenPart_pdgId']) == 11]
     def get_gen_matched(lep, gen, lep_type):
-        gen_pt, gen_eta, gen_phi = map(fillne, [gen['GenPart_pt'], gen['GenPart_eta'], gen['GenPart_phi']])
+        gen_pt, gen_eta, gen_phi, gen_mother = map(fillne, [gen['GenPart_pt'], gen['GenPart_eta'], gen['GenPart_phi'], gen['GenPart_mother']])
         lep_gen_match = []
         for i in range(gen_pt.shape[1]):
-            lep_gen_match.append((deltaR(lep[f'{lep_type}_eta'], lep[f'{lep_type}_phi'], gen_eta[:,i], gen_phi[:,i]) < 0.1) & (abs((lep[f'{lep_type}_pt']/gen_pt[:,i]) - 1) < .30))
+            #lep_gen_match.append((deltaR(lep[f'{lep_type}_eta'], lep[f'{lep_type}_phi'], gen_eta[:,i], gen_phi[:,i]) < 0.1) & (abs((lep[f'{lep_type}_pt']/gen_pt[:,i]) - 1) < .30))
+            lep_gen_match.append((deltaR(lep[f'{lep_type}_eta'], lep[f'{lep_type}_phi'], gen_eta[:,i], gen_phi[:,i]) > 0.1) | (abs((lep[f'{lep_type}_pt']/gen_pt[:,i]) - 1) > .30))
+        no_match = (sum(lep_gen_match) > 0)
+        gen_nom = gen[abs(gen['GenPart_eta']) < 1.2][no_match.sum()>0]
+        lep_nom = lep[no_match][lep[f'{lep_type}_eta'][no_match].counts > 0]
+        lep_nom = lep_nom[gen_nom['GenPart_pt'].counts>0]
+        gen_nom = gen_nom[gen_nom['GenPart_pt'].counts>0]
+        for i in range(10):
+            print(f"Event {i+1}: GEN Info: Gen pt:{gen_nom['GenPart_pt'][i]}, Gen Eta:{gen_nom['GenPart_eta'][i]}, Gen Phi:{gen_nom['GenPart_phi'][i]}, Gen Mom:{gen_nom['GenPart_mother'][i]}")
+            print(f"Event {i+1}: RECO Info:{lep_type} pt:{lep_nom[f'{lep_type}_pt'][i]}, {lep_type} Eta:{lep_nom[f'{lep_type}_eta'][i]}, {lep_type} Phi:{lep_nom[f'{lep_type}_phi'][i]}, {lep_type} Id:{lep_nom[f'{lep_type}_FlagId'][i]}, {lep_type} miniIso:{lep_nom[f'{lep_type}_miniPFRelIso_all'][i]}")
+        exit()
         return lep[(sum(lep_gen_match) > 0)]
         
     mu = get_gen_matched(mu, gen_mu, 'Muon')
+    print(mu[mu['Muon_pt'].counts > 0])
+    exit()
     el = get_gen_matched(el, gen_el, 'Electron')
     #
-    #mu_num = mu['Muon_pt'][(mu["Muon_miniPFRelIso_all"] < 0.2) & (mu['Muon_FlagId'] >= 1 )][event_mask].flatten() # med id, .2 miniIso
-    #mu_den = mu['Muon_pt'][event_mask].flatten()
-    ##
-    #el_num = el['Electron_pt'][(el['Electron_miniPFRelIso_all'] < .1) & (el['Electron_cutBasedNoIso'] >= 4)][event_mask].flatten() # tight id, .1 miniIso
-    #el_den = el['Electron_pt'][(el['Electron_cutBasedNoIso'] >= 2)][event_mask].flatten()
     mu_num = mu[cfg.lep_sel['muon'](mu)][event_mask] # med id, .2 miniIso
-    mu_den = mu[event_mask]
+    mu_den = mu[mu['Muon_pt'] > 30][event_mask]
     #
-    el_num = el[cfg.lep_sel['electron'][year](el)][event_mask] # tight id, .1 miniIso
-    el_den = el[(el['Electron_cutBasedNoIso'] >= 2)][event_mask]
+    el_num = el[((cfg.lep_sel['electron'][year](el)))][event_mask] # tight id, .1 miniIso
+    el_den = el[((el['Electron_cutBasedNoIso'] >= 2) & (el['Electron_pt'] > (30 if year == '2016' else 35)))][event_mask]
     #
-    bins = {'pt' : { 'Muon'    : np.append(np.linspace(0,100,8+1),[125,150,175,200,250,300,400,500]),
-                     'Electron': np.append(np.linspace(0,100,8+1),[125,150,175,200,250,300,400,500])
+    bins = {'pt' : { 'Muon'    : np.append(np.linspace(30,100,5+1),[125,150,175,200,250,300,400,500]),
+                     'Electron': np.append(np.linspace((30 if year == '2016' else 35),100,5+1),[125,150,175,200,250,300,400,500])
                  },
             'eta': {'Muon'     : [-2.6,-2.4,-2.1,-1.6,-1.2,-0.9,-0.3,-0.2,
                                   0.2,0.3,0.9,1.2,1.6,2.1,2.4,2.6],
                     'Electron' : [-2.6, -2.5, -1.566, -1.444, -0.8, 0.0, 0.8, 1.444, 1.566, 2.5, 2.6] 
                 }
         }
+    #
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import AutoMinorLocator
+    #
     def plot_eff(num, den, lep):
         fig, ax = plt.subplots(1,2, figsize=(16,10))
 
         for i,k in enumerate(['pt','eta']):
-                n_num, _     = np.histogram(num[f'{lep}_{k}'].flatten(), bins=bins[k][lep], range=(0,500))
-                n_den, edges = np.histogram(den[f'{lep}_{k}'].flatten(), bins=bins[k][lep], range=(0,500))
+                n_num, _     = np.histogram(num[f'{lep}_{k}'].flatten(), bins=bins[k][lep])
+                n_den, edges = np.histogram(den[f'{lep}_{k}'].flatten(), bins=bins[k][lep])
                 bin_c = (edges[1:]+edges[:-1])/2
                 bin_w = (edges[1:]-edges[:-1])
                 lo, hi = clop_pear_ci(n_num,n_den,return_error=True)
@@ -104,16 +114,40 @@ def calc_lepSel_eff(mu, el, mc, gen):
                                y=y, yerr=yerr, fmt='.', label=f'{mc}_{year}')
                 ax[i].axhline(1, color='r', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
                 ax[i].grid(True)
-                ax[i].set_ylim(0.70,1.05)
+                ax[i].set_ylim(0.00,1.05)
                 ax[i].set_xlabel(f"{lep} {k}{' (GeV)' if k == 'pt' else ''}")
 
         fig.suptitle(f'{lep} Selection Efficiency, {mc}_{year}')
         plt.show()
         plt.clf()
         plt.close()
+
+    def plot_2d_eff(num,den, lep):
+        fig, ax = plt.subplots()
+        n_num, *_ = np.histogram2d(x=num[f'{lep}_eta'].flatten(), y=num[f'{lep}_pt'].flatten(),
+                                   bins=[bins['eta'][lep],bins['pt'][lep]], range=((-2.6,2.6),(0,500)))
+        n_den, xedges, yedges = np.histogram2d(x=den[f'{lep}_eta'].flatten(), y=den[f'{lep}_pt'].flatten(),
+                                               bins=[bins['eta'][lep],bins['pt'][lep]], range=((-2.6,2.6),(0,500)))
+        x,y = np.meshgrid(xedges,yedges)
+        data = n_num/n_den
+        plt.pcolormesh(x,y,data.T, cmap=plt.get_cmap('viridis',16), vmin=0.60, vmax=1.0)
+        plt.colorbar()
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+        plt.ylim(0,500)
+        plt.ylabel('pT (GeV)')
+        plt.xlabel('eta')
+        plt.title(f'{mc}_{year} {lep} Sel Eff')
+        plt.show()
+        plt.clf()
+        plt.close()
+        #
+    #
+    #plot_2d_eff(el_num,el_den,'Electron')
+    #plot_2d_eff(mu_num,mu_den,'Muon')
         
     plot_eff(el_num,el_den,'Electron')
-    plot_eff(mu_num,mu_den,'Muon')
+    #plot_eff(mu_num,mu_den,'Muon')
 
 def get_tree_data(tree, getgen=False):
     executor = concurrent.futures.ThreadPoolExecutor()
@@ -137,6 +171,7 @@ def get_tree_data(tree, getgen=False):
     el_data = el_data[(el_data['Electron_pt'] >= 30) & (abs(el_data['Electron_eta']) < 2.5)]
     if getgen:
         gen_info = AnaDict({k:tree.array(k, executor=executor) for k in cfg.ana_vars['genpvars']})
+        gen_info['GenPart_mother'] = gen_info['GenPart_pdgId'][gen_info['GenPart_genPartIdxMother']]
         return mu_data, el_data, gen_info, weight
     #
     return mu_data, el_data, weight
