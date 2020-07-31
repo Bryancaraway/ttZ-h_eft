@@ -39,7 +39,9 @@ class getData :
     outDir     = 'files/'
     njets      = 4
     maxAk4Jets = 100
+    minBottoms = 2
     treeDir    = cfg.tree_dir
+    doLepSel   = True
     getGenData = False # doesnt do anything atm
     getak8var  = False # doesnt do anything atm
     estart     = None
@@ -58,14 +60,19 @@ class getData :
             print(self.sample)
             start = time.perf_counter()
             t = tree_dir.get(self.sample)
-            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.estart, self.estop)
+            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.minBottoms, self.estart, self.estop)
             self.DF_Container.set_current_tree_mask(t)
+            if self.doLepSel: self.DF_Container.lep_sel_mask()
             # 
             ak4_df   = self.DF_Container('ak4',   'AK4_Variables')
             ak8_df   = self.DF_Container('ak8',   'AK8_Variables')
             val_df   = self.DF_Container('event', 'Event_Variables')
             ##
-            val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = self.DF_Container.n_ak4jets, self.DF_Container.n_ak8jets
+            val_df.df['n_ak4jets'], val_df.df['n_ak8jets'] = (self.DF_Container.n_ak4jets[self.DF_Container.event_mask], 
+                                                              self.DF_Container.n_ak8jets[self.DF_Container.event_mask])
+            if self.doLepSel:
+                for k,v in self.DF_Container.lep_info.items():
+                    val_df.df[k] = v 
             #
             rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ana_vars['ak4lvec']['TLVarsLC']).sum())
             #
@@ -145,6 +152,7 @@ class getData :
         year       = None
         minAk4Jets = 4
         maxAk4Jets = 99
+        minBottoms = 2
 
         ak4_mask   = None
         ak8_mask   = None
@@ -194,11 +202,12 @@ class getData :
             return df[self.event_mask[df.index.get_level_values('entry')].values]
             
         @classmethod
-        def set_attr(cls,isData, year, njets, maxAk4Jets, estart, estop):
+        def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, estart, estop):
             cls.isData = isData
             cls.year   = year
             cls.minAk4Jets = njets
             cls.maxAk4Jets = maxAk4Jets
+            cls.minBottoms = minBottoms
             cls.estart = estart
             cls.estop  = estop
 
@@ -209,6 +218,7 @@ class getData :
             #
             jet_pt_eta    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:2])
             fatjet_pt_eta = cls.build_dict(cfg.ana_vars['ak8lvec']['TLVarsLC'][:2])
+            nbottoms     = cls.tarray('nBottoms_drLeptonCleaned')
             
             rtcd = cls.tarray(cfg.ana_vars['valRCvars'][0])
             j_pt_key, j_eta_key   = cfg.ana_vars['ak4lvec']['TLVarsLC'][:2]
@@ -224,14 +234,44 @@ class getData :
             #
             event_mask = ((n_ak4jets >= cls.minAk4Jets) & 
                           (n_ak4jets <= cls.maxAk4Jets) &
-                          (n_ak8jets >= 1))
+                          (n_ak8jets >= 1) &
+                          (nbottoms >= cls.minBottoms))
             #handle HEM Vetor for 2018 Data
             if cls.isData and cls.year == '2018':
                 passHEMVeto = cls.tarray('SAT_Pass_HEMVeto_DataOnly_drLeptonCleaned')
                 event_mask = (event_mask & (passHEMVeto == True))
-            cls.n_ak4jets , cls.n_ak8jets = n_ak4jets[event_mask] , n_ak8jets[event_mask]
+            cls.n_ak4jets , cls.n_ak8jets = n_ak4jets , n_ak8jets
             cls.event_mask = event_mask
             #
+
+        @classmethod
+        def lep_sel_mask(cls):
+            mu_info = cls.build_dict(cfg.lep_sel_vars['muon'])
+            el_info = cls.build_dict(cfg.lep_sel_vars['electron'])
+            #
+            mu_mask =cfg.lep_sel['muon'](mu_info)  
+            el_mask =cfg.lep_sel['electron'][cls.year](el_info)
+            #
+            lep_event_mask = ((mu_mask[mu_mask].counts + el_mask[el_mask].counts) == 1)
+            cls.event_mask = cls.event_mask & lep_event_mask
+            mu_info = mu_info[mu_mask][cls.event_mask]
+            el_info = el_info[el_mask][cls.event_mask]
+            
+            #
+            from awkward import JaggedArray as aj
+            get_lep_info = (lambda k : aj.concatenate([mu_info[f'Muon_{k}'], el_info[f'Electron_{k}']],axis=1).flatten())
+            single_mu = (mu_info['Muon_pt'].counts == 1)
+            single_el = (el_info['Electron_pt'].counts == 1)
+            
+            cls.lep_info = AnaDict({'Lep_pt'  : get_lep_info('pt'),
+                                    'Lep_eta' : get_lep_info('eta'),
+                                    'Lep_phi' : get_lep_info('phi'),
+                                    'Lep_mass': get_lep_info('mass'),
+                                    'passSingleLepMu'   : single_mu,
+                                    'passSingleLepElec' : single_el
+            })
+        #
+            
         @classmethod
         def build_dict(cls,keys):
             executor = concurrent.futures.ThreadPoolExecutor()

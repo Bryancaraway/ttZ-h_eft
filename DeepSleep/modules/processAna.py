@@ -20,12 +20,15 @@ from uproot_methods import TLorentzVectorArray
 import cfg.deepsleepcfg  as cfg
 import lib.fun_library as lib
 from lib.fun_library import fill1e, fillne, deltaR, deltaPhi, invM, calc_mtb, t2Run
+from modules.AnaDict import AnaDict
 #
 import numpy as np
 np.random.seed(0)
 np.seterr(invalid='ignore')
 import pandas as pd
 ##
+
+eps = 0.0001
 
 class processAna :
     '''
@@ -56,6 +59,7 @@ class processAna :
     #
     ak4_dR = 0.4
     ak8_dR = 0.8
+    
 
     def __init__(self, kwargs):
         [setattr(self,k,v) for k,v in kwargs.items() if k in processAna.__dict__.keys()]
@@ -81,7 +85,9 @@ class processAna :
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
             self.addHLT_to_MC()
-            self.getMuonEff()
+            self.getLepEff()
+            self.getLepSF()
+
         self.passHLT_by_year()
         #
         out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}{self.outTag}_"
@@ -202,7 +208,7 @@ class processAna :
         )[self.ak8_df[fj+'lep_mask']].values()
         subj_pt, subj_btag = self.ak8_df['SubJet_pt'], self.ak8_df['SubJet_btagDeepB']
         #
-        lep_pt, lep_eta, lep_phi, lep_E = [self.val_df[key] for key in [l+'pt',l+'eta',l+'phi',l+'E']]
+        lep_pt, lep_eta, lep_phi, lep_M = [self.val_df[key] for key in [l+'pt',l+'eta',l+'phi',l+'mass']]
         met_pt, met_phi = self.val_df['MET_pt'], self.val_df['MET_phi']
         # reconstruct z, h -> bb candidate
         Zh_reco_cut = ((ak8_pt >= self.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.0)) # in future, put kinem cut values in cfg file
@@ -233,13 +239,13 @@ class processAna :
         Zh_b_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(b_eta),fillne(b_phi))
         Zh_q_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(q_eta),fillne(q_phi))
         Zh_l_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lep_eta,lep_phi)
-        Zh_l_invM_sd = lib.invM_sdM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],lep_pt,lep_eta,lep_phi,lep_E)
+        Zh_l_invM_sd = lib.invM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],lep_pt,lep_eta,lep_phi,lep_M)
         l_b_dr = deltaR(lep_eta.values,lep_phi.values,*map(fillne,[b_eta,b_phi]))
-        l_b_invM = lib.invM_Em(lep_pt.values,lep_eta.values,lep_phi.values,lep_E.values,*map(fillne,[b_pt,b_eta,b_phi,b_mass]))
+        l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values,*map(fillne,[b_pt,b_eta,b_phi,b_mass]))
         getTLV  = TLorentzVectorArray.from_ptetaphi
         getTLVm = TLorentzVectorArray.from_ptetaphim
         b_tlv   = getTLVm( *map(lambda b : fillne(b).T, [b_pt,b_eta,b_phi,b_mass])) 
-        lep_tlv = getTLV( lep_pt,lep_eta,lep_phi,lep_E)
+        lep_tlv = getTLV( lep_pt,lep_eta,lep_phi,lep_M)
         bl_tlv = lep_tlv + b_tlv
         lb_mtb = lib.calc_mtb(bl_tlv.pt.T,bl_tlv.phi.T,met_pt.values,met_phi.values)            
         #
@@ -346,14 +352,57 @@ class processAna :
         # add hlt variables into MC and set them to 1
         for var in cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}']:
             self.val_df[var] = True
+    @t2Run
+    def getLepEff(self):
+        lep_pt  = self.val_df['Lep_pt']
+        lep_eta = self.val_df['Lep_eta'] 
+        for eff_tag in ['med','tight']:
+            for kinem, k_name in zip([lep_pt,lep_eta],['pt','eta']):
+                for lep_type in ('muon','electron'):
+                    eff = AnaDict.read_pickle(f'{self.outDir}{self.year}/eff_files/{lep_type}_eff_{self.year}_{eff_tag}.pkl')
+                    self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}']  = self.addLepEff(kinem, lep_type, eff[k_name])
+                #
+                self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}'] = pd.concat(
+                    [self.val_df[f'electron_eff_{eff_tag}_{k_name}'][self.val_df['passSingleLepElec']==1],
+                     self.val_df[f'muon_eff_{eff_tag}_{k_name}'][self.val_df['passSingleLepMu']==1]]).sort_index()
+        #self.val_df['Muon_eff'] = eff_fun_dict[self.year](lep_pt)
 
-    def getMuonEff(self):
-        lep_pt = self.val_df['Lep_pt']
-        eff_fun_dict = {'2016': (lambda x : 1),
-                        '2017': (lambda x : 1),
-                        '2018': self.calcMuonEff_2018}
-        self.val_df['Muon_eff'] = eff_fun_dict[self.year](lep_pt)
+    @t2Run
+    def getLepSF(self):
+        lep_pt  = self.val_df['Lep_pt']
+        lep_eta = self.val_df['Lep_eta'] 
+        for lep_type in ('muon','electron'):
+            sf = AnaDict.read_pickle(f'{self.outDir}{self.year}/lepton_sf_files/{lep_type}_sf_{self.year}.pkl')
+            total_lep_sf = np.ones(len(lep_pt))
+            for k in sf:
+                # dict structure is sf type : eta_bins: pt_bins: values, up, down
+                if ((lep_type == 'muon' and self.year != '2016') or k == 'SF'): lep_eta = abs(lep_eta)
+                eta_keys = list(sf[k].keys())
+                pt_keys  = list(sf[k][eta_keys[-1]].keys())
+                eta_bins=[float(bin_str.split(',')[0]) for bin_str in eta_keys] + [float(eta_keys[-1].split(',')[1])]
+                pt_bins =[float(bin_str.split(',')[0]) for bin_str in pt_keys] +  [float( pt_keys[-1].split(',')[1])]
+                eta_digi = pd.cut(np.clip(lep_eta,eta_bins[0]+eps,eta_bins[-1]-eps), bins=eta_bins, right=True, include_lowest=True,
+                                  labels=sorted(eta_keys, key= lambda z : float(z.split(',')[0])))
+                pt_digi  = pd.cut(lep_pt.clip(pt_bins[0]+eps,pt_bins[-1]-eps), bins=pt_bins, right=True, include_lowest=True, 
+                                  labels=sorted(pt_keys, key= lambda z : float(z.split(',')[0])))
+                #lep_sf = pd.concat([eta_digi,pt_digi], axis='columns').apply(lambda x: sf[k][x[0]][x[1]]['values'], axis='columns')
+                lep_sf = [(lambda x,y: sf[k][x][y]['values'])(x,y) for x,y in zip(eta_digi.values,pt_digi.values)]
+                #total_lep_sf *= lep_sf.to_numpy(dtype=float)
+                total_lep_sf *= lep_sf
+            self.val_df[f'{lep_type}_sf'] = total_lep_sf
+        #
+        self.val_df[f'lep_sf'] = pd.concat(
+            [self.val_df['electron_sf'][self.val_df['passSingleLepElec']==1],
+             self.val_df['muon_sf'][self.val_df['passSingleLepMu']==1]]).sort_index()
+
+
+    def addLepEff(self, dist, lep_type, eff):
+        bins=[float(bin_str.split(',')[0]) for bin_str in eff] + [float(list(eff.keys())[-1].split(',')[1])]
+        digi = pd.cut(dist.clip(bins[0]+eps,bins[-1]-eps), bins=bins, labels= sorted(eff.keys(), key= lambda z : float(z.split(',')[0])))
+        lep_eff = digi.map(lambda k: eff[k]['values'])
+        return lep_eff.to_numpy(dtype=float)
         
+
     @staticmethod
     def calcMuonEff_2018(pt_dist):
         b_update = pd.read_pickle('muonSF2018_beforeupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
@@ -362,27 +411,28 @@ class processAna :
         b_weight = 76/477  # 76  runs before run 316361
         a_weight = 401/477 # 401 runs after  run 316361
         bins=[2, 18, 22, 24, 26, 30, 40, 50, 60, 120, 200, 300, 500, 700, 1200] # from MUON POG for 2018 HLT_IsoMu24
-        digi_pt = pd.cut(pt_dist.clip(bins[0],bins[-1]), bins=bins, labels= sorted(b_update.keys(), key= lambda z : float(z.split('[')[1].split(',')[0]))) # key has format 'pt:[low_edge,hi_edge]'
+        digi_pt = pd.cut(pt_dist.clip(bins[0],bins[-1]), bins=bins, 
+                         labels= sorted(b_update.keys(), key= lambda z : float(z.split('[')[1].split(',')[0]))) # key has format 'pt:[low_edge,hi_edge]'
         muon_eff = digi_pt.map(lambda k: a_update[k]['value']*a_weight + b_update[k]['value']*b_weight)
         return muon_eff.to_numpy(dtype=float)
 
     def passHLT_by_year(self):
         # determine if data/MC passes trigger criteria by year
-        elec_dict = {
-            '2016': (lambda df: ((df['HLT_Ele27_WPTight_Gsf']==True) | (df['HLT_Photon175']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | 
-                                 (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50']==True))),
-            '2017': (lambda df: ((df['HLT_Ele32_WPTight_Gsf_L1DoubleEG']==True) | (df['HLT_Ele35_WPTight_Gsf']==True) | (df['HLT_Photon200']==True) | 
-                                 (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True))),
-            '2018': (lambda df: ((df['HLT_Ele32_WPTight_Gsf']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Photon200']==True))) 
-        }
-        muon_dict = {
-            '2016': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_IsoTkMu24']==True) | (df['HLT_Mu50']==True) | 
-                                 (df['HLT_TkMu50']==True))), 
-            '2017': (lambda df: ((df['HLT_IsoMu27']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True))), 
-            '2018': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True)))
-        }
-        self.val_df['pbt_elec'] = elec_dict[self.year](self.val_df)
-        self.val_df['pbt_muon'] = muon_dict[self.year](self.val_df)
+        #elec_dict = {
+        #    '2016': (lambda df: ((df['HLT_Ele27_WPTight_Gsf']==True) | (df['HLT_Photon175']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | 
+        #                         (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50']==True))),
+        #    '2017': (lambda df: ((df['HLT_Ele32_WPTight_Gsf_L1DoubleEG']==True) | (df['HLT_Ele35_WPTight_Gsf']==True) | (df['HLT_Photon200']==True) | 
+        #                         (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True))),
+        #    '2018': (lambda df: ((df['HLT_Ele32_WPTight_Gsf']==True) | (df['HLT_Ele115_CaloIdVT_GsfTrkIdT']==True) | (df['HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165']==True) | (df['HLT_Photon200']==True))) 
+        #}
+        #muon_dict = {
+        #    '2016': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_IsoTkMu24']==True) | (df['HLT_Mu50']==True) | 
+        #                         (df['HLT_TkMu50']==True))), 
+        #    '2017': (lambda df: ((df['HLT_IsoMu27']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True))), 
+        #    '2018': (lambda df: ((df['HLT_IsoMu24']==True) | (df['HLT_Mu50']==True) | (df['HLT_OldMu100']==True) | (df['HLT_TkMu100']==True)))
+        #}
+        self.val_df['pbt_elec'] = cfg.hlt_path['electron'][self.year](self.val_df)
+        self.val_df['pbt_muon'] = cfg.hlt_path['muon'][self.year](self.val_df)
 
     @staticmethod
     @njit(parallel=True)

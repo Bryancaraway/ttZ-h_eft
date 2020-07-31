@@ -1,4 +1,4 @@
-###### Plotter code for analysis ######
+##### Plotter code for analysis ######
 import pandas as pd
 import numpy as np
 import re
@@ -75,9 +75,9 @@ class Plotter :
                        * v['Stop0l_topptWeight']
                        * (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
                        #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
-                       * (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Stop0l_trigger_eff_Muon_pt'][v['passSingleLepMu']==1]]).sort_index() if self.year != '2014' else 1.0)
-                       #* (pd.concat([v['Stop0l_trigger_eff_Electron_pt'][v['passSingleLepElec']==1],v['Muon_eff'][v['passSingleLepMu']==1]]).sort_index() if self.year == '2018' else 1.0)
-                       #* v['Muon_eff']
+                       * v['lep_trig_eff_tight_pt']
+                       #* v['lep_trig_eff_tight_eta']
+                       * v['lep_sf']
                        * v['BTagWeight'] 
                        * v['puWeight']  
                        * (v['PrefireWeight'] if self.year != '2018' else 1.0)
@@ -198,7 +198,7 @@ class Plotter :
         self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
         self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
         plt.xlabel(self.xlabel, fontsize = self.fontsize)
-        self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_range[-1]-self.bin_range[0])/self.n_bins:.2f}")#fontsize = self.fontsize)
+        self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(set(self.bin_w)) == 1 else 'bin')}")#fontsize = self.fontsize)
         plt.xlim(self.bin_range)
         if self.doLog: self.ax.set_yscale('log')
         plt.grid(True)
@@ -258,19 +258,19 @@ class StackedHist(Plotter) :
         h = self.real_data['Data']
         n_data,edges = np.histogram(h,bins=self.bins, range=(self.bin_range[0],self.bin_range[1]))
         bin_c = (edges[1:]+edges[:-1])/2
-        bin_w = edges[1]-edges[0]
+        self.bin_w = edges[1:]-edges[:-1]
         #
         n_data = n_data #* (137/41.9) # to scale to full run2
         #
         self.ax.errorbar(x=bin_c, y = n_data if not self.doNorm else np.divide(n_data,np.sum(n_data)), 
-                         xerr=bin_w/2, yerr=np.sqrt(n_data),
+                         xerr=self.bin_w/2, yerr=np.sqrt(n_data),
                          fmt='.',  color='k',
                          label=f'Data ({sum(n_data)})')
         #
         y = n_data/n_mc
         yerr = y*np.sqrt(np.power(np.sqrt(n_data)/n_data,2)+np.power(0/n_mc,2))
         self.ax2.errorbar(x=bin_c, y = n_data/n_mc,
-                          xerr=bin_w/2, yerr=yerr,
+                          xerr=self.bin_w/2, yerr=yerr,
                           fmt='.', color='k')
         self.ax2.axhline(1, color='k', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
         self.ax2.xaxis.set_minor_locator(AutoMinorLocator())
