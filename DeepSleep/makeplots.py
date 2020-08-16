@@ -34,8 +34,8 @@ for y in ['2017']:#cfg.Years:
     #StackedHist(cfg.MC_pow,    'nonZhbb_b2_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=True, addData=True)  
     ####====####
 
-    #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=0.80', doCuts=True, sepGenOpt='sepGenBkg', addData=True)  
-    StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=0.80', doCuts=True, addData=True)  
+    StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=0.80', doCuts=True, sepGenOpt='sepGenBkg;++', addData=True)  
+    #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=0.80', doCuts=True, addData=True)  
     #StackedHist(cfg.MC_samples,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=.80', doCuts=True, addData=True)  
     #StackedHist(cfg.MC_pow,    'n_ak4jets', bin_range=[4,12],  bins=[4,5,6,7,8,9,10,11,12],  doCuts=False, addData=True)  
     #StackedHist(cfg.MC_samples,'n_ak4jets', bin_range=[4,12],  bins=[4,5,6,7,8,9,10,11,12],  doCuts=False, addData=True)  

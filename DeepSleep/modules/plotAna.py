@@ -132,7 +132,9 @@ class Plotter :
                        'sepGenMatchedBkg':self.sepGenMatchedBkg}
         
         for k in self.sepGenOpt.split(';'):
-            interp_dict[k]()
+            if k in interp_dict:
+                interp_dict[k]()
+            else: continue
         
     def sepGenSig(self):
         df = self.data
@@ -147,8 +149,12 @@ class Plotter :
         temp_df = {}
         for k in df:
             if 'TTBarLep' in k:
-                temp_df[f'{k}_bb']   = (lambda x : x[x['tt_bb'] == True])( df[k])
-                temp_df[f'{k}_nobb'] = (lambda x : x[x['tt_bb'] == False])(df[k])
+                temp_df[f'{k}_bb']   = (lambda x : x[x['tt_B'] == True])( df[k])
+                temp_df[f'{k}_nobb'] = (lambda x : x[x['tt_B'] == False])(df[k])
+                if '++' in self.sepGenOpt and 'pow' in k:
+                    temp_df[f'{k}_b']  = (lambda x : x[x['tt_b']  == True])( df[k]) 
+                    temp_df[f'{k}_2b'] = (lambda x : x[x['tt_2b'] == True])( df[k]) 
+                    temp_df[f'{k}_bb'] = (lambda x : x[x['tt_bb'] == True])( df[k]) 
                 self.data.pop(k)
         self.data.update(temp_df) 
 
