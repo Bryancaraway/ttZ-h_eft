@@ -10,15 +10,20 @@
 import uproot
 import os
 import re
+import sys
+if __name__ == '__main__':
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 import time
 from collections import defaultdict
 from numba import njit, prange
 import concurrent.futures
 import functools
 #
-from cfg import deepsleepcfg as cfg
+import config.ana_cff as cfg
 from lib.fun_library import fillne, t2Run
 from modules.AnaDict import AnaDict
+from modules.AnaVars import AnaVars
 #
 import numpy as np
 np.random.seed(0)
@@ -36,11 +41,12 @@ class getData :
     roofile    = None
     year       = None
     sample     = None
-    outDir     = 'files/'
+    outDir     = cfg.master_file_path
     njets      = 4
     maxAk4Jets = 100
     minBottoms = 2
     treeDir    = cfg.tree_dir
+    jec_sys   = None
     doLepSel   = True
     getGenData = False # doesnt do anything atm
     getak8var  = False # doesnt do anything atm
@@ -59,9 +65,17 @@ class getData :
             tree_dir = f_.get(self.treeDir)
             print(self.sample)
             start = time.perf_counter()
-            t = tree_dir.get(self.sample)
-            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.minBottoms, self.estart, self.estop)
-            self.DF_Container.set_current_tree_mask(t)
+            #
+            try:
+                t = tree_dir.get(self.sample)
+            except:
+                print(f'{self.sample} not in input file for year: {self.year}\n Exitting...')
+                exit()
+            #
+            self.DF_Container.set_tree(t, self.estart, self.estop)
+            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.minBottoms, self.jec_sys)
+            if not self.isData: self.DF_Container.corr_AK8_jets()
+            self.DF_Container.set_current_tree_mask()
             if self.doLepSel: self.DF_Container.lep_sel_mask()
             # 
             ak4_df   = self.DF_Container('ak4',   'AK4_Variables')
@@ -75,16 +89,20 @@ class getData :
                     val_df.df[k] = v 
             #
             rtc_df = self.cleanRC(ak4_df.df.loc(cfg.ana_vars['ak4lvec']['TLVarsLC']).sum())
-            #
+            
             if self.isData:
                 finish = time.perf_counter()
                 print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
                 return ak4_df.df, ak8_df.df, val_df.df, rtc_df
             else:
                 gen_df   = self.DF_Container('gen', 'GenPart_Variables')
-                finish = time.perf_counter()
-                print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
-                return ak4_df.df, ak8_df.df, val_df.df, rtc_df, gen_df.df
+                #TroubleShooting these systematics
+                #sys_df   = self.compute_ps_pdf_weights()
+                # to-do add these to val_df
+            #
+            finish = time.perf_counter()
+            print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
+            return ak4_df.df, ak8_df.df, val_df.df, rtc_df, gen_df.df
             #
     #
     #@t2Run
@@ -134,6 +152,46 @@ class getData :
                 o3[i,j] = lc[i,id3]
         return o1, o2, o3
     #
+    @t2Run
+    def compute_ps_pdf_weights(self):
+        sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight'])
+        #| Float_t LHE scale variation weights (w_var / w_nominal); [0] is renscfact=0.5d0 facscfact=0.5d0 ; [1] is renscfact=0.5d0 facscfact=1d0 ; [2] is renscfact=0.5d0 facscfact=2d0 ; 
+        #                                                           [3] is renscfact=1d0   facscfact=0.5d0 ; [4] is renscfact=1d0   facscfact=1d0 ; [5] is renscfact=1d0   facscfact=2d0 ; 
+        #                                                           [6] is renscfact=2d0   facscfact=0.5d0 ; [7] is renscfact=2d0   facscfact=1d0 ; [8] is renscfact=2d0   facscfact=2d0 
+        #| Float_t PS weights (w_var / w_nominal); [0] is ISR=0.5 FSR=1; [1] is ISR=1 FSR=0.5; [2] is ISR=2 FSR=1; [3] is ISR=1 FSR=2 *
+        ps_w = sys_df.df['PSWeight']
+        sc_w = sys_df.df['LHEScaleWeight']
+        mc_w = sys_df.df['weight']
+        #
+        df = pd.DataFrame()
+        # TROUBLESHOOT WHICH SAMPLES HAVE SCALE WEIGHT, PSWEIGHT
+        print(pd.DataFrame(np.unique(mc_w,        return_counts=True)))
+        print(pd.DataFrame(np.unique(ps_w.counts, return_counts=True)))
+        print(pd.DataFrame(np.unique(sc_w.counts, return_counts=True)))
+        print("Where scale weights size == 0")
+        print(pd.DataFrame(np.unique(mc_w[sc_w.counts == 0], return_counts=True)))
+        print("Where ps weights size == 1")
+        print(pd.DataFrame(np.unique(mc_w[ps_w.counts == 1], return_counts=True)))
+        exit()
+        # Not quite working atm as some ScaleWeights dont all have the same size
+        #if all(ps_w.counts == 4):
+        #    df['ISR_Up']   = ps_w[:,2]
+        #    df['ISR_Down'] = ps_w[:,0]
+        #    df['FSR_Up']   = ps_w[:,3]
+        #    df['FSR_Down'] = ps_w[:,1]
+        #else:
+        #    df['ISR_Up']   = ps_w[:,0]
+        #    df['ISR_Down'] = ps_w[:,0]
+        #    df['FSR_Up']   = ps_w[:,0]
+        #    df['FSR_Down'] = ps_w[:,0]
+        ##
+        #df['mu_r_Up']   = sc_w[:,7]
+        #df['mu_r_Down'] = sc_w[:,1]
+        #df['mu_f_Up']   = sc_w[:,5]
+        #df['mu_f_Down'] = sc_w[:,3]
+        return df
+        
+    #
     class DF_Container: 
         '''
         container to dynamically handle root variables
@@ -153,7 +211,9 @@ class getData :
         minAk4Jets = 4
         maxAk4Jets = 99
         minBottoms = 2
-
+        #
+        fj = {}
+        #
         ak4_mask   = None
         ak8_mask   = None
         rtcd_mask  = None
@@ -163,30 +223,20 @@ class getData :
         n_ak8jets  = None
         
         def __init__(self, var_type, name, var=None,):
-            self.variables = (self.var_dict(var_type) if var is None else var)
+            #self.variables = (self.var_dict(var_type) if var is None else var)
+            self.variables = (self.ana_vars[var_type] if var is None else var)
         
             self.var_type  = var_type
             self.name      = name
             # handle df depending on type 
             self.df = self.extract_and_cut()
 
-            
-        def var_dict(self,_type):
-            _dict  = {
-                'ak4'   : cfg.ana_vars['ak4lvec']['TLVarsLC']+cfg.ana_vars['ak4vars'],
-                'ak8'   : cfg.ana_vars['ak8lvec']['TLVarsLC']+cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8sj'],
-                'event' : cfg.ana_vars['valvars']+(['run']+cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}'] if self.isData else 
-                                                   cfg.ana_vars['sysvars_mc']+cfg.ana_vars[f'sysvars_{self.year}'])+
-                (cfg.ana_vars['HEM_veto'] if self.year == '2018' else []),
-                'gen'   : cfg.ana_vars['genpvars'],
-                'RC'    : cfg.ana_vars['valRCvars']}
-            return _dict[_type]
 
         #@t2Run
         def extract_and_cut(self):
             type_indexer = defaultdict(
                 None,{'ak4':  lambda v: self.build_dict(v)[self.ak4_mask][self.event_mask],
-                      'ak8':  lambda v: AnaDict({**self.build_dict(v[:-2])[self.ak8_mask][self.event_mask],# super hacky but works
+                      'ak8':  lambda v: AnaDict({**self.build_dict_ak8(v[:-2])[self.ak8_mask][self.event_mask],# super hacky but works
                                                  **self.build_dict(v[-2:])[self.event_mask]}), # fix in future, prone to break
                       'event':lambda v: self.tpandas(v)[self.event_mask],
                       'gen'  :lambda v: self.build_dict(v)[self.event_mask],
@@ -202,25 +252,29 @@ class getData :
             return df[self.event_mask[df.index.get_level_values('entry')].values]
             
         @classmethod
-        def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, estart, estop):
+        def set_tree(cls,tree, estart=None, estop=None):
+            ''' Set tree array method and tree pandas method '''
+            cls.tarray  = functools.partial(tree.array,      entrystop=cls.estop)
+            cls.tpandas = functools.partial(tree.pandas.df , entrystop=cls.estop)
+            
+        @classmethod
+        def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, jec_sys=None):
             cls.isData = isData
             cls.year   = year
             cls.minAk4Jets = njets
             cls.maxAk4Jets = maxAk4Jets
             cls.minBottoms = minBottoms
-            cls.estart = estart
-            cls.estop  = estop
+            cls.ana_vars = AnaVars(year,isData, jec_sys=jec_sys)
 
         @classmethod
-        def set_current_tree_mask(cls,tree):
-            cls.tarray  = functools.partial(tree.array,      entrystop=cls.estop)
-            cls.tpandas = functools.partial(tree.pandas.df , entrystop=cls.estop)
+        def set_current_tree_mask(cls):
             #
             jet_pt_eta    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:2])
-            fatjet_pt_eta = cls.build_dict(cfg.ana_vars['ak8lvec']['TLVarsLC'][:2])
-            nbottoms     = cls.tarray('nBottoms_drLeptonCleaned')
+            fatjet_pt_eta = cls.build_dict_ak8(cfg.ana_vars['ak8lvec']['TLVarsLC'][:2])
+            nbottoms     = cls.tarray(cls.ana_vars['nBottoms_drLeptonCleaned'])
+            met_pt       = cls.tarray(cls.ana_vars['MET_pt'])
             
-            rtcd = cls.tarray(cfg.ana_vars['valRCvars'][0])
+            rtcd = cls.tarray(cls.ana_vars[cfg.ana_vars['valRCvars'][0]])
             j_pt_key, j_eta_key   = cfg.ana_vars['ak4lvec']['TLVarsLC'][:2]
             fj_pt_key, fj_eta_key = cfg.ana_vars['ak8lvec']['TLVarsLC'][:2]
             
@@ -235,10 +289,11 @@ class getData :
             event_mask = ((n_ak4jets >= cls.minAk4Jets) & 
                           (n_ak4jets <= cls.maxAk4Jets) &
                           (n_ak8jets >= 1) &
-                          (nbottoms >= cls.minBottoms))
+                          (nbottoms >= cls.minBottoms) &
+                          (met_pt > 20))
             #handle HEM Vetor for 2018 Data
             if cls.isData and cls.year == '2018':
-                passHEMVeto = cls.tarray('SAT_Pass_HEMVeto_DataOnly_drLeptonCleaned')
+                passHEMVeto = cls.tarray(cls.ana_vars['SAT_Pass_HEMVeto_DataOnly_drLeptonCleaned'])
                 event_mask = (event_mask & (passHEMVeto == True))
             cls.n_ak4jets , cls.n_ak8jets = n_ak4jets , n_ak8jets
             cls.event_mask = event_mask
@@ -269,15 +324,32 @@ class getData :
                                     'Lep_mass': get_lep_info('mass'),
                                     'passSingleLepMu'   : single_mu,
                                     'passSingleLepElec' : single_el
-            })
+                                })
         #
+        @classmethod
+        def corr_AK8_jets(cls):
+            ak8_vars = cls.build_dict(cfg.ak8_sys_vars)
+            from modules.jmeAK8 import JMEAK8
+            ak8_fj_transformer = JMEAK8(cls.year)
+            #
+            ak8_fj_transformer.prepare_transformer()
+            cls.fj = ak8_fj_transformer.transform_AK8(ak8_vars)
+            
             
         @classmethod
         def build_dict(cls,keys):
             executor = concurrent.futures.ThreadPoolExecutor()
-            return AnaDict({k: cls.tarray(k, executor=executor) for k in keys})
-            
+            return AnaDict({k: cls.tarray(cls.ana_vars[k], executor=executor) for k in keys})
 
+        @classmethod
+        def build_dict_ak8(cls,keys):
+            executor = concurrent.futures.ThreadPoolExecutor()
+            _dict = AnaDict({})
+            for k in keys:
+                if cls.ana_vars[k] in cls.fj:
+                    _dict[k] = cls.fj[cls.ana_vars[k]]
+                else: _dict[k] = cls.tarray(cls.ana_vars[k], executor=executor)
+            return _dict
 ##
 
 if __name__ == '__main__':

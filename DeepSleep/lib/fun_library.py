@@ -19,9 +19,6 @@ import math
 import time
 from functools import reduce
 from numba import njit, jit, prange
-#
-from cfg import deepsleepcfg as cfg
-#
 import numpy as np
 import pandas as pd
 np.random.seed(0)
@@ -156,6 +153,7 @@ def compose(*functions):
     return reduce(lambda f, g: lambda x: f(g(x)), functions, lambda x: x)
 
 def getZhbbBaseCuts(df_):
+    import config.ana_cff as cfg
     base_cuts = (
         (df_['n_b_outZh']   >= 2)          &
         (df_['n_ak8_Zhbb']  >  0)          &
@@ -223,6 +221,8 @@ def getLaLabel(str_):
     la_col_map = {
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
                             'tab:blue'],
+        'TTZ_bb':          [r't$\mathregular{\bar{t}}$Ztobb_ded',
+                            'tab:orange'],
         'TTZH':            [r't$\mathregular{\bar{t}}$Z/H',
                             'tab:blue'],
         'TTZH_GenMatch':   [r't$\mathregular{\bar{t}}$Z/H_genMatchedZHbb',
@@ -251,12 +251,18 @@ def getLaLabel(str_):
                             'tab:red'],
         'TTBarLep':        [r't$\mathregular{\bar{t}}$Lep',
                             'tab:green'],
-        'TTBarLep_pow':        [r't$\mathregular{\bar{t}}$Lep',
-                            'tab:green'],
+        'TTBarLep_pow':        [r't$\mathregular{\bar{t}}$Lep_pow',
+                            'tab:orange'],
         'TTBarLep_bb':     [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$',
-                            'tab:grey'],
+                            'tab:pink'],
+        'TTBarLep_pow_bb':     [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_pow',
+                            'tab:orange'],
+        'TT_bb_pow':       [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_dedpow',
+                            'tab:red'],
         'TTBarLep_nobb':   [r't$\mathregular{\bar{t}}$',
                             'tab:green'],
+        'TTBarLep_pow_nobb':   [r't$\mathregular{\bar{t}}$_pow',
+                                'tab:brown'],
         'TTBarLep_bbGenMatch': [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_genMatched',
                              'tab:grey'],
         'TTBarLep_nobbGenMatch':[r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_nogenMatched',

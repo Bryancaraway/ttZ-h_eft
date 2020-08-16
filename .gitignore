@@ -209,5 +209,6 @@ nytprof.out
 pm_to_blib
 
 ##DEEPSLEEP ##
+*/log
 *files/
 !*requirements.txt

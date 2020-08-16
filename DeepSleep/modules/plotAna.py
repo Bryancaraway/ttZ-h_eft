@@ -14,7 +14,7 @@ rc("figure", figsize=(6, 6*(6./8.)), dpi=200)
 #rc("hatch", linewidth=0.0) 
 #
 from lib.fun_library import getZhbbBaseCuts, getLaLabel
-import cfg.deepsleepcfg as cfg
+import config.ana_cff as cfg
 
 class Plotter :
     '''
@@ -24,8 +24,8 @@ class Plotter :
     '''
     cut_func = staticmethod(getZhbbBaseCuts) # M 50-200, pt 200, b_out_Zh 2
     fontsize = 12
-    saveDir  = 'pdf/'
-    pklDir   = 'files/'
+    saveDir  = cfg.pdfDir
+    pklDir   = cfg.master_file_path
     data_samples = ['MuData','EleData']
     mc_samples = None
     year      = None
@@ -46,7 +46,8 @@ class Plotter :
         self.bin_range  = bin_range
         self.xlabel     = kinem if xlabel is None else xlabel
         self.n_bins     = n_bins
-        self.bins       = np.arange(bin_range[0],bin_range[-1]+((bin_range[-1]-bin_range[0])/n_bins) , (bin_range[-1]-bin_range[0])/n_bins) if bins is None else bins
+        self.bins       = np.arange(bin_range[0],bin_range[-1]+((bin_range[-1]-bin_range[0])/n_bins) , (bin_range[-1]-bin_range[0])/n_bins) if bins is None else np.array(bins)
+        self.bin_w      = self.bins[1:]-self.bins[:-1]
         self.doLog      = doLog
         self.doNorm     = doNorm
         self.doShow     = doShow
@@ -71,6 +72,9 @@ class Plotter :
         
         #
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
+                       * (np.where(v['weight']>300,0,1))
+                       #* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
+                       * (v['BC_btagSF'] if self.addBSF else 1.0)
                        * (self.lumi/cfg.Lumi[self.year])
                        * v['Stop0l_topptWeight']
                        * (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
@@ -81,7 +85,7 @@ class Plotter :
                        * v['BTagWeight'] 
                        * v['puWeight']  
                        * (v['PrefireWeight'] if self.year != '2018' else 1.0)
-                       * v['ISRWeight']  
+                       #* v['ISRWeight']  
                        for k,v in self.data.items()}
 
 
@@ -91,8 +95,8 @@ class Plotter :
     
     def apply_data_cuts(self, leptype, df):
         temp_add_cuts = self.add_cuts
-        add_by_lep = {'EleData':'passSingleLepElec==1',
-                      'MuData' :'passSingleLepMu==1'}
+        add_by_lep = {'EleData':'passSingleLepElec==1;pbt_elec==1', 
+                      'MuData' :'passSingleLepMu==1;pbt_muon==1'} 
         add_by_HEM = {'preHEM' :';run<319077',
                       'postHEM':';run>=319077',
                       '':''}
@@ -139,11 +143,15 @@ class Plotter :
         self.data.pop('TTZH')
 
     def sepGenBkg(self):
-        df = self.data
-        df['TTBarLep_bb']   = (lambda x : x[x['tt_bb'] == True])(df['TTBarLep'])
-        df['TTBarLep_nobb'] = (lambda x : x[x['tt_bb'] == False])(df['TTBarLep'])
-        self.data.update(df) 
-        self.data.pop('TTBarLep')
+        df = self.data.copy()
+        temp_df = {}
+        for k in df:
+            if 'TTBarLep' in k:
+                temp_df[f'{k}_bb']   = (lambda x : x[x['tt_bb'] == True])( df[k])
+                temp_df[f'{k}_nobb'] = (lambda x : x[x['tt_bb'] == False])(df[k])
+                self.data.pop(k)
+        self.data.update(temp_df) 
+
         
     def sepGenMatchedSig(self):
         df = self.data 
@@ -198,7 +206,7 @@ class Plotter :
         self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
         self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
         plt.xlabel(self.xlabel, fontsize = self.fontsize)
-        self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(set(self.bin_w)) == 1 else 'bin')}")#fontsize = self.fontsize)
+        self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
         plt.xlim(self.bin_range)
         if self.doLog: self.ax.set_yscale('log')
         plt.grid(True)
@@ -209,14 +217,22 @@ class Plotter :
         plt.close(self.fig)
 
     @classmethod
-    def load_data(cls,year='2017',HEM_opt='',samples=None,tag=None):
+    def load_data(cls,year='2017',HEM_opt='',samples=None,tag=None, addBSF=False):
         cls.year = year
-        cls.mc_samples = samples if samples is not None else cfg.MC_samples
+        cls.addBSF = addBSF
+        cls.mc_samples = samples if samples is not None else cfg.All_MC
         cls.HEM_opt = HEM_opt
         cls.lumi = cfg.Lumi[year+HEM_opt]
-        cls.data_dict = {(sample.replace(tag,'') if tag is not None else sample):
-                         pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl') 
-                         for sample in cls.mc_samples}
+        cls.data_dict = {}
+        for sample in cls.mc_samples:
+            try : 
+                cls.data_dict[(sample.replace(tag,'') if tag is not None else sample)] = \
+                pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl')
+            except:
+                pass
+        #cls.data_dict = {(sample.replace(tag,'') if tag is not None else sample):
+        #pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl') 
+        #                 for sample in cls.mc_samples}
 
 class StackedHist(Plotter) :
     #Creates stacked histograms
@@ -258,7 +274,6 @@ class StackedHist(Plotter) :
         h = self.real_data['Data']
         n_data,edges = np.histogram(h,bins=self.bins, range=(self.bin_range[0],self.bin_range[1]))
         bin_c = (edges[1:]+edges[:-1])/2
-        self.bin_w = edges[1:]-edges[:-1]
         #
         n_data = n_data #* (137/41.9) # to scale to full run2
         #
@@ -272,6 +287,9 @@ class StackedHist(Plotter) :
         self.ax2.errorbar(x=bin_c, y = n_data/n_mc,
                           xerr=self.bin_w/2, yerr=yerr,
                           fmt='.', color='k')
+        print(bin_c)
+        print(y)
+        print(yerr)
         self.ax2.axhline(1, color='k', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
         self.ax2.xaxis.set_minor_locator(AutoMinorLocator())
         self.ax2.yaxis.set_major_formatter(FormatStrFormatter('%g'))
@@ -307,7 +325,7 @@ class Hist (Plotter) :
                          doShow,doSave,doCuts,add_cuts,sepGenOpt,addData)
 
         if dropNoGenM: [self.data.pop(k) for k in re.findall(r'\w*_no\w*GenMatch',' '.join(self.data)) if k in self.data]
-        if droptt    : self.data.pop('TTBarLep_nobb') if 'TTBarLep_nobb' in self.data else None
+        if droptt    : [self.data.pop(k) for k in re.findall(r'TTBarLep_\w*nobb', ' '.join(self.data)) if k in self.data]
         if dropZqq   : [self.data.pop(k) for k in re.findall(r'TTZH_\w*Zqq',      ' '.join(self.data)) if k in self.data]
         #
         self.makePlot()
@@ -316,7 +334,7 @@ class Hist (Plotter) :
         self.beginPlt
         #
         k, h, w, i, c, l = self.retData
-        n_, bins_, patches_ = self.ax.hist(
+        n, bins_, patches_ = self.ax.hist(
             h,
             bins=self.bins, 
             stacked=False,# fill=True,
@@ -328,8 +346,18 @@ class Hist (Plotter) :
             color   = c,
             label   = l
         )
+        self.addMCStat(h,n,w,i,c)
+        # need to plot mc stats error 
         #
         self.endPlt
+
+    def addMCStat(self,h,n,w,i,c):
+        bin_c = (self.bins[1:]+self.bins[:-1])/2
+        yerr = np.array([np.histogram(h[s], bins=self.bins, weights=np.power(w[s],2))[0] for s in range(len(h))])
+        for j in range(len(i)):
+            self.ax.errorbar(x=bin_c, y=n[j], 
+                             yerr= (yerr[j] if not self.doNorm else yerr[j]/i[j]),
+                             fmt='.', ms=3, color=c[j])
     #
 #
 

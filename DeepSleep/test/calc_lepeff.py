@@ -2,6 +2,9 @@
 ### Written by: Bryan Caraway ###
 #################################
 import sys
+if __name__ == '__main__':
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 import uproot
 import numpy as np
 import awkward
@@ -10,7 +13,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 #import functools
-import cfg.deepsleepcfg as cfg
+import config.ana_cff as cfg
 from modules.AnaDict import AnaDict
 from modules.getdata import getData
 from lib.fun_library import clop_pear_ci
