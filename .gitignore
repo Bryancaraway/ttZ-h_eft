@@ -212,3 +212,4 @@ pm_to_blib
 */log
 *files/
 !*requirements.txt
+!*.j*.txt
