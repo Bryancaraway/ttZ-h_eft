@@ -1,18 +1,32 @@
-###############
+################
 ## Config for ##
-## Deep Sleep ##
+# TTV analysis #
 ################
 #
-master_file_path  = './files/'
+import subprocess as sb
+# get current working directory according to git
+_wdir = sb.check_output('echo $(git rev-parse --show-toplevel)', shell=True).decode().strip('\n')+'/DeepSleep/'
+#
+master_file_path  = _wdir+'/files/'
+dataDir           = _wdir+'/data/'
+pdfDir            = _wdir+'/pdf/'
 # Overhead #
-file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/'
+import os
+if   os.path.exists('/cms/data/store/user/ttxeft/') : # test to see if on kodiak
+    file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/' # for kodiak
+elif os.path.exists('/eos/uscms/'): # test to see if on lpc
+    file_path        = 'root://cmseos.fnal.gov//store/user/bcaraway/skimAnaSamples'
+else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./cfg/deepsleepcfg.py")
+
 tree_dir          = 'Training'
 ##
 ZHptcut           = 200
 Years             = ['2016','2017','2018']
 MC_samples        = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'DiBoson', 'TriBoson', 'TTBarLep']#,'ZJets']
-Pow_samples       = ['TTBarHad_pow', 'TTBarLep_pow']
+Pow_samples       = ['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow']
+ttbar_samples     = ['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow', 'TTBarHad', 'TTBarLep']
 MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep_pow']
+All_MC            = ['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep','TTBarLep_pow', 'TT_bb_pow']
 Data_samples      = ['EleData','MuData']
 Lumi              = {'2016': 35.9,
                      '2017': 41.9,
@@ -97,7 +111,28 @@ lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30) & (abs(x['Muon_eta']) < 
                                                   (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
                              }
                 }
-                         
+# JMS (jet mass scale) and JMR (jet mass resolution) for softdrop Mass
+ak8_sys_vars = ['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC, 
+                'FatJet_msoftdrop'+LC, 'FatJet_rawFactor'+LC,
+                'GenJetAK8_pt', 'GenJetAK8_eta', 'GenJetAK8_phi', 'GenJetAK8_mass']
+
+ak8_softdropM_info = {'jms':{'value':0.999,
+                             'up'   :0.999+0.004,
+                             'down' :0.999-0.004},
+                      'jmr':{'value':1.079,
+                             'up'   :1.079+0.105,
+                             'down' :1.079-0.105}
+                  }
+#ana_sf_dir    = '/cms/data/store/user/ttxeft/Ana_sf_files'
+
+#why...
+BC_btag_sf = {'2016': {'values': [1.0, 1.0, 0.94241418, 0.98314421, 1.05133896, 1.33768073, 0.54615971, 0.],                                     
+                       'err':    [0, 0, 0.00209416, 0.00650319, 0.02603249, 0.13512616, 0.38619323, 0]},
+              '2017': {'values': [1.0, 1.0, 0.97374629, 1.05901002, 1.22053029, 1.31213915, 1.38618462, 0.],
+                       'err':    [0, 0, 0.00216191, 0.0071413, 0.03027763, 0.1398745, 0.80031406, 0]},
+              '2018': {'values': [1, 1, 1.00580723, 1.15602798, 1.36748448, 1.55950658, 2.72827293, 1.98275764],
+                       'err':    [0, 0, .00179402320, .00563560832, .0232546555, .108132326, .682068233, 1.98275764]}
+              }
     
 
 ana_vars = {
@@ -123,7 +158,8 @@ ana_vars = {
                     'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass']},
     'ak8sj'      : ['SubJet_pt', 'SubJet_btagDeepB'],
 #
-    'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother'], # these are MC only
+    'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother', # these are MC only
+                    'genTtbarId'], # event level identifier for ttbar+bb
     'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
     'valvars'    : ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
                     'passSingleLepElec', 'passSingleLepMu',
@@ -134,13 +170,16 @@ ana_vars = {
                          'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
     'sysvars_mc'      : ['genWeight','weight','BTagWeight','puWeight','ISRWeight',# these are MC only
                          'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
+
+                         #'LHEScaleWeight', 'PSWeight', # these are special and need to be computed during get data
+                         
                          #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
-                         'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
-                         'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
-                         'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
-                         'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
-                         'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
-                         'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
+                         #'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
+                         #'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
+                         #'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
+                         #'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
+                         #'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
+                         #'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
                          'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
                          'pdfWeight_Up','pdfWeight_Down',
                          'ISRWeight_Up','ISRWeight_Down'],
@@ -160,7 +199,7 @@ ana_vars = {
 }
 
 ##### DNN backend for Z/H -> bb #####
-dnn_ZH_dir  = 'NN_files/'
+dnn_ZH_dir  = dataDir+'/NN_files/'
 # only event level variables
 dnn_ZH_vars = [
     'max_lb_dr','max_lb_invM', 'n_Zh_btag_sj', 'n_ak4jets', 'Zh_score', 'best_rt_score',
@@ -197,7 +236,7 @@ dnn_ZH_batch_size = 512
 fl_gamma          = .2 # 200: .1    , 300: 1.5 / .4
 fl_alpha          = .85 # 200: .85 , 300: .80 /.85
 dnn_ZH_epochs     = 0 #210 ### 200: 120, 300: 100
-DNNoutputDir      = 'NN_files/'
+DNNoutputDir      = dataDir+'/NN_files/'
 DNNoutputName     = 'corr_noweight_noM.h5'
 DNNmodelName      = 'corr_noweight_model_noM.h5' 
 DNNuseWeights     = True

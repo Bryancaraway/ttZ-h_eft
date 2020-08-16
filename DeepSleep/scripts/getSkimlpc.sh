@@ -11,7 +11,7 @@ lpc_dir=store/user/bcaraway/skimAnaSamples
 
 if [ -z "$file"]; then
     echo
-    echo "Must proved root file name to be transfered from lpc to kodiak."
+    echo "Must provide root file name to be transfered from lpc to kodiak."
     echo "Example: Data_2017.root, MC_2017.root, Data_2016.root, MC_2016.root"
     echo
     exit 1

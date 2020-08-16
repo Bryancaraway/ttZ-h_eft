@@ -1,5 +1,8 @@
 import uproot
 import sys
+if __name__ == '__main__':
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 import numpy as np
 import awkward
 import concurrent.futures
@@ -8,7 +11,7 @@ from collections import defaultdict
 from modules.AnaDict import AnaDict
 from modules.getdata import getData
 from lib.fun_library import clop_pear_ci, deltaR, fillne
-import cfg.deepsleepcfg as cfg
+import config.ana_cff as cfg
 
 year = sys.argv[1]
 
@@ -60,29 +63,51 @@ def calc_lepSel_eff(mu, el, mc, gen):
     gen_mu = gen[abs(gen['GenPart_pdgId']) == 13]
     gen_el = gen[abs(gen['GenPart_pdgId']) == 11]
     def get_gen_matched(lep, gen, lep_type):
-        gen_pt, gen_eta, gen_phi, gen_mother = map(fillne, [gen['GenPart_pt'], gen['GenPart_eta'], gen['GenPart_phi'], gen['GenPart_mother']])
+        gen_pt, gen_eta, gen_phi = map(fillne, [gen['GenPart_pt'][abs(gen['GenPart_pdgId']) == 13], gen['GenPart_eta'][abs(gen['GenPart_pdgId']) == 13], gen['GenPart_phi'][abs(gen['GenPart_pdgId']) == 13]])
+        lep_pt, lep_eta, lep_phi = map(fillne, [lep[f"{lep_type}_pt"], lep[f"{lep_type}_eta"], lep[f"{lep_type}_phi"]])
         lep_gen_match = []
+        gen_lep_match = []
         for i in range(gen_pt.shape[1]):
             #lep_gen_match.append((deltaR(lep[f'{lep_type}_eta'], lep[f'{lep_type}_phi'], gen_eta[:,i], gen_phi[:,i]) < 0.1) & (abs((lep[f'{lep_type}_pt']/gen_pt[:,i]) - 1) < .30))
-            lep_gen_match.append((deltaR(lep[f'{lep_type}_eta'], lep[f'{lep_type}_phi'], gen_eta[:,i], gen_phi[:,i]) > 0.1) | (abs((lep[f'{lep_type}_pt']/gen_pt[:,i]) - 1) > .30))
-        no_match = (sum(lep_gen_match) > 0)
-        gen_nom = gen[abs(gen['GenPart_eta']) < 1.2][no_match.sum()>0]
-        lep_nom = lep[no_match][lep[f'{lep_type}_eta'][no_match].counts > 0]
-        lep_nom = lep_nom[gen_nom['GenPart_pt'].counts>0]
-        gen_nom = gen_nom[gen_nom['GenPart_pt'].counts>0]
-        for i in range(10):
-            print(f"Event {i+1}: GEN Info: Gen pt:{gen_nom['GenPart_pt'][i]}, Gen Eta:{gen_nom['GenPart_eta'][i]}, Gen Phi:{gen_nom['GenPart_phi'][i]}, Gen Mom:{gen_nom['GenPart_mother'][i]}")
-            print(f"Event {i+1}: RECO Info:{lep_type} pt:{lep_nom[f'{lep_type}_pt'][i]}, {lep_type} Eta:{lep_nom[f'{lep_type}_eta'][i]}, {lep_type} Phi:{lep_nom[f'{lep_type}_phi'][i]}, {lep_type} Id:{lep_nom[f'{lep_type}_FlagId'][i]}, {lep_type} miniIso:{lep_nom[f'{lep_type}_miniPFRelIso_all'][i]}")
+            lep_gen_match.append((deltaR(lep[f'{lep_type}_eta'], lep[f'{lep_type}_phi'], gen_eta[:,i], gen_phi[:,i]) < 0.1) & (abs((lep[f'{lep_type}_pt']/gen_pt[:,i]) - 1) < .30))
+            #lep_gen_match.append((deltaR(lep[f'{lep_type}_eta'], lep[f'{lep_type}_phi'], gen_eta[:,i], gen_phi[:,i]) > 0.1) | (abs((lep[f'{lep_type}_pt']/gen_pt[:,i]) - 1) > .30))
+        for i in range(lep_pt.shape[1]):
+            gen_lep_match.append((deltaR(gen['GenPart_eta'], gen['GenPart_phi'],lep_eta[:,i], lep_phi[:,i]) < 0.3) & (abs((lep_pt[:,i]/gen['GenPart_pt']) - 1) < 1.0))
+        match = (sum(lep_gen_match) > 0)
+        g_match = (sum(gen_lep_match) > 0)
+
+        gen_f = gen[g_match][(match.sum()>0) & event_mask]
+        lep_nom = lep[match][event_mask]
+        lep_nom = lep_nom[lep_nom['Muon_pt'].counts > 0]
+        gen_nom = gen_f[(~cfg.lep_sel['muon'](lep_nom)).sum() > 0]
+        lep_nom = lep_nom[~cfg.lep_sel['muon'](lep_nom)]
+        lep_nom = lep_nom[lep_nom['Muon_pt'].counts > 0]
+        print(len(gen_nom['GenPart_pt']),len(lep_nom['Muon_pt'])) # same
+        lep_nom = lep_nom[abs(lep_nom['Muon_eta']) <1.2]
+        gen_nom = gen_nom[lep_nom['Muon_pt'].counts > 0]
+        lep_nom = lep_nom[lep_nom['Muon_pt'].counts > 0]
+
+        for i in range(20):
+            if i in [5,8,12,16]:
+                print(f"Event {i+1}: GEN Info: Gen pt:{gen_nom['GenPart_pt'][i]}, Gen Eta:{gen_nom['GenPart_eta'][i]}, Gen Phi:{gen_nom['GenPart_phi'][i]}, GEN Part:{gen_nom['GenPart_pdgId'][i]}, Gen Mom:{gen_nom['GenPart_mother'][i]}")
+                print(f"Event {i+1}: RECO Info:{lep_type} pt:{lep_nom[f'{lep_type}_pt'][i]}, {lep_type} Eta:{lep_nom[f'{lep_type}_eta'][i]}, {lep_type} Phi:{lep_nom[f'{lep_type}_phi'][i]}, {lep_type} Id:{lep_nom[f'{lep_type}_FlagId'][i]}, {lep_type} miniIso:{lep_nom[f'{lep_type}_miniPFRelIso_all'][i]}\n")
         exit()
         return lep[(sum(lep_gen_match) > 0)]
         
-    mu = get_gen_matched(mu, gen_mu, 'Muon')
-    print(mu[mu['Muon_pt'].counts > 0])
-    exit()
+    #mu = get_gen_matched(mu, gen_mu, 'Muon')
+    mu = get_gen_matched(mu, gen, 'Muon')
+    #print(mu[mu['Muon_pt'].counts > 0])
+    #exit()
     el = get_gen_matched(el, gen_el, 'Electron')
     #
     mu_num = mu[cfg.lep_sel['muon'](mu)][event_mask] # med id, .2 miniIso
     mu_den = mu[mu['Muon_pt'] > 30][event_mask]
+    #mu_f = AnaDict({k:v.flatten() for k,v in mu[~cfg.lep_sel['muon'](mu)][event_mask].items()})
+    mu_f = mu[~cfg.lep_sel['muon'](mu)][event_mask]
+    mu_f = mu_f[abs(mu_f['Muon_eta']) < 1.2]
+    for i in range(20):
+        print(f"Event {i+1:3}: RECO Info:Muon pt:{mu_f[f'Muon_pt'][i]:3.2f}, Muon Eta:{mu_f[f'Muon_eta'][i]:2.3f}, Muon Phi:{mu_f[f'Muon_phi'][i]:2.3f}, Muon Id:{mu_f[f'Muon_FlagId'][i]}, Muon miniIso:{mu_f[f'Muon_miniPFRelIso_all'][i]:.3f}")
+    exit()
     #
     el_num = el[((cfg.lep_sel['electron'][year](el)))][event_mask] # tight id, .1 miniIso
     el_den = el[((el['Electron_cutBasedNoIso'] >= 2) & (el['Electron_pt'] > (30 if year == '2016' else 35)))][event_mask]

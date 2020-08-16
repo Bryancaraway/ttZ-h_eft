@@ -6,7 +6,8 @@ hi:
 	echo "hello"
 init:
 	@bash setup.sh
-	@pip install -r packages/requirements.txt
+	@pip install -r packages/pip_requirements.txt
+	@codna install --file packages/conda_requirements.txt
 
 .PHONY: hi init clean
 

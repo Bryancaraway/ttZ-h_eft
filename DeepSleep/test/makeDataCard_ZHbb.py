@@ -12,12 +12,15 @@
 #                      #
 
 import sys
+if __name__ == '__main__':
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 import os
 import pickle
 import math
 import operator as OP
 #
-import deepsleepcfg as cfg
+import config.ana_cff as cfg
 #import processData  as prD 
 import kinematicFit as kFit
 #

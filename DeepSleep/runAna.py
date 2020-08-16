@@ -1,17 +1,18 @@
 import sys
 import time
 import argparse
-import cfg.deepsleepcfg as cfg
+import config.ana_cff as cfg
 from modules.getdata import getData
 from modules.processAna import processAna
 
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
-parser.add_argument('-s', dest='sample', type=str, choices=cfg.MC_samples+cfg.Data_samples+cfg.Pow_samples, 
+parser.add_argument('-s', dest='sample', type=str, choices=cfg.All_MC+cfg.Data_samples, 
                     required=True, help='sample to analyze')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
                     required=True, help='year')
 parser.add_argument('-i', dest='roofile', type=str, required=False, help="Optional input root file, leave out '.root'", default=None)
-parser.add_argument('-t', dest='tag', type=str, required=False, help='Optional tag to add to output file', default='')
+parser.add_argument('-j', dest='jec',     type=str, required=False, help='Run with specified jec variation', choices=['JESUp','JESDown','JERUp','JERDown',''], default=None)
+parser.add_argument('-t', dest='tag',     type=str, required=False, help='Optional tag to add to output file', default='')
 args = parser.parse_args()
 
 class runAna ():
@@ -21,14 +22,15 @@ class runAna ():
     roofile  = (args.roofile if args.roofile is not None else (f'Data_{args.year}' if 'Data' in args.sample else f'MC_{args.year}') ) 
     isData   = 'Data' in roofile
     isSignal = 'TTZH'     in sample
-    isttbar  = 'TTBarLep' in sample
-
+    isttbar  = sample in cfg.ttbar_samples
+    tag      = (args.tag + args.jec if args.jec is not None else args.tag)
+    if isData and (args.jec is not None and args.jec != ''): exit()
     #####
 
     print('Running getData...')
     getData_cfg = {'roofile': roofile, 'sample': sample, 'outDir': 'files/', 'year':args.year,
                    'njets':cfg.ZHbbFitMinJets, 'maxAk4Jets':cfg.ZHbbFitMaxJets,
-                   'treeDir':cfg.tree_dir+'_bb', 'isData':isData}
+                   'treeDir':cfg.tree_dir+'_bb', 'isData':isData, 'jec_sys': args.jec}
     gD_out = getData(getData_cfg).getdata()
     if isData: 
         ak4_df, ak8_df, val_df, rtc_df = gD_out
@@ -38,7 +40,7 @@ class runAna ():
 
     #####
     print('Running processAna...')
-    processAna_cfg = {'outDir': 'files/', 'outTag':args.tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
+    processAna_cfg = {'outDir': 'files/', 'outTag':tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
                       'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df,
                       'sample':sample}
     processAna(processAna_cfg)

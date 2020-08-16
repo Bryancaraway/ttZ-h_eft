@@ -7,8 +7,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import backend as K
 
-
-import cfg.deepsleepcfg as cfg
+import config.ana_cff as cfg
 
 class DNN_model:
 
