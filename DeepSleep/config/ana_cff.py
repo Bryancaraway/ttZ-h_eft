@@ -15,7 +15,7 @@ import os
 if   os.path.exists('/cms/data/store/user/ttxeft/') : # test to see if on kodiak
     file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/' # for kodiak
 elif os.path.exists('/eos/uscms/'): # test to see if on lpc
-    file_path        = 'root://cmseos.fnal.gov//store/user/bcaraway/skimAnaSamples'
+    file_path        = 'root://cmseos.fnal.gov//store/user/bcaraway/skimAnaSamples/'
 else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./cfg/deepsleepcfg.py")
 
 tree_dir          = 'Training'

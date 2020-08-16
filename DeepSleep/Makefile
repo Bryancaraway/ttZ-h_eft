@@ -7,8 +7,9 @@ hi:
 init:
 	@bash setup.sh
 	@pip install -r packages/requirements.txt
-	@conda install numpy
-	@conda install pandas
+	@conda install --yes numpy
+	@conda install --yes pandas
+	@conda install --yes -c conda-forge xrootd
 
 .PHONY: hi init clean
 
