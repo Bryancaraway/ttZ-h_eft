@@ -15,4 +15,5 @@ mkdir -p log
 #mkdir NN_files
 #cp /cms/data/store/user/ttxeft/NN_files/* NN_files/
 #
-tar -zxvf data.tar.gz
+
+cd data; tar -zxvf data.tar.gz; cd -;

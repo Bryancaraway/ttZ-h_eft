@@ -1,4 +1,3 @@
-import sys
 import time
 import argparse
 import config.ana_cff as cfg
@@ -13,6 +12,9 @@ parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
 parser.add_argument('-i', dest='roofile', type=str, required=False, help="Optional input root file, leave out '.root'", default=None)
 parser.add_argument('-j', dest='jec',     type=str, required=False, help='Run with specified jec variation', choices=['JESUp','JESDown','JERUp','JERDown',''], default=None)
 parser.add_argument('-t', dest='tag',     type=str, required=False, help='Optional tag to add to output file', default='')
+parser.add_argument('--estart', dest='estart', type=int, required=False, help='parse event to start from', default=None)
+parser.add_argument('--estop',  dest='estop',  type=int, required=False, help='parse event to stop at', default=None)
+parser.add_argument('--condor', action='store_true', required=False, help='Flag is running on Condor')
 args = parser.parse_args()
 
 class runAna ():
@@ -24,13 +26,15 @@ class runAna ():
     isSignal = 'TTZH'     in sample
     isttbar  = sample in cfg.ttbar_samples
     tag      = (args.tag + args.jec if args.jec is not None else args.tag)
+    #tag      = (tag + agrs.estop if args.estop is not None)
     if isData and (args.jec is not None and args.jec != ''): exit()
     #####
 
     print('Running getData...')
     getData_cfg = {'roofile': roofile, 'sample': sample, 'outDir': 'files/', 'year':args.year,
                    'njets':cfg.ZHbbFitMinJets, 'maxAk4Jets':cfg.ZHbbFitMaxJets,
-                   'treeDir':cfg.tree_dir+'_bb', 'isData':isData, 'jec_sys': args.jec}
+                   'treeDir':cfg.tree_dir+'_bb', 'isData':isData, 'jec_sys': args.jec,
+                   'estart':args.estart, 'estop':args.estop}
     gD_out = getData(getData_cfg).getdata()
     if isData: 
         ak4_df, ak8_df, val_df, rtc_df = gD_out
@@ -42,7 +46,7 @@ class runAna ():
     print('Running processAna...')
     processAna_cfg = {'outDir': 'files/', 'outTag':tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
                       'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df,
-                      'sample':sample}
+                      'sample':sample, 'condor':args.condor}
     processAna(processAna_cfg)
 
     #####

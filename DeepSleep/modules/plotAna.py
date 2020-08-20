@@ -179,8 +179,8 @@ class Plotter :
     @property
     def retData(self):
         k_    = np.array([k for k in self.data])
-        h_   = np.array([self.data[k].to_numpy()    for k in self.data])
-        w_   = np.array([self.w_dict[k].to_numpy()  for k in self.data])
+        h_   = np.array([self.data[k].to_numpy()    for k in self.data], dtype=object)
+        w_   = np.array([self.w_dict[k].to_numpy()  for k in self.data], dtype=object)
         i_   = np.array([self.i_dict[k]             for k in self.data])
         l_,c_ = np.array([np.array(getLaLabel(k))   for k in self.data]).T
         l_   = np.array([f'{x} ({y:3.1f})' for x,y in zip(l_,i_)])
@@ -215,12 +215,13 @@ class Plotter :
         self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
         plt.xlim(self.bin_range)
         if self.doLog: self.ax.set_yscale('log')
-        plt.grid(True)
+        #plt.grid(True)
         #plt.setp(patches_, linewidth=0)
         self.ax.legend(framealpha = 0, ncol=2, fontsize='xx-small')
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: plt.show()
         plt.close(self.fig)
+        #plt.close('all') # for lpc
 
     @classmethod
     def load_data(cls,year='2017',HEM_opt='',samples=None,tag=None, addBSF=False):
@@ -304,6 +305,7 @@ class StackedHist(Plotter) :
         self.ax2.tick_params(which='both', direction='in', top=True, right=True)
         self.ax2.set_ylim(0.5,1.5)
         self.ax2.set_ylabel('data/MC')
+        self.ax2.grid(True)
 
     def sortInputs(self):
         k_,h_,w_,i_,c_,l_ = self.retData

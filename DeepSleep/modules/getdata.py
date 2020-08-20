@@ -105,7 +105,7 @@ class getData :
             return ak4_df.df, ak8_df.df, val_df.df, rtc_df, gen_df.df
             #
     #
-    #@t2Run
+    @t2Run
     def cleanRC(self,ak4_LC):
         RC_ak4    = self.DF_Container('other',   'RC_AK4LVec', var=cfg.ana_vars['ak4lvec']['TLVars'])
         RC_vars   = self.DF_Container('RC',      'RC_TopInfo' )
@@ -200,6 +200,7 @@ class getData :
         '''
         tarray       = None
         tpandas      = None
+        estart       = None
         estop        = None
         allowed_types = ['ak4', 'ak8', 'event', 'gen', 'RC', 'other']
     
@@ -254,8 +255,9 @@ class getData :
         @classmethod
         def set_tree(cls,tree, estart=None, estop=None):
             ''' Set tree array method and tree pandas method '''
-            cls.tarray  = functools.partial(tree.array,      entrystop=cls.estop)
-            cls.tpandas = functools.partial(tree.pandas.df , entrystop=cls.estop)
+            print(estart, estop)
+            cls.tarray  = functools.partial(tree.array,      entrystart=estart, entrystop=estop)
+            cls.tpandas = functools.partial(tree.pandas.df , entrystart=estart, entrystop=estop)
             
         @classmethod
         def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, jec_sys=None):
@@ -327,6 +329,7 @@ class getData :
                                 })
         #
         @classmethod
+        @t2Run
         def corr_AK8_jets(cls):
             ak8_vars = cls.build_dict(cfg.ak8_sys_vars)
             from modules.jmeAK8 import JMEAK8
@@ -342,6 +345,7 @@ class getData :
             return AnaDict({k: cls.tarray(cls.ana_vars[k], executor=executor) for k in keys})
 
         @classmethod
+        @t2Run
         def build_dict_ak8(cls,keys):
             executor = concurrent.futures.ThreadPoolExecutor()
             _dict = AnaDict({})

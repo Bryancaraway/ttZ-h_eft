@@ -48,7 +48,9 @@ class processAna :
     isData   = False
     isSignal = False
     isttbar  = False
-    # 
+    #
+    condor = False
+    #
     lc     = '_drLeptonCleaned'
     pt_cut = cfg.ZHptcut
     b_wp   = cfg.ZHbb_btagWP[year]
@@ -93,7 +95,12 @@ class processAna :
 
         self.passHLT_by_year()
         #
-        out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}{self.outTag}_"
+        if self.outTag != '': outTag = f'{self.outTag}_'
+        else: outTag = '' 
+        #
+        if self.condor: out_path = f'{self.sample}_{self.year}_{outTag}'
+        else:
+            out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_{outTag}"
         self.ak4_df.to_pickle(out_path+"ak4.pkl")
         self.ak8_df.to_pickle(out_path+"ak8.pkl")
         self.val_df.to_pickle(out_path+"val.pkl")
@@ -124,14 +131,23 @@ class processAna :
         #
         gentt_bb = gentt_bb % 100
         is_tt_B = gentt_bb>=51
+        print(gentt_bb[is_tt_B])
+
         is_tt_b  = gentt_bb == 51
         is_tt_2b = gentt_bb == 52
         is_tt_bb = gentt_bb >= 53
         # 
         #is_tt_bb = (((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) > 6)).sum() >= 2)
-        extra_bb  = ((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) != 6) & ((gen_st == 23) | (gen_st == 21))) # in tt+bb dedicated powheg sample the +bb has status 23
+        extra_bb  = ((abs(gen_ids) == 5) & ((abs(gen_ids[gen_mom]) != 6) | (gen_mom == -1)) & ((gen_st == 23) | (gen_st == 21))) # in tt+bb dedicated powheg sample the +bb has status 23
         print(f'all: {np.nansum(extra_bb.sum() >= 0)}')
         print(f'tt+B:{np.nansum(extra_bb.sum() > 0)}, tt+bb:{np.nansum(extra_bb.sum() >= 2)}')
+        pid_falg = ((is_tt_B == True) & ((extra_bb.sum() > 0) == False))
+        #for i in range(len(gen_ids[pid_falg])):
+        #    print(f'Event: {i:4}, tt_bb id: {gentt_bb[pid_falg][i]:6}')
+        #    for j in range(len(gen_ids[pid_falg][i])):
+        #        print(f'id: {gen_ids[pid_falg][i,j]:3} status: {gen_st[pid_falg][i,j]:3} mom_idx: {gen_mom[pid_falg][i,j]:3}')
+        #exit()
+
         #is_tt_bb  = ((extra_bb).sum() >= 2)
         #is_tt_bb  = ((extra_bb).sum() >= 1) # tt+B (tt+bb, tt+B, tt+2b)
         extra_bb_dr = deltaR(rZh_eta,rZh_phi,gen_eta,gen_phi)
@@ -380,6 +396,7 @@ class processAna :
     def applyDNN(self):
         from modules.dnn_model import DNN_model as dnn
         nn_dir   = cfg.dnn_ZH_dir 
+
         train_df = pd.read_pickle(nn_dir+'train.pkl')
         train_df = pd.read_pickle(nn_dir+'train.pkl')
         trainX   = dnn.resetIndex(train_df.drop(columns=[ 'Signal',*re.findall(r'\w*weight', ' '.join(train_df.keys()))]))
@@ -493,15 +510,15 @@ if __name__ == '__main__':
 
     from modules.AnaDict import AnaDict
     # will need to open pkl files for testing
-    #sample = 'TTBarLep_pow'
-    sample = 'TT_bb_pow'
+    sample = 'TTBarLep_pow'
+    #sample = 'TT_bb_pow'
     print('Reading Files...')
-    dir_ = 'files/2018/mc_files/'
+    dir_ = 'files/2017/mc_files/'
     ak4_df = AnaDict.read_pickle(dir_+f'{sample}_ak4.pkl')
     ak8_df = AnaDict.read_pickle(dir_+f'{sample}_ak8.pkl')
     val_df = pd     .read_pickle(dir_+f'{sample}_val.pkl')
     gen_df = AnaDict.read_pickle(dir_+f'{sample}_gen.pkl')
     rtc_df = AnaDict.read_pickle(dir_+f'{sample}_rtc.pkl')
     print('Processing data...')
-    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample, 'year':'2018', 'isData':False, 'isSignal': False, 'isttbar':True}
+    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample, 'year':'2017', 'isData':False, 'isSignal': False, 'isttbar':True}
     processAna(process_ana_dict)

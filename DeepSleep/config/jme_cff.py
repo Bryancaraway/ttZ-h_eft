@@ -2,16 +2,18 @@
 ## Config for ##
 # jme handling #
 ## ########## ##
-import subprocess as sb
+#import subprocess as sb
+from config.ana_cff import cdir
 # get current working directory according to git
-_wdir = sb.check_output('echo $(git rev-parse --show-toplevel)', shell=True).decode().strip('\n')+'/DeepSleep/'
+#_wdir = sb.check_output('echo $(git rev-parse --show-toplevel)', shell=True).decode().strip('\n')+'/DeepSleep/'
+_wdir, _cdir = cdir()
 '''
 For now this serves as just
 a file referencing map
 for ak8 jme correction module
 '''
 
-jme_dir  = _wdir+'/data'
+jme_dir  = _wdir+'data'
 
 jec_vc   = {'2016':'Summer16_07Aug2017_V11_MC',
             '2017':'Fall17_17Nov2017_V32_MC',

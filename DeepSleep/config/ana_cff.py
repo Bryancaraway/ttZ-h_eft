@@ -5,18 +5,25 @@
 #
 import subprocess as sb
 # get current working directory according to git
-_wdir = sb.check_output('echo $(git rev-parse --show-toplevel)', shell=True).decode().strip('\n')+'/DeepSleep/'
+def cdir():
+    _cdir = sb.check_output('pwd', shell=True).decode().strip('\n')
+    if 'condor' in _cdir: _wdir = './' # if working on condor, already in the right directory
+    else:
+        _wdir = sb.check_output('echo $(git rev-parse --show-toplevel)', shell=True).decode().strip('\n')+'/DeepSleep/'
+    return _wdir, _cdir
+
+_wdir, _cdir = cdir()
 #
-master_file_path  = _wdir+'/files/'
-dataDir           = _wdir+'/data/'
-pdfDir            = _wdir+'/pdf/'
+master_file_path  = _wdir+'files/'
+dataDir           = _wdir+'data/'
+pdfDir            = _wdir+'pdf/'
 # Overhead #
 import os
 if   os.path.exists('/cms/data/store/user/ttxeft/') : # test to see if on kodiak
     file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/' # for kodiak
-elif os.path.exists('/eos/uscms/'): # test to see if on lpc
+elif os.path.exists('/eos/uscms/') or 'condor' in _cdir: # test to see if on lpc will need to fix for condor on kodiak i think
     file_path        = 'root://cmseos.fnal.gov//store/user/bcaraway/skimAnaSamples/'
-else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./cfg/deepsleepcfg.py")
+else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./config/ana_cff.py")
 
 tree_dir          = 'Training'
 ##
