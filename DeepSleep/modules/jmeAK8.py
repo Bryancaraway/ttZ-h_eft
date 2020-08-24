@@ -97,21 +97,29 @@ class JMEAK8 :
                           massRaw = fj.mass * (1 - ak8_vars['FatJet_rawFactor_drLeptonCleaned']))
         # thanks jetmet group for wasting my time...
         fj['rho']  = fj.pt.ones_like()   # this actually doesnt really do anything...
-        fj['area'] = fj.pt.ones_like()*2 # this actually doesnt really do anything...
-        
+        #fj['area'] = fj.pt.ones_like()*2 # this actually doesnt really do anything...
+        fj['area'] = ak8_vars['FatJet_area_drLeptonCleaned']
+        #
+        #old = fj.pt # remove !!!
         self.Jet_transformer.transform(fj)
         # prepare jet collection to return with the right format for my anaylsis
         #'pt_jer_up', 'mass_jer_up', 'pt_jer_down', 'mass_jer_down', 'pt_jes_up', 'mass_jes_up', 'pt_jes_down', 'mass_jes_down']
         _fj = {}
         _interp = {'pt':'pt',
-                   'msoftdrop':'mass'}
+                   'mass':'msoftdrop'}
         for k in ['pt','mass']:
             _fj[f'FatJet_{_interp.get(k)}_drLeptonCleaned']              = fj[f'__fast_{k}']
             _fj[f'FatJet_{_interp.get(k)}_jesTotalUp_drLeptonCleaned']   = fj[f'{k}_jes_up']
             _fj[f'FatJet_{_interp.get(k)}_jesTotalDown_drLeptonCleaned'] = fj[f'{k}_jes_down']
             _fj[f'FatJet_{_interp.get(k)}_jerUp_drLeptonCleaned']        = fj[f'{k}_jer_up']
             _fj[f'FatJet_{_interp.get(k)}_jerDown_drLeptonCleaned']      = fj[f'{k}_jer_down']
-
+        #
+        #import matplotlib.pyplot as plt      # remove!!
+        #print(abs((old-fj.pt)/old).flatten()[:20])
+        #plt.hist(abs((old-fj.mass)/old).flatten(), # remove!!
+        #         range=(0,0.1))
+        #plt.show()                           # remove!!
+        #print(fj.mass)                       # remove!!
         return _fj
 
 

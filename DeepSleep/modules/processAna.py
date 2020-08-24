@@ -1,4 +1,4 @@
-########################AAA
+########################
 ### process code     ###
 ### for analysis     ###
 ########################
@@ -50,6 +50,7 @@ class processAna :
     isttbar  = False
     #
     condor = False
+    keep_all = False
     #
     lc     = '_drLeptonCleaned'
     pt_cut = cfg.ZHptcut
@@ -101,12 +102,13 @@ class processAna :
         if self.condor: out_path = f'{self.sample}_{self.year}_{outTag}'
         else:
             out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_{outTag}"
-        self.ak4_df.to_pickle(out_path+"ak4.pkl")
-        self.ak8_df.to_pickle(out_path+"ak8.pkl")
         self.val_df.to_pickle(out_path+"val.pkl")
-        if not self.isData:
-            self.gen_df.to_pickle(out_path+"gen.pkl")
-        self.rtc_df.to_pickle(out_path+"rtc.pkl")
+        if self.keep_all:
+            self.ak4_df.to_pickle(out_path+"ak4.pkl")
+            self.ak8_df.to_pickle(out_path+"ak8.pkl")
+            if not self.isData:
+                self.gen_df.to_pickle(out_path+"gen.pkl")
+            self.rtc_df.to_pickle(out_path+"rtc.pkl")
         finish = time.perf_counter()
         print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
 
@@ -308,6 +310,7 @@ class processAna :
         b_tlv   = getTLVm( *map(lambda b : fillne(b).T, [b_pt,b_eta,b_phi,b_mass])) 
         lep_tlv = getTLV( lep_pt,lep_eta,lep_phi,lep_M)
         bl_tlv = lep_tlv + b_tlv
+        self.val_df['max_lb_invM_alt'] = np.nanmax(bl_tlv.mass.T, axis=1)
         lb_mtb = lib.calc_mtb(bl_tlv.pt.T,bl_tlv.phi.T,met_pt.values,met_phi.values)            
         #
         ind_lb = np.argsort(l_b_dr,axis=1) 
@@ -423,11 +426,14 @@ class processAna :
                 for lep_type in ('muon','electron'):
                     #eff = AnaDict.read_pickle(f'{self.outDir}{self.year}/eff_files/{lep_type}_eff_{self.year}_{eff_tag}.pkl')
                     eff = AnaDict.read_pickle(f'{self.dataDir}lep_eff_files/{lep_type}_eff_{self.year}_{eff_tag}.pkl')
-                    self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}']  = self.addLepEff(kinem, lep_type, eff[k_name])
+                    self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}'], self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}_up'], self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}_down']  = self.addLepEff(kinem, lep_type, eff[k_name])
                 #
-                self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}'] = pd.concat(
-                    [self.val_df[f'electron_eff_{eff_tag}_{k_name}'][self.val_df['passSingleLepElec']==1],
-                     self.val_df[f'muon_eff_{eff_tag}_{k_name}'][self.val_df['passSingleLepMu']==1]]).sort_index()
+                for varr in ['','_up','_down']:
+                    self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}{varr}'] = pd.concat(
+                        [self.val_df[f'electron_eff_{eff_tag}_{k_name}{varr}'][self.val_df['passSingleLepElec']==1],
+                         self.val_df[f'muon_eff_{eff_tag}_{k_name}{varr}'][self.val_df['passSingleLepMu']==1]]).sort_index()
+                    #print(self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}{varr}'])
+                
         #self.val_df['Muon_eff'] = eff_fun_dict[self.year](lep_pt)
 
     @t2Run
@@ -437,7 +443,8 @@ class processAna :
         for lep_type in ('muon','electron'):
             #sf = AnaDict.read_pickle(f'{self.outDir}{self.year}/lepton_sf_files/{lep_type}_sf_{self.year}.pkl')
             sf = AnaDict.read_pickle(f'{self.dataDir}lep_sf_files/{lep_type}_sf_{self.year}.pkl')
-            total_lep_sf = np.ones(len(lep_pt))
+            total_lep_sf = [np.ones(len(lep_pt)),np.zeros(len(lep_pt))]
+            #total_lep_sf = [np.ones(len(lep_pt)),np.ones(len(lep_pt))]
             for k in sf:
                 # dict structure is sf type : eta_bins: pt_bins: values, up, down
                 if ((lep_type == 'muon' and self.year != '2016') or k == 'SF'): lep_eta = abs(lep_eta)
@@ -450,10 +457,14 @@ class processAna :
                 pt_digi  = pd.cut(lep_pt.clip(pt_bins[0]+eps,pt_bins[-1]-eps), bins=pt_bins, right=True, include_lowest=True, 
                                   labels=sorted(pt_keys, key= lambda z : float(z.split(',')[0])))
                 #lep_sf = pd.concat([eta_digi,pt_digi], axis='columns').apply(lambda x: sf[k][x[0]][x[1]]['values'], axis='columns')
-                lep_sf = [(lambda x,y: sf[k][x][y]['values'])(x,y) for x,y in zip(eta_digi.values,pt_digi.values)]
+                lep_sf = np.array([(lambda x,y: np.array([sf[k][x][y]['values'], sf[k][x][y]['up']]))(x,y) for x,y in zip(eta_digi.values,pt_digi.values)]) # this should be propagating the error properly
                 #total_lep_sf *= lep_sf.to_numpy(dtype=float)
-                total_lep_sf *= lep_sf
-            self.val_df[f'{lep_type}_sf'] = total_lep_sf
+                total_lep_sf[0] *= lep_sf[:,0]
+                lep_sf_err = abs(lep_sf[:,1] - lep_sf[:,0]) 
+                total_lep_sf[1] = total_lep_sf[0]*np.sqrt(np.power(lep_sf_err/lep_sf[:,0],2)+ np.power(total_lep_sf[1]/total_lep_sf[0],2)) 
+            self.val_df[f'{lep_type}_sf']      = total_lep_sf[0]
+            self.val_df[f'{lep_type}_sf_up']   = total_lep_sf[1]+total_lep_sf[0]
+            self.val_df[f'{lep_type}_sf_down'] = total_lep_sf[0]-total_lep_sf[1]
         #
         self.val_df[f'lep_sf'] = pd.concat(
             [self.val_df['electron_sf'][self.val_df['passSingleLepElec']==1],
@@ -464,7 +475,9 @@ class processAna :
         bins=[float(bin_str.split(',')[0]) for bin_str in eff] + [float(list(eff.keys())[-1].split(',')[1])]
         digi = pd.cut(dist.clip(bins[0]+eps,bins[-1]-eps), bins=bins, labels= sorted(eff.keys(), key= lambda z : float(z.split(',')[0])))
         lep_eff = digi.map(lambda k: eff[k]['values'])
-        return lep_eff.to_numpy(dtype=float)
+        lep_eff_up = digi.map(lambda k: eff[k]['up'])
+        lep_eff_down = digi.map(lambda k: eff[k]['down'])
+        return (lep_eff.to_numpy(dtype=float),lep_eff_up.to_numpy(dtype=float),lep_eff_down.to_numpy(dtype=float))
      
     @t2Run
     def getBCbtagSF(self):

@@ -15,13 +15,13 @@ for ak8 jme correction module
 
 jme_dir  = _wdir+'data'
 
-jec_vc   = {'2016':'Summer16_07Aug2017_V11_MC',
-            '2017':'Fall17_17Nov2017_V32_MC',
-            '2018':'Autumn18_V19_MC'
+jec_vc   = {'2016':'Summer16_07Aug2017_V11_MC', # good 
+            '2017':'Fall17_17Nov2017_V32_MC',   # good 
+            '2018':'Autumn18_V19_MC'            # good 
         }
-jer_vc   = {'2016':'Summer16_25nsV1b_MC',
-            '2017':'Fall17_V3b_MC',
-            '2018':'Autumn18_V7b_MC'
+jer_vc   = {'2016':'Summer16_25nsV1b_MC',       # good 
+            '2017':'Fall17_V3b_MC',             # V3 (not V3b...) 
+            '2018':'Autumn18_V7b_MC'            # V8 (or V7, not V7b)
         }
 
 

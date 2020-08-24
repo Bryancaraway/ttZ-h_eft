@@ -162,6 +162,23 @@ def getZhbbBaseCuts(df_):
         (df_['MET_pt']      >= 20)         &
         (df_['Zh_M']        <= 200))
     return base_cuts
+
+def getZhbbWeight(df_, year):
+    tot_weight = (df_['weight']* np.sign(df_['genWeight']) 
+                  * (np.where(df_['weight']>300,0,1))
+                  #* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
+                  #* (df_['BC_btagSF'] if self.addBSF else 1.0)
+                  #* (self.lumi/cfg.Lumi[self.year])
+                  * df_['Stop0l_topptWeight']
+                  * (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
+                  #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
+                  * df_['lep_trig_eff_tight_pt']
+                  #* v['lep_trig_eff_tight_eta']
+                  * df_['lep_sf']
+                  * df_['BTagWeight'] 
+                  * df_['puWeight']  
+                  * (df_['PrefireWeight'] if year != '2018' else 1.0))
+    return tot_weight
 #
 def weighted_quantile(values, quantiles, sample_weight=None, 
                       values_sorted=False, old_style=False):

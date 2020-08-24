@@ -47,6 +47,7 @@ class getData :
     minBottoms = 2
     treeDir    = cfg.tree_dir
     jec_sys   = None
+    jec_type  = None # ak4 or ak8 , might need to add sj for sdM
     doLepSel   = True
     getGenData = False # doesnt do anything atm
     getak8var  = False # doesnt do anything atm
@@ -73,8 +74,8 @@ class getData :
                 exit()
             #
             self.DF_Container.set_tree(t, self.estart, self.estop)
-            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.minBottoms, self.jec_sys)
-            if not self.isData: self.DF_Container.corr_AK8_jets()
+            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.minBottoms, self.jec_sys, self.jec_type)
+            if not self.isData: self.DF_Container.corr_AK8_jets() #un-disable this!
             self.DF_Container.set_current_tree_mask()
             if self.doLepSel: self.DF_Container.lep_sel_mask()
             # 
@@ -107,16 +108,20 @@ class getData :
     #
     @t2Run
     def cleanRC(self,ak4_LC):
-        RC_ak4    = self.DF_Container('other',   'RC_AK4LVec', var=cfg.ana_vars['ak4lvec']['TLVars'])
+        #RC_ak4    = self.DF_Container('other',   'RC_AK4LVec', var=cfg.ana_vars['ak4lvec']['TLVars'])
+        RC_lc_index = self.DF_Container('other', 'RC_LC_map', var=['Jet_lepcleaned_idx'])
         RC_vars   = self.DF_Container('RC',      'RC_TopInfo' )
         RC_vars   = RC_vars.df
         ##
-        ak4    = fillne(RC_ak4.df.sum())
+        #ak4    = fillne(RC_ak4.df.sum())
+        mapLC = fillne(RC_lc_index.df['Jet_lepcleaned_idx'])
+        mapLC = np.where(mapLC==-1,np.nan,mapLC)
         RCj1, RCj2, RCj3 = fillne(RC_vars['ResolvedTopCandidate_j1Idx']), fillne(RC_vars['ResolvedTopCandidate_j2Idx']), fillne(RC_vars['ResolvedTopCandidate_j3Idx'])
         ##
-        mapLC = self.cleanMap(fillne(ak4_LC), ak4, np.full(ak4.shape,np.nan))
+        #mapLC = self.cleanMap(fillne(ak4_LC), ak4, np.full(ak4.shape,np.nan))
         RCj1, RCj2, RCj3 = self.applyMap(mapLC, RCj1, RCj2, RCj3, np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan))
         RC_vars['ResolvedTopCandidate_j1Idx'], RC_vars['ResolvedTopCandidate_j2Idx'], RC_vars['ResolvedTopCandidate_j3Idx'] = RCj1, RCj2, RCj3
+        #print(RC_vars['ResolvedTopCandidate_j1Idx'], RC_vars['ResolvedTopCandidate_j2Idx'], RC_vars['ResolvedTopCandidate_j3Idx'])
         return RC_vars
 
     @staticmethod
@@ -135,6 +140,7 @@ class getData :
                         break
         return out
     #
+    
 
     @staticmethod
     @njit(parallel=True)
@@ -246,7 +252,7 @@ class getData :
             try:
                 df = type_indexer[self.var_type](self.variables)
             except KeyError:
-                raise KeyError(f"At least one variable not found:{self.variables}\nName '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
+                raise KeyError(f"At least one variable not found:{self.variables} \n Name '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
             return df
             
         def apply_event_mask(self,df):
@@ -260,13 +266,13 @@ class getData :
             cls.tpandas = functools.partial(tree.pandas.df , entrystart=estart, entrystop=estop)
             
         @classmethod
-        def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, jec_sys=None):
+        def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, jec_sys=None, jec_type=None):
             cls.isData = isData
             cls.year   = year
             cls.minAk4Jets = njets
             cls.maxAk4Jets = maxAk4Jets
             cls.minBottoms = minBottoms
-            cls.ana_vars = AnaVars(year,isData, jec_sys=jec_sys)
+            cls.ana_vars = AnaVars(year,isData, jec_sys=jec_sys, jec_type=jec_type)
 
         @classmethod
         def set_current_tree_mask(cls):
@@ -283,7 +289,7 @@ class getData :
             #
             cls.ak4_mask  = ((jet_pt_eta[j_pt_key] >= 30) & (abs(jet_pt_eta[j_eta_key]) <= 2.4))
             cls.ak8_mask  = (abs(fatjet_pt_eta[fj_eta_key]) <= 2.4)
-            cls.rtcd_mask = (rtcd >= 0.50)
+            cls.rtcd_mask = (rtcd >= 0.70) # trained with 75, might expand if I do re-train
             #
             n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
             del jet_pt_eta, fatjet_pt_eta
@@ -331,18 +337,22 @@ class getData :
         @classmethod
         @t2Run
         def corr_AK8_jets(cls):
-            ak8_vars = cls.build_dict(cfg.ak8_sys_vars)
+            ak8_vars = cls.build_dict(cfg.ak8_sys_vars, with_interp=False) #tries to get jec variation before its computed (have to initially use tarray)
             from modules.jmeAK8 import JMEAK8
             ak8_fj_transformer = JMEAK8(cls.year)
             #
             ak8_fj_transformer.prepare_transformer()
             cls.fj = ak8_fj_transformer.transform_AK8(ak8_vars)
+            #print(cls.fj.keys())
             
             
         @classmethod
-        def build_dict(cls,keys):
+        def build_dict(cls,keys, with_interp=True):
             executor = concurrent.futures.ThreadPoolExecutor()
-            return AnaDict({k: cls.tarray(cls.ana_vars[k], executor=executor) for k in keys})
+            if with_interp:
+                return AnaDict({k: cls.tarray(cls.ana_vars[k], executor=executor) for k in keys})
+            else:
+                return AnaDict({k: cls.tarray(k, executor=executor) for k in keys})
 
         @classmethod
         @t2Run
@@ -350,6 +360,7 @@ class getData :
             executor = concurrent.futures.ThreadPoolExecutor()
             _dict = AnaDict({})
             for k in keys:
+                #print(k)
                 if cls.ana_vars[k] in cls.fj:
                     _dict[k] = cls.fj[cls.ana_vars[k]]
                 else: _dict[k] = cls.tarray(cls.ana_vars[k], executor=executor)

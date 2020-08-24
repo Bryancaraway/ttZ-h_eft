@@ -120,8 +120,12 @@ lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30) & (abs(x['Muon_eta']) < 
                 }
 # JMS (jet mass scale) and JMR (jet mass resolution) for softdrop Mass
 ak8_sys_vars = ['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC, 
-                'FatJet_msoftdrop'+LC, 'FatJet_rawFactor'+LC,
-                'GenJetAK8_pt', 'GenJetAK8_eta', 'GenJetAK8_phi', 'GenJetAK8_mass']
+                'FatJet_msoftdrop'+LC, 'FatJet_rawFactor'+LC, 'FatJet_area'+LC,
+                'GenJetAK8_pt', 'GenJetAK8_eta', 'GenJetAK8_phi', 'GenJetAK8_mass',
+                #'SubGenJetAK8_pt', 'SubGenJetAK8_eta', 'SubGenJetAK8_phi', 'SubGenJetAK8_mass',
+                #'SubJet_pt', SubJet_eta, SubJet_phi, SubJet_mass, SubJet_rawFactor
+                #'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC,
+            ]
 
 ak8_softdropM_info = {'jms':{'value':0.999,
                              'up'   :0.999+0.004,
@@ -153,7 +157,7 @@ ana_vars = {
                     'jerDown'     :['Jet_pt_jerDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerDown'],
                 },
 #
-    'ak8vars'    : ['FatJet_tau1'+LC,'FatJet_tau2'+LC,'FatJet_tau3'+LC,'FatJet_tau4'+LC,
+    'ak8vars'    : [#'FatJet_tau1'+LC,'FatJet_tau2'+LC,'FatJet_tau3'+LC,'FatJet_tau4'+LC, # removed for now
                     'FatJet_deepTag_WvsQCD'+LC,'FatJet_deepTag_TvsQCD'+LC,'FatJet_deepTag_ZvsQCD'+LC,
                     'FatJet_deepTagMD_H4qvsQCD'+LC, 'FatJet_deepTagMD_HbbvsQCD'+LC, 'FatJet_deepTagMD_TvsQCD'+LC, 
                     'FatJet_deepTagMD_WvsQCD'+LC, 'FatJet_deepTagMD_ZHbbvsQCD'+LC, 'FatJet_deepTagMD_ZHccvsQCD'+LC, 
