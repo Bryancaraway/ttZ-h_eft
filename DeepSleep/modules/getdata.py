@@ -98,7 +98,8 @@ class getData :
             else:
                 gen_df   = self.DF_Container('gen', 'GenPart_Variables')
                 #TroubleShooting these systematics
-                #sys_df   = self.compute_ps_pdf_weights()
+                sys_df   = self.compute_ps_sc_weights().set_index(val_df.df.index)
+                val_df.df = pd.concat([val_df.df, sys_df], axis='columns')
                 # to-do add these to val_df
             #
             finish = time.perf_counter()
@@ -159,42 +160,41 @@ class getData :
         return o1, o2, o3
     #
     @t2Run
-    def compute_ps_pdf_weights(self):
+    def compute_ps_sc_weights(self):
         sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight'])
         #| Float_t LHE scale variation weights (w_var / w_nominal); [0] is renscfact=0.5d0 facscfact=0.5d0 ; [1] is renscfact=0.5d0 facscfact=1d0 ; [2] is renscfact=0.5d0 facscfact=2d0 ; 
         #                                                           [3] is renscfact=1d0   facscfact=0.5d0 ; [4] is renscfact=1d0   facscfact=1d0 ; [5] is renscfact=1d0   facscfact=2d0 ; 
         #                                                           [6] is renscfact=2d0   facscfact=0.5d0 ; [7] is renscfact=2d0   facscfact=1d0 ; [8] is renscfact=2d0   facscfact=2d0 
         #| Float_t PS weights (w_var / w_nominal); [0] is ISR=0.5 FSR=1; [1] is ISR=1 FSR=0.5; [2] is ISR=2 FSR=1; [3] is ISR=1 FSR=2 *
-        ps_w = sys_df.df['PSWeight']
-        sc_w = sys_df.df['LHEScaleWeight']
+        ps_w = sys_df.df['PSWeight'].pad(4).fillna(1)
+        sc_w = sys_df.df['LHEScaleWeight'].pad(9).fillna(1)
         mc_w = sys_df.df['weight']
         #
         df = pd.DataFrame()
         # TROUBLESHOOT WHICH SAMPLES HAVE SCALE WEIGHT, PSWEIGHT
-        print(pd.DataFrame(np.unique(mc_w,        return_counts=True)))
-        print(pd.DataFrame(np.unique(ps_w.counts, return_counts=True)))
-        print(pd.DataFrame(np.unique(sc_w.counts, return_counts=True)))
-        print("Where scale weights size == 0")
-        print(pd.DataFrame(np.unique(mc_w[sc_w.counts == 0], return_counts=True)))
-        print("Where ps weights size == 1")
-        print(pd.DataFrame(np.unique(mc_w[ps_w.counts == 1], return_counts=True)))
-        exit()
+        #print(pd.DataFrame(np.unique(mc_w,        return_counts=True)))
+        #print(pd.DataFrame(np.unique(ps_w.counts, return_counts=True)))
+        #print(pd.DataFrame(np.unique(sc_w.counts, return_counts=True)))
+        #print("Where scale weights size == 0")
+        #print(pd.DataFrame(np.unique(mc_w[sc_w.counts == 0], return_counts=True)))
+        #print("Where ps weights size == 1")
+        #print(pd.DataFrame(np.unique(mc_w[ps_w.counts == 1], return_counts=True)))
+        #exit()
         # Not quite working atm as some ScaleWeights dont all have the same size
-        #if all(ps_w.counts == 4):
-        #    df['ISR_Up']   = ps_w[:,2]
-        #    df['ISR_Down'] = ps_w[:,0]
-        #    df['FSR_Up']   = ps_w[:,3]
-        #    df['FSR_Down'] = ps_w[:,1]
-        #else:
-        #    df['ISR_Up']   = ps_w[:,0]
-        #    df['ISR_Down'] = ps_w[:,0]
-        #    df['FSR_Up']   = ps_w[:,0]
-        #    df['FSR_Down'] = ps_w[:,0]
-        ##
-        #df['mu_r_Up']   = sc_w[:,7]
-        #df['mu_r_Down'] = sc_w[:,1]
-        #df['mu_f_Up']   = sc_w[:,5]
-        #df['mu_f_Down'] = sc_w[:,3]
+        #
+
+        df['ISR_Up']   = ps_w[:,2]
+        df['ISR_Down'] = ps_w[:,0]
+        df['FSR_Up']   = ps_w[:,3]
+        df['FSR_Down'] = ps_w[:,1]
+        #
+        df['mu_r_Up']    = sc_w[:,7]
+        df['mu_r_Down']  = sc_w[:,1]
+        df['mu_f_Up']    = sc_w[:,5]
+        df['mu_f_Down']  = sc_w[:,3]
+        df['mu_rf_Up']   = sc_w[:,8]
+        df['mu_rf_Down'] = sc_w[:,0]
+
         return df
         
     #
@@ -343,6 +343,7 @@ class getData :
             #
             ak8_fj_transformer.prepare_transformer()
             cls.fj = ak8_fj_transformer.transform_AK8(ak8_vars)
+            #ak8_fj_transformer.transform_SDM(ak8_vars)
             #print(cls.fj.keys())
             
             

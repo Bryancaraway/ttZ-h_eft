@@ -175,7 +175,9 @@ def getZhbbWeight(df_, year):
                   * df_['lep_trig_eff_tight_pt']
                   #* v['lep_trig_eff_tight_eta']
                   * df_['lep_sf']
-                  * df_['BTagWeight'] 
+                  #* df_['BTagWeight'] 
+                  * df_['BTagWeightLight'] 
+                  * df_['BTagWeightHeavy'] 
                   * df_['puWeight']  
                   * (df_['PrefireWeight'] if year != '2018' else 1.0))
     return tot_weight

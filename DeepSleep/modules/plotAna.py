@@ -7,11 +7,13 @@ import operator as op
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from matplotlib.ticker import AutoMinorLocator, FixedLocator, FormatStrFormatter
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Patch, Rectangle
 rc("savefig",dpi=250)
 rc("figure", figsize=(6, 6*(6./8.)), dpi=200)                                                            
 #rc("text.latex", preamble=r"\usepackage{amsmath}")                                                             
 #rc('font',**{'family':'serif','serif':['Times']})
-#rc("hatch", linewidth=0.0) 
+rc("hatch", linewidth=0.2, color='r') 
 #
 from lib.fun_library import getZhbbBaseCuts, getLaLabel
 import config.ana_cff as cfg
@@ -39,7 +41,7 @@ class Plotter :
                  xlabel=None, n_bins=20, bins=None,
                  doLog=True, doNorm=False, 
                  doShow = True, doSave = False,
-                 doCuts=True,add_cuts=None,sepGenOpt=None,addData=False):
+                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
 
         self.samples    = samples
         self.kinem      = kinem
@@ -55,6 +57,7 @@ class Plotter :
         self.addData    = addData
         self.doCuts     = doCuts
         self.add_cuts   = add_cuts if add_cuts is not None else ''
+        self.add_d_cuts = add_d_cuts if add_d_cuts is not None else ''
         self.sepGenOpt  = sepGenOpt
         #
         self.prepData()
@@ -101,6 +104,8 @@ class Plotter :
                       'postHEM':';run>=319077',
                       '':''}
         data_cuts = add_by_lep[leptype]+add_by_HEM[self.HEM_opt]
+        if self.add_d_cuts != '':
+            data_cuts = data_cuts+';'+self.add_d_cuts
         if self.add_cuts is '':
             self.add_cuts = data_cuts
         else:
@@ -211,13 +216,17 @@ class Plotter :
         self.ax.tick_params(which='both', direction='in', top=True, right=True)
         self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
         self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
-        plt.xlabel(self.xlabel, fontsize = self.fontsize)
+        plt.xlabel(self.xlabel+self.tag, fontsize = self.fontsize)
         self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
         plt.xlim(self.bin_range)
         if self.doLog: self.ax.set_yscale('log')
         #plt.grid(True)
         #plt.setp(patches_, linewidth=0)
-        self.ax.legend(framealpha = 0, ncol=2, fontsize='xx-small')
+        handles, labels = self.ax.get_legend_handles_labels()
+        hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w')
+        handles = handles + [hatch_patch]
+        labels  = labels + ['Stat Unc.']
+        self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize='xx-small')
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: plt.show()
         plt.close(self.fig)
@@ -231,10 +240,13 @@ class Plotter :
         cls.HEM_opt = HEM_opt
         cls.lumi = cfg.Lumi[year+HEM_opt]
         cls.data_dict = {}
+        cls.tag = '' if tag is None else '_'+tag
+        #
         for sample in cls.mc_samples:
             try : 
-                cls.data_dict[(sample.replace(tag,'') if tag is not None else sample)] = \
-                pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl')
+                #cls.data_dict[(sample.replace(tag,'') if tag is not None else sample)] = \
+                #pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl')
+                cls.data_dict[sample] = pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}{cls.tag}_val.pkl')
             except:
                 pass
         #cls.data_dict = {(sample.replace(tag,'') if tag is not None else sample):
@@ -248,9 +260,9 @@ class StackedHist(Plotter) :
                  xlabel=None, n_bins=20, bins=None,
                  doLog=True, doNorm=False, 
                  doShow = True, doSave = False,
-                 doCuts=True,add_cuts=None,sepGenOpt=None,addData=False):
+                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
         super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
-                         doShow,doSave,doCuts,add_cuts,sepGenOpt,addData)
+                         doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData)
         #
         self.makePlot()
 
@@ -271,12 +283,45 @@ class StackedHist(Plotter) :
             label   = l
         )
         #
+        n_mc, _ = np.histogram(np.hstack(h),bins=self.bins, weights=np.hstack(w),
+                               range=(self.bin_range[0],self.bin_range[1]) )
+        # get mcstats and plot error boxes
+        x,xerr,y,yerr = self.getMCStat_info(n_mc, np.hstack(h),np.hstack(w))
+        self.make_error_boxes(self.ax, x, y, xerr, yerr, label='Stat unc.')
+        #
         if self.addData: 
-            n_mc, _ = np.histogram(np.hstack(h),bins=self.bins, weights=np.hstack(w),
-                                   range=(self.bin_range[0],self.bin_range[1]) )
             self.addDataPlot(n_mc)
+            # add mcstat hash to ratio plot at zero
+            #print(y)
+            #print(yerr)
+            self.make_error_boxes(self.ax2, x, np.ones_like(x), xerr, yerr/y, label='Stat unc.')
+            
         self.endPlt
 
+    def getMCStat_info(self,n, h, w):
+        x = (self.bins[1:]+self.bins[:-1])/2
+        xerr = self.bin_w/2
+        print(w[w>1])
+        print(len(w[w>1]))
+        print(sum(w[w>1]))
+        yerr = np.histogram(h, bins=self.bins, weights=np.power(w,2))[0]
+        yerr = np.sqrt(yerr)
+        y = n
+        return x,xerr,y,yerr
+                              
+    @staticmethod
+    def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',
+                         edgecolor='None', alpha=0.0, hatch=10*'X', label=''):
+        errorboxes = []
+        for x, y, xe, ye in zip(xdata, ydata, xerror.T, yerror.T):
+            rect = Rectangle((x - xe, y - ye), 2*xe, 2*ye)
+            errorboxes.append(rect)
+        pc = PatchCollection(errorboxes, facecolor=facecolor, alpha=alpha,
+                             edgecolor=edgecolor, hatch=hatch, label=label, zorder=1.5)
+        # Add collection to axes
+        ax.add_collection(pc)
+
+                
     def addDataPlot(self,n_mc):
         h = self.real_data['Data']
         n_data,edges = np.histogram(h,bins=self.bins, range=(self.bin_range[0],self.bin_range[1]))
@@ -294,9 +339,9 @@ class StackedHist(Plotter) :
         self.ax2.errorbar(x=bin_c, y = n_data/n_mc,
                           xerr=self.bin_w/2, yerr=yerr,
                           fmt='.', color='k')
-        print(bin_c)
-        print(y)
-        print(yerr)
+        #print(bin_c)
+        #print(y)
+        #print(yerr)
         self.ax2.axhline(1, color='k', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
         self.ax2.xaxis.set_minor_locator(AutoMinorLocator())
         self.ax2.yaxis.set_major_formatter(FormatStrFormatter('%g'))
@@ -327,10 +372,10 @@ class Hist (Plotter) :
                  xlabel=None, n_bins=20, bins=None,
                  doLog=False, doNorm=True, 
                  doShow = True, doSave = False,
-                 doCuts=True,add_cuts=None,sepGenOpt=None,addData=False):
+                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
 
         super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
-                         doShow,doSave,doCuts,add_cuts,sepGenOpt,addData)
+                         doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData)
 
         if dropNoGenM: [self.data.pop(k) for k in re.findall(r'\w*_no\w*GenMatch',' '.join(self.data)) if k in self.data]
         if droptt    : [self.data.pop(k) for k in re.findall(r'TTBarLep_\w*nobb', ' '.join(self.data)) if k in self.data]
@@ -364,7 +409,7 @@ class Hist (Plotter) :
         yerr = np.array([np.histogram(h[s], bins=self.bins, weights=np.power(w[s],2))[0] for s in range(len(h))])
         for j in range(len(i)):
             self.ax.errorbar(x=bin_c, y=n[j], 
-                             yerr= (yerr[j] if not self.doNorm else yerr[j]/i[j]),
+                             yerr= (np.sqrt(yerr[j]) if not self.doNorm else np.sqrt(yerr[j])/i[j]),
                              fmt='.', ms=3, color=c[j])
     #
 #

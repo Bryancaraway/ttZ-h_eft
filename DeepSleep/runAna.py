@@ -5,7 +5,7 @@ from modules.getdata import getData
 from modules.processAna import processAna
 
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
-parser.add_argument('-s', dest='sample', type=str, choices=cfg.All_MC+cfg.Data_samples+['test'], 
+parser.add_argument('-s', dest='sample', type=str, choices=cfg.All_MC+cfg.Data_samples+['test']+cfg.tt_sys_samples, 
                     required=True, help='sample to analyze')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
                     required=True, help='year')
@@ -25,8 +25,9 @@ class runAna ():
     sample   = args.sample if args.sample != 'test' else 'TriBoson' # should change to parsargs  at some point
     roofile  = (args.roofile if args.roofile is not None else (f'Data_{args.year}' if 'Data' in args.sample else f'MC_{args.year}') ) 
     isData   = 'Data' in roofile
-    isSignal = 'TTZH'     in sample
-    isttbar  = sample in cfg.ttbar_samples
+    isSignal = 'TTZH' in sample or 'TTZ_bb' in sample
+    print(isSignal)
+    isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples
     if (args.jetjec is None and args.jec is not None) or (args.jetjec is not None and args.jec is None):
         raise('Must use --jjec AND --jec to run analysis with jec variation ')
     tag      = (args.tag + args.jetjec +args.jec if args.jec is not None else args.tag)

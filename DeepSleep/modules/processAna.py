@@ -95,6 +95,7 @@ class processAna :
             self.getBCbtagSF()
 
         self.passHLT_by_year()
+        self.categorize_process()
         #
         if self.outTag != '': outTag = f'{self.outTag}_'
         else: outTag = '' 
@@ -108,7 +109,7 @@ class processAna :
             self.ak8_df.to_pickle(out_path+"ak8.pkl")
             if not self.isData:
                 self.gen_df.to_pickle(out_path+"gen.pkl")
-            self.rtc_df.to_pickle(out_path+"rtc.pkl")
+            #self.rtc_df.to_pickle(out_path+"rtc.pkl")
         finish = time.perf_counter()
         print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
 
@@ -123,6 +124,13 @@ class processAna :
             j_df[f'{j_name}_lep_mask'] = (lep_j_dR > eta_cut) # for the future figure out how to apply this and overwrite relevent jet variables
         #
     def match_gen_tt(self):
+        # first get ttbar decay type : Had, Semi, Di
+        if   'Di' in self.sample:
+            self.val_df['tt_type'] = 'Di'
+        elif 'Semi' in self.sample:
+            self.val_df['tt_type'] = 'Semi'
+        elif 'Had' in self.sample:
+            self.val_df['tt_type'] = 'Had'
         # match tt or ttZ/h gen particles to recontructed objects
         g = 'GenPart_' 
         gen_ids, gen_mom, gen_st, gen_pt, gen_eta, gen_phi, gentt_bb = self.gen_df.loc(
@@ -139,20 +147,6 @@ class processAna :
         is_tt_2b = gentt_bb == 52
         is_tt_bb = gentt_bb >= 53
         # 
-        #is_tt_bb = (((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) > 6)).sum() >= 2)
-        extra_bb  = ((abs(gen_ids) == 5) & ((abs(gen_ids[gen_mom]) != 6) | (gen_mom == -1)) & ((gen_st == 23) | (gen_st == 21))) # in tt+bb dedicated powheg sample the +bb has status 23
-        print(f'all: {np.nansum(extra_bb.sum() >= 0)}')
-        print(f'tt+B:{np.nansum(extra_bb.sum() > 0)}, tt+bb:{np.nansum(extra_bb.sum() >= 2)}')
-        pid_falg = ((is_tt_B == True) & ((extra_bb.sum() > 0) == False))
-        #for i in range(len(gen_ids[pid_falg])):
-        #    print(f'Event: {i:4}, tt_bb id: {gentt_bb[pid_falg][i]:6}')
-        #    for j in range(len(gen_ids[pid_falg][i])):
-        #        print(f'id: {gen_ids[pid_falg][i,j]:3} status: {gen_st[pid_falg][i,j]:3} mom_idx: {gen_mom[pid_falg][i,j]:3}')
-        #exit()
-
-        #is_tt_bb  = ((extra_bb).sum() >= 2)
-        #is_tt_bb  = ((extra_bb).sum() >= 1) # tt+B (tt+bb, tt+B, tt+2b)
-        extra_bb_dr = deltaR(rZh_eta,rZh_phi,gen_eta,gen_phi)
         self.val_df['tt_B'] = is_tt_B
         self.val_df['tt_b'] = is_tt_b
         self.val_df['tt_2b'] = is_tt_2b
@@ -162,11 +156,6 @@ class processAna :
         print('tt+b', sum(is_tt_b))
         print('tt+2b', sum(is_tt_2b))
         print('tt+bb', sum(is_tt_bb))
-        #print(np.nansum( self.val_df['tt_bb']))
-        self.val_df['genMatched_tt_bb'] = (((extra_bb_dr < 1.2) & (extra_bb)).sum() >= 2)
-        #self.val_df['genMatched_tt_bb'] = (((extra_bb_dr < 1.2) & (extra_bb)).sum() >= 1)
-        #print(f"tt+2b: {np.nansum(self.val_df['genMatched_tt_bb'])}")
-        #
         # calculate toppt weight for powheg only
         if 'pow' in self.sample:
             tt_pt = gen_pt[(abs(gen_ids) == 6)]
@@ -340,6 +329,7 @@ class processAna :
         rt_id1, rt_id2, rt_id3   = self.rtc_df.loc(['ResolvedTopCandidate_j1Idx','ResolvedTopCandidate_j2Idx','ResolvedTopCandidate_j3Idx']).values()
         clean_rtc_fromZh = self.clean_rtc_Zh(rt_disc, rt_id1, rt_id2, rt_id3, ak4_outZh, np.full(rt_disc.shape, 0.0))
         best_rt_score = np.nanmax(clean_rtc_fromZh, axis=1)
+        del self.rtc_df
         #
         self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
         self.val_df['Zh_score']  = Zh_Zhbbtag[:,0]
@@ -466,9 +456,10 @@ class processAna :
             self.val_df[f'{lep_type}_sf_up']   = total_lep_sf[1]+total_lep_sf[0]
             self.val_df[f'{lep_type}_sf_down'] = total_lep_sf[0]-total_lep_sf[1]
         #
-        self.val_df[f'lep_sf'] = pd.concat(
-            [self.val_df['electron_sf'][self.val_df['passSingleLepElec']==1],
-             self.val_df['muon_sf'][self.val_df['passSingleLepMu']==1]]).sort_index()
+        for var in ['','_up','_down']:
+            self.val_df[f'lep_sf{var}'] = pd.concat(
+                [self.val_df[f'electron_sf{var}'][self.val_df['passSingleLepElec']==1],
+                 self.val_df[f'muon_sf{var}'][self.val_df['passSingleLepMu']==1]]).sort_index()
 
 
     def addLepEff(self, dist, lep_type, eff):
@@ -503,6 +494,51 @@ class processAna :
     def passHLT_by_year(self):
         self.val_df['pbt_elec'] = cfg.hlt_path['electron'][self.year](self.val_df)
         self.val_df['pbt_muon'] = cfg.hlt_path['muon'][self.year](self.val_df)
+    
+    def categorize_process(self):
+        # categorize_processes in sample
+        # for datacard making script
+        #
+        # special rules for handling TTZH, TTZ_bb
+        # TTBar, tt_bb, and Data
+        self.val_df['process'] = ''
+        def handleTTZH():
+            self.val_df.loc[(self.val_df['Hbb']== True),'process'] = 'ttHbb'
+            self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'ttZbb' # will change to old
+            self.val_df.loc[(self.val_df['Zqq']== True),'process'] = 'ttX'
+        def handleTTZ_bb():
+            self.val_df['process'] = 'new_ttZbb' 
+        def handleTTBar():
+            self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'TTBar'
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_bb'
+        def handleTT_bb():
+            self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'non_tt_bb'
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'new_tt_bb'
+            self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'new_tt_2b'
+        def handleTTX():
+            self.val_df['process'] = 'ttX'
+        def handleVjets():
+            self.val_df['process'] = 'Vjets'
+        def handleOther():
+            self.val_df['process'] = 'other'
+        def handleData():
+            self.val_df.loc[((self.val_df['pbt_elec'] == True) & 
+                             (self.val_df['passSingleLepElec'] == True)),'process'] = 'Data'
+            self.val_df.loc[((self.val_df['pbt_muon'] == True) & 
+                             (self.val_df['passSingleLepMu'] == True)),'process'] =   'Data'
+            self.val_df.loc[(self.val_df['process'] != 'Data'), 'process'] = 'non_Data'
+
+        sample_to_process = {'TTZH'                                 : handleTTZH,
+                             'TTZ_bb'                               : handleTTZ_bb,
+                             'TTBar'+self.sample.replace('TTBar',''): handleTTBar,
+                             'TTbb'+self.sample.replace('TTbb',''): handleTT_bb,
+                             'TTX'                                  : handleTTX,
+                             'WJets'                                : handleVjets,
+                             'DY'                                   : handleVjets,
+                             self.sample.replace('Data', '')+'Data' : handleData
+        }
+        sample_to_process.get(self.sample, handleOther)()
+        print(self.val_df['process'])
 
     @staticmethod
     @njit(parallel=True)

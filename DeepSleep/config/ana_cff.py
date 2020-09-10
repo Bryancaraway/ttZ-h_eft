@@ -29,11 +29,28 @@ tree_dir          = 'Training'
 ##
 ZHptcut           = 200
 Years             = ['2016','2017','2018']
-MC_samples        = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'DiBoson', 'TriBoson', 'TTBarLep']#,'ZJets']
-Pow_samples       = ['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow']
-ttbar_samples     = ['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow', 'TTBarHad', 'TTBarLep']
-MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep_pow']
-All_MC            = ['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep','TTBarLep_pow', 'TT_bb_pow']
+#MC_samples        = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'DiBoson', 'TriBoson', 'TTBarLep']#,'ZJets']
+#Pow_samples       = ['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow']
+ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+#['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow', 'TTBarHad', 'TTBarLep']
+MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+Sig_MC            = ['TTZH', 'TTZ_bb']
+Bkg_MC            = ['QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+All_MC            = ['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+#['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep','TTBarLep_pow', 'TT_bb_pow']
+# Handle systematic sample docs
+tt_sys_samples    = ['TTBarHad_pow_erdOn','TTBarHad_pow_UEUp','TTBarHad_pow_UEDown','TTBarHad_pow_hdampUp','TTBarHad_pow_hdampDown',
+                     'TTBarSemi_pow_erdOn','TTBarSemi_pow_UEUp','TTBarSemi_pow_UEDown','TTBarSemi_pow_hdampUp','TTBarSemi_pow_hdampDown',
+                     'TTBarDi_pow_erdOn','TTBarDi_pow_UEUp','TTBarDi_pow_UEDown','TTBarDi_pow_hdampUp','TTBarDi_pow_hdampDown',
+                     'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampUp',
+                     'TTbbSemi_pow_hdampUp','TTbbSemi_pow_hdampUp',
+                     'TTbbDi_pow_hdampUp','TTbbDi_pow_hdampUp']
+#
+jec_variations    = [jtype+jec for jec in ['JESUp','JESDown','JERUp','JERDown'] for jtype in ['ak4','ak8']]
+sig_sys_samples   = [sig+'_'+jec for sig in Sig_MC for jec in jec_variations]
+bkg_sys_samples   = [bkg+'_'+jec for bkg in Bkg_MC for jec in jec_variations] + tt_sys_samples
+all_sys_samples   = sig_sys_samples + bkg_sys_samples
+#
 Data_samples      = ['EleData','MuData']
 Lumi              = {'2016': 35.9,
                      '2017': 41.9,
@@ -123,8 +140,8 @@ ak8_sys_vars = ['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+
                 'FatJet_msoftdrop'+LC, 'FatJet_rawFactor'+LC, 'FatJet_area'+LC,
                 'GenJetAK8_pt', 'GenJetAK8_eta', 'GenJetAK8_phi', 'GenJetAK8_mass',
                 #'SubGenJetAK8_pt', 'SubGenJetAK8_eta', 'SubGenJetAK8_phi', 'SubGenJetAK8_mass',
-                #'SubJet_pt', SubJet_eta, SubJet_phi, SubJet_mass, SubJet_rawFactor
-                #'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC,
+                #'SubJet_pt', 'SubJet_eta', 'SubJet_phi', 'SubJet_mass', 'SubJet_rawFactor',
+                #'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC
             ]
 
 ak8_softdropM_info = {'jms':{'value':0.999,
@@ -179,7 +196,7 @@ ana_vars = {
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
     'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
                          'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
-    'sysvars_mc'      : ['genWeight','weight','BTagWeight','puWeight','ISRWeight',# these are MC only
+    'sysvars_mc'      : ['genWeight','weight','BTagWeight','BTagWeightLight','BTagWeightHeavy','puWeight','ISRWeight',# these are MC only
                          'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
 
                          #'LHEScaleWeight', 'PSWeight', # these are special and need to be computed during get data
@@ -191,7 +208,10 @@ ana_vars = {
                          #'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
                          #'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
                          #'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
-                         'BTagWeight_Up', 'BTagWeight_Down', 'puWeight_Up','puWeight_Down', 
+                         'BTagWeight_Up', 'BTagWeight_Down', 
+                         'BTagWeightLight_Up', 'BTagWeightLight_Down', 
+                         'BTagWeightHeavy_Up', 'BTagWeightHeavy_Down', 
+                         'puWeight_Up','puWeight_Down', 
                          'pdfWeight_Up','pdfWeight_Down',
                          'ISRWeight_Up','ISRWeight_Down'],
     'sysvars_2016'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
