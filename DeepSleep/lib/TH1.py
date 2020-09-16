@@ -26,8 +26,12 @@ def export1d(histo, name):
     and must pass edges and name of hist
     '''
     label = name
-    sumw = histo['sumw']
-    edges = np.linspace(0, len(sumw), len(sumw)+1)
+    sumw = np.clip(np.pad(histo['sumw'], 1, 'constant', constant_values=0), 0.,np.inf)
+    if 'sumw2' in histo:
+        sumw2 = np.pad(histo['sumw2'], 1, 'constant', constant_values=0).astype(">f8")
+    else:
+        sumw2 = sumw.astype(">f8")
+    edges = np.linspace(0, len(sumw[1:-1]), len(sumw[1:-1])+1)
 
     out = TH1.__new__(TH1)
     out._fXaxis = TAxis(len(edges) - 1, edges[0], edges[-1])
@@ -37,18 +41,15 @@ def export1d(histo, name):
         out._fXaxis._fXbins = edges.astype(">f8")
     
     centers = (edges[1:] + edges[:-1]) / 2.0
-    out._fEntries = out._fTsumw = out._fTsumw2 = sumw.sum() # no overflow or underflow here so need to do total sum
-    out._fTsumwx = (sumw * centers).sum()#  might need  [1:-1]
-    out._fTsumwx2 = (sumw * centers**2).sum()
+    out._fEntries = out._fTsumw = out._fTsumw2 = sumw[1:-1].sum() 
+    out._fTsumwx = (sumw[1:-1] * centers).sum()#  might need  [1:-1] for underflow and overflow, I do...
+    out._fTsumwx2 = (sumw[1:-1] * centers**2).sum()
     
     out._fName  = "histogram"
     out._fTitle =  label
     
     out._classname = b"TH1D"
     out.extend(sumw.astype(">f8"))
-    if 'sumw2' in histo:
-        out._fSumw2 = histo['sumw2'].astype(">f8")
-    else:
-        out._fSumw2 = sumw.astype(">f8")
-    
+    out._fSumw2 = sumw2
+
     return out

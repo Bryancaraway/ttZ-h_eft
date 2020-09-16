@@ -67,6 +67,7 @@ class getData :
             print(self.sample)
             start = time.perf_counter()
             #
+            if 'UEUp' in self.sample and self.sample not in tree_dir: self.sample = self.sample.replace('UEUp','UEDUp') # because of some stupid type
             try:
                 t = tree_dir.get(self.sample)
             except:
@@ -109,20 +110,17 @@ class getData :
     #
     @t2Run
     def cleanRC(self,ak4_LC):
-        #RC_ak4    = self.DF_Container('other',   'RC_AK4LVec', var=cfg.ana_vars['ak4lvec']['TLVars'])
         RC_lc_index = self.DF_Container('other', 'RC_LC_map', var=['Jet_lepcleaned_idx'])
         RC_vars   = self.DF_Container('RC',      'RC_TopInfo' )
         RC_vars   = RC_vars.df
         ##
-        #ak4    = fillne(RC_ak4.df.sum())
         mapLC = fillne(RC_lc_index.df['Jet_lepcleaned_idx'])
+        del RC_lc_index
         mapLC = np.where(mapLC==-1,np.nan,mapLC)
         RCj1, RCj2, RCj3 = fillne(RC_vars['ResolvedTopCandidate_j1Idx']), fillne(RC_vars['ResolvedTopCandidate_j2Idx']), fillne(RC_vars['ResolvedTopCandidate_j3Idx'])
         ##
-        #mapLC = self.cleanMap(fillne(ak4_LC), ak4, np.full(ak4.shape,np.nan))
         RCj1, RCj2, RCj3 = self.applyMap(mapLC, RCj1, RCj2, RCj3, np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan))
         RC_vars['ResolvedTopCandidate_j1Idx'], RC_vars['ResolvedTopCandidate_j2Idx'], RC_vars['ResolvedTopCandidate_j3Idx'] = RCj1, RCj2, RCj3
-        #print(RC_vars['ResolvedTopCandidate_j1Idx'], RC_vars['ResolvedTopCandidate_j2Idx'], RC_vars['ResolvedTopCandidate_j3Idx'])
         return RC_vars
 
     @staticmethod
@@ -172,16 +170,6 @@ class getData :
         #
         df = pd.DataFrame()
         # TROUBLESHOOT WHICH SAMPLES HAVE SCALE WEIGHT, PSWEIGHT
-        #print(pd.DataFrame(np.unique(mc_w,        return_counts=True)))
-        #print(pd.DataFrame(np.unique(ps_w.counts, return_counts=True)))
-        #print(pd.DataFrame(np.unique(sc_w.counts, return_counts=True)))
-        #print("Where scale weights size == 0")
-        #print(pd.DataFrame(np.unique(mc_w[sc_w.counts == 0], return_counts=True)))
-        #print("Where ps weights size == 1")
-        #print(pd.DataFrame(np.unique(mc_w[ps_w.counts == 1], return_counts=True)))
-        #exit()
-        # Not quite working atm as some ScaleWeights dont all have the same size
-        #
 
         df['ISR_Up']   = ps_w[:,2]
         df['ISR_Down'] = ps_w[:,0]
@@ -343,6 +331,7 @@ class getData :
             #
             ak8_fj_transformer.prepare_transformer()
             cls.fj = ak8_fj_transformer.transform_AK8(ak8_vars)
+            del ak8_fj_transformer
             #ak8_fj_transformer.transform_SDM(ak8_vars)
             #print(cls.fj.keys())
             

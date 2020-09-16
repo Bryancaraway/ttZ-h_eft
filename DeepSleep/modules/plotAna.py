@@ -153,14 +153,24 @@ class Plotter :
         df = self.data.copy()
         temp_df = {}
         for k in df:
-            if 'TTBarLep' in k:
+            if 'TTBar' in k:
                 temp_df[f'{k}_bb']   = (lambda x : x[x['tt_B'] == True])( df[k])
                 temp_df[f'{k}_nobb'] = (lambda x : x[x['tt_B'] == False])(df[k])
                 if '++' in self.sepGenOpt and 'pow' in k:
                     temp_df[f'{k}_b']  = (lambda x : x[x['tt_b']  == True])( df[k]) 
                     temp_df[f'{k}_2b'] = (lambda x : x[x['tt_2b'] == True])( df[k]) 
                     temp_df[f'{k}_bb'] = (lambda x : x[x['tt_bb'] == True])( df[k]) 
+                if '--' in self.sepGenOpt and 'pow' in k:
+                    # only keep non+bb contribution
+                    temp_df[k] = temp_df[f'{k}_nobb']
+                    del temp_df[f'{k}_bb'], temp_df[f'{k}_nobb']
                 self.data.pop(k)
+            #
+            elif 'TTbb' in k:
+                if '--' in self.sepGenOpt and 'pow' in k:
+                    temp_df[k] = (lambda x : x[x['tt_B'] == True])( df[k])
+                    self.data.pop(k)
+
         self.data.update(temp_df) 
 
         
@@ -176,8 +186,8 @@ class Plotter :
 
     def sepGenMatchedBkg(self):
         df = self.data
-        df['TTBarLep_bbGenMatch']   = (lambda x : x[x['genMatched_tt_bb'] == True])(df['TTBarLep'])
-        df['TTBarLep_nobbGenMatch'] = (lambda x : x[x['genMatched_tt_bb'] == False])(df['TTBarLep'])
+        df['TTBar_bbGenMatch']   = (lambda x : x[x['genMatched_tt_bb'] == True])(df['TTBarLep'])
+        df['TTBar_nobbGenMatch'] = (lambda x : x[x['genMatched_tt_bb'] == False])(df['TTBarLep'])
         self.data.update(df) 
         self.data.pop('TTBarLep')
 
@@ -301,9 +311,9 @@ class StackedHist(Plotter) :
     def getMCStat_info(self,n, h, w):
         x = (self.bins[1:]+self.bins[:-1])/2
         xerr = self.bin_w/2
-        print(w[w>1])
-        print(len(w[w>1]))
-        print(sum(w[w>1]))
+        #print(w[w>1])
+        #print(len(w[w>1]))
+        #print(sum(w[w>1]))
         yerr = np.histogram(h, bins=self.bins, weights=np.power(w,2))[0]
         yerr = np.sqrt(yerr)
         y = n
@@ -378,7 +388,7 @@ class Hist (Plotter) :
                          doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData)
 
         if dropNoGenM: [self.data.pop(k) for k in re.findall(r'\w*_no\w*GenMatch',' '.join(self.data)) if k in self.data]
-        if droptt    : [self.data.pop(k) for k in re.findall(r'TTBarLep_\w*nobb', ' '.join(self.data)) if k in self.data]
+        if droptt    : [self.data.pop(k) for k in re.findall(r'TTBar{Had|Semi|Di}_\w*nobb', ' '.join(self.data)) if k in self.data]
         if dropZqq   : [self.data.pop(k) for k in re.findall(r'TTZH_\w*Zqq',      ' '.join(self.data)) if k in self.data]
         #
         self.makePlot()

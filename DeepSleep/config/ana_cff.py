@@ -30,7 +30,7 @@ tree_dir          = 'Training'
 ZHptcut           = 200
 Years             = ['2016','2017','2018']
 #MC_samples        = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'DiBoson', 'TriBoson', 'TTBarLep']#,'ZJets']
-#Pow_samples       = ['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow']
+
 ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 #['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow', 'TTBarHad', 'TTBarLep']
 MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
@@ -42,9 +42,13 @@ All_MC            = ['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'T
 tt_sys_samples    = ['TTBarHad_pow_erdOn','TTBarHad_pow_UEUp','TTBarHad_pow_UEDown','TTBarHad_pow_hdampUp','TTBarHad_pow_hdampDown',
                      'TTBarSemi_pow_erdOn','TTBarSemi_pow_UEUp','TTBarSemi_pow_UEDown','TTBarSemi_pow_hdampUp','TTBarSemi_pow_hdampDown',
                      'TTBarDi_pow_erdOn','TTBarDi_pow_UEUp','TTBarDi_pow_UEDown','TTBarDi_pow_hdampUp','TTBarDi_pow_hdampDown',
-                     'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampUp',
-                     'TTbbSemi_pow_hdampUp','TTbbSemi_pow_hdampUp',
-                     'TTbbDi_pow_hdampUp','TTbbDi_pow_hdampUp']
+                     'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampDown',
+                     'TTbbSemi_pow_hdampUp','TTbbSemi_pow_hdampDown',
+                     'TTbbDi_pow_hdampUp','TTbbDi_pow_hdampDown']
+tt_bb             = ['TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+tt_bb_sys         = [  'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampDown',
+                       'TTbbSemi_pow_hdampUp','TTbbSemi_pow_hdampDown',
+                       'TTbbDi_pow_hdampUp','TTbbDi_pow_hdampDown']
 #
 jec_variations    = [jtype+jec for jec in ['JESUp','JESDown','JERUp','JERDown'] for jtype in ['ak4','ak8']]
 sig_sys_samples   = [sig+'_'+jec for sig in Sig_MC for jec in jec_variations]
@@ -176,9 +180,9 @@ ana_vars = {
 #
     'ak8vars'    : [#'FatJet_tau1'+LC,'FatJet_tau2'+LC,'FatJet_tau3'+LC,'FatJet_tau4'+LC, # removed for now
                     'FatJet_deepTag_WvsQCD'+LC,'FatJet_deepTag_TvsQCD'+LC,'FatJet_deepTag_ZvsQCD'+LC,
-                    'FatJet_deepTagMD_H4qvsQCD'+LC, 'FatJet_deepTagMD_HbbvsQCD'+LC, 'FatJet_deepTagMD_TvsQCD'+LC, 
-                    'FatJet_deepTagMD_WvsQCD'+LC, 'FatJet_deepTagMD_ZHbbvsQCD'+LC, 'FatJet_deepTagMD_ZHccvsQCD'+LC, 
-                    'FatJet_deepTagMD_ZbbvsQCD'+LC, 'FatJet_deepTagMD_ZvsQCD'+LC, 'FatJet_deepTagMD_bbvsLight'+LC, 'FatJet_deepTagMD_ccvsLight'+LC, 
+                    #'FatJet_deepTagMD_H4qvsQCD'+LC, 'FatJet_deepTagMD_HbbvsQCD'+LC, 'FatJet_deepTagMD_TvsQCD'+LC, 
+                    #'FatJet_deepTagMD_WvsQCD'+LC, 'FatJet_deepTagMD_ZHbbvsQCD'+LC, 'FatJet_deepTagMD_ZHccvsQCD'+LC, 
+                    #'FatJet_deepTagMD_ZbbvsQCD'+LC, 'FatJet_deepTagMD_ZvsQCD'+LC, 'FatJet_deepTagMD_bbvsLight'+LC, 'FatJet_deepTagMD_ccvsLight'+LC, 
                     'FatJet_msoftdrop'+LC,'FatJet_btagDeepB'+LC,'FatJet_btagHbb'+LC,
                     'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC],
     'ak8lvec'    : {'TLV'      :['FatJetTLV'+LC],
@@ -200,14 +204,6 @@ ana_vars = {
                          'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
 
                          #'LHEScaleWeight', 'PSWeight', # these are special and need to be computed during get data
-                         
-                         #'Stop0l_topptOnly_Up','Stop0l_topptOnly_Down', # not for 2016/2017
-                         #'Stop0l_trigger_eff_Electron_pt', 'Stop0l_trigger_eff_Muon_pt', 
-                         #'Stop0l_trigger_eff_Electron_eta', 'Stop0l_trigger_eff_Muon_eta', 
-                         #'Stop0l_trigger_eff_Electron_pt_up', 'Stop0l_trigger_eff_Muon_pt_up',
-                         #'Stop0l_trigger_eff_Electron_eta_up', 'Stop0l_trigger_eff_Muon_eta_up',
-                         #'Stop0l_trigger_eff_Electron_pt_down', 'Stop0l_trigger_eff_Muon_pt_down',
-                         #'Stop0l_trigger_eff_Electron_eta_down', 'Stop0l_trigger_eff_Muon_eta_down',
                          'BTagWeight_Up', 'BTagWeight_Down', 
                          'BTagWeightLight_Up', 'BTagWeightLight_Down', 
                          'BTagWeightHeavy_Up', 'BTagWeightHeavy_Down', 

@@ -504,17 +504,22 @@ class processAna :
         self.val_df['process'] = ''
         def handleTTZH():
             self.val_df.loc[(self.val_df['Hbb']== True),'process'] = 'ttHbb'
+            #if self.year == '2018':
+            #    self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'old_ttZbb' # will change to old
+            #else:
             self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'ttZbb' # will change to old
             self.val_df.loc[(self.val_df['Zqq']== True),'process'] = 'ttX'
         def handleTTZ_bb():
-            self.val_df['process'] = 'new_ttZbb' 
+            #if self.year == '2018':
+            self.val_df['process'] = 'new_ttZbb' # think of this as just extra statistics for ttz, z->bb # thinking about this more, its not --> have to just replace
         def handleTTBar():
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'TTBar'
             self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_bb'
         def handleTT_bb():
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'non_tt_bb'
-            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'new_tt_bb'
-            self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'new_tt_2b'
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'new_tt_bb' 
+            self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'new_tt_2b' # this is a subset of tt_B 
+            self.add_weights_to_ttbb()
         def handleTTX():
             self.val_df['process'] = 'ttX'
         def handleVjets():
@@ -538,7 +543,27 @@ class processAna :
                              self.sample.replace('Data', '')+'Data' : handleData
         }
         sample_to_process.get(self.sample, handleOther)()
-        print(self.val_df['process'])
+        #print(self.val_df['process'])
+
+    def add_weights_to_ttbb(self):
+        tt_bb_norms_scales = AnaDict.read_pickle(self.dataDir + '/tt_bb_nom.pkl')
+        for w_or_scale,_dict in tt_bb_norms_scales.items():
+            for key, v in _dict.items():
+                if self.year in key:
+                    if self.sample.split('_')[0].replace('TTbb','') in key: # check which type this is Di, Semi, Had
+                        prefix = key.replace(key.split('_')[0]+'_','').strip(f'_{self.year}') 
+                        if 'nom' in key and 'hdamp' not in self.sample:
+                            self.val_df["weight"] = v
+                            print(self.val_df["weight"])
+                        elif( 'hdampUp' in key and 'hdampUp' in self.sample): # my brain is dead so this hacky solution should work
+                            self.val_df["weight"] = v
+                            print(self.val_df["weight"])
+                        elif( 'hdampDown' in key and 'hdampDown' in self.sample):
+                            self.val_df["weight"] = v
+                            print(self.val_df["weight"])
+                        elif 'hdamp' not in key and 'nom' not in key:
+                            self.val_df[f"{prefix}_{w_or_scale}"] = v
+                            print(self.val_df[f"{prefix}_{w_or_scale}"])
 
     @staticmethod
     @njit(parallel=True)

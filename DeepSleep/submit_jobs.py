@@ -8,7 +8,7 @@ import config.ana_cff as cfg
 #
 # add parsargs at some point for year, rundata, minibatch
 parser = argparse.ArgumentParser(description='Run analysis over many samples and years using batch system')
-parser.add_argument('-s', dest='samples', type=str, choices=cfg.All_MC+cfg.Data_samples+['all','mc','data','ttsys'], 
+parser.add_argument('-s', dest='samples', type=str, choices=cfg.All_MC+cfg.Data_samples+cfg.tt_sys_samples+['all','mc','data','tt','ttsys','ttbb','ttbbsys'], 
                     required=True, help='analyze all, mc only, or data only')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years+['all'],
                     required=True, help='year or all years')
@@ -20,8 +20,11 @@ args = parser.parse_args()
 sample_dict = {'all':cfg.All_MC+cfg.Data_samples,
                'mc':cfg.All_MC,
                'data':cfg.Data_samples,
-               'ttsys': cfg.tt_sys_samples}
-#cfg.MC_samples+cfg.Data_samples
+               'tt'   : cfg.ttbar_samples,
+               'ttsys': cfg.tt_sys_samples,
+               'ttbb' : cfg.tt_bb,
+               'ttbbsys': cfg.tt_bb_sys}
+
 # submit a job for each background / signal / data sample
 job_script = 'scripts/runAna.sh' if args.jec is None else 'scripts/runAna_jec.sh'
 samples = sample_dict.get(args.samples,[args.samples])
@@ -43,8 +46,12 @@ for year in years:
                     add_out_name = '_'+jec+'_'+jetjec
                 #
                 out_name  = sample+'_'+year+add_out_name
+                if sample == 'TTBarSemi_pow' and year == '2018':
+                    ppn = 4
+                else:
+                    ppn = 1
                 pass_args = f'-v sample={sample},year={year}{add_args}'
-                command   = f'qsub -l nodes=1:ppn=1 -o {log_dir}{out_name}.out -e {log_dir}{out_name}.err {pass_args} {job_script}'
+                command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}{out_name}.out -e {log_dir}{out_name}.err {pass_args} {job_script}'
                 print(command)
                 os.system(command)
 
