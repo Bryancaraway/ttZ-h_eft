@@ -26,9 +26,9 @@ def export1d(histo, name):
     and must pass edges and name of hist
     '''
     label = name
-    sumw = np.clip(np.pad(histo['sumw'], 1, 'constant', constant_values=0), 0.,np.inf)
+    sumw = np.clip(np.pad(np.nan_to_num(histo['sumw']), 1, 'constant', constant_values=0), 0.,np.inf)
     if 'sumw2' in histo:
-        sumw2 = np.pad(histo['sumw2'], 1, 'constant', constant_values=0).astype(">f8")
+        sumw2 = np.pad(np.nan_to_num(histo['sumw2']), 1, 'constant', constant_values=0).astype(">f8")
     else:
         sumw2 = sumw.astype(">f8")
     edges = np.linspace(0, len(sumw[1:-1]), len(sumw[1:-1])+1)

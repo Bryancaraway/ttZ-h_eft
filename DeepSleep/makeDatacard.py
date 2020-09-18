@@ -250,8 +250,8 @@ class MakeDataCard:
         Systematic('qqpdf', 'lnN', ['ttX'],   1.040)
         Systematic('qqpdf', 'lnN', ['Vjets'], 1.038)
         Systematic('qqpdf', 'lnN', ['other'], 1.050)
-        Systematic('tt_qsc'   , 'lnN', ttbar_mc, 1.024,0.965)
-        Systematic('tt_qsc'   , 'lnN', ['ttX'],               1.300) 
+        Systematic('tt_qsc'   , 'lnN', ttbar_mc+['ttX'], [[1.024,0.965] for _ in ttbar_mc]+[1.300])
+        #Systematic('tt_qsc'   , 'lnN', ['ttX'],               1.300) 
         Systematic('v_qsc'    , 'lnN', ['Vjets'],             1.008, 0.996)
         Systematic('other_qsc', 'lnN', ['other'],             1.05, 0.95)
         Systematic('tt2bxsec', 'lnN', ['new_tt_2b'], 1.5)
@@ -291,11 +291,11 @@ class MakeDataCard:
         #
         self.write2dc(100*'-'+'\n')
         self.write2dc('# Float tt_bb normalization\n') 
-        self.write2dc('ttbbnorm rateParam * new_tt_* -1\n')
+        #self.write2dc('ttbbnorm rateParam * new_tt_* -1\n')
         self.write2dc(100*'-'+'\n')
         self.write2dc('# MC Stats uncertainties\n') 
-        self.histos = ShapeSystematic(f'mcstat','shape','mcstat', all_mc, 1).get_shape()
-        #self.write2dc('* autoMCStats  10  0  1\n') 
+        #self.histos = ShapeSystematic(f'mcstat','shape','mcstat', all_mc, 1).get_shape()
+        self.write2dc('* autoMCStats 10 0  1\n') 
         #
 
         
@@ -342,6 +342,7 @@ class MakeDataCard:
                 'jmax * number of processes minus 1\n',
                 'kmax * number of nuisance paramerters\n',
                 100*'-'+'\n',
+                f'shapes data_obs * datacard_{y}.root $CHANNEL_data_obs\n',
                 f'shapes * * datacard_{y}.root $CHANNEL_$PROCESS $CHANNEL_$PROCESS_$SYSTEMATIC\n',
                 100*'-'+'\n',
                 f"{'bin':20}{' '.join(['Zhpt'+str(i) for i in range(self.dc_bins)])}\n",
@@ -394,7 +395,7 @@ class Systematic: # Class to handle Datacard systematics
         #self.channel  = channel
         self.years     = re.findall(r'201\d', name)
         if len(self.years) == 0: self.years = cfg.Years
-        self.value    = value
+        self.value    = value if type(value) is not list else {i:v for i,v in zip(self.ids,value)}
         self.optvalue = optvalue
         self.info     = '' if info is None else info
         #
@@ -413,13 +414,21 @@ class Systematic: # Class to handle Datacard systematics
 
     def get_DC_line(self):
         _line = self.line
+        value = self.value
+        optvalue = self.optvalue
         for p in self.allowed_processes:
             #_process = p.replace('\t', '').replace(' ','' )# reformat process to exclude \t 
             if p in self.ids: 
-                if self.optvalue is None:
-                    _line +='{0:12}'.format(str(self.value))
+                if type(self.value) is dict:
+                    value = self.value[p]
+                    if type(value) is list:
+                        value, optvalue = value[0], value[1]
+                    else:
+                        value, optvalue = value, None
+                if optvalue is None:
+                    _line +='{0:12}'.format(str(value))
                 else:
-                    entry = '{1}/{0}'.format(str(self.value),str(self.optvalue))
+                    entry = '{1}/{0}'.format(str(value),str(optvalue))
                     _line += f'{entry:12}'
             else :
                 _line +='{0:12}'.format('-')
