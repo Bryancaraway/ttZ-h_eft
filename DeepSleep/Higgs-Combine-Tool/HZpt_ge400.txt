@@ -1,0 +1,28 @@
+max	1
+jmax	16
+kmax	*
+----------------------------------------------------------------------------------------------------
+shapes * * Higgs-Combine-Tool/input_400inc.root $CHANNEL/$PROCESS $CHANNEL/$PROCESS_$SYSTEMATIC
+----------------------------------------------------------------------------------------------------
+bin                  HZpt_ge400  
+observation          -1          
+----------------------------------------------------------------------------------------------------
+bin                  HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    HZpt_ge400    
+process              ttHbin2       ttHbin4       ttZbin4       ttZbin2       ttZbin1       ttHbin1       ttZbin3       ttHbin3       WJets         TriBoson      QCD           ttZqq         DiBoson       DY            TTBarLep      TTBarHad      TTX           
+process              -7            -6            -5            -4            -3            -2            -1            0             1             2             3             4             5             6             7             8             9             
+rate                 -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            
+----------------------------------------------------------------------------------------------------
+# X-sec noramlization uncertainty for ttbar as a rough estimate 
+xsec_tt        lnN   -             -             -             -             -             -             -             -             -             -             -             -             -             -             1.05          -             -             	
+----------------------------------------------------------------------------------------------------
+# Shape Systematics on signal, ttbar, and other backgrounds
+btg            shape 1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             	
+pu             shape 1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             	
+pdf            shape 1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             	
+prefire        shape 1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             1             	
+----------------------------------------------------------------------------------------------------
+# MC statistical variation on shape plots for signal, ttbar, and other backgrounds
+mcstat_sig     shape 1             1             1             1             1             1             1             1             -             -             -             -             -             -             -             -             -             	
+mcstat_tt      shape -             -             -             -             -             -             -             -             -             -             -             -             -             -             1             -             -             	
+mcstat_other   shape -             -             -             -             -             -             -             -             1             1             1             1             1             1             -             1             1             	
+----------------------------------------------------------------------------------------------------

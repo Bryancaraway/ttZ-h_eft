@@ -3,8 +3,8 @@ imax * number of bins
 jmax * number of processes minus 1
 kmax * number of nuisance paramerters
 ----------------------------------------------------------------------------------------------------
-shapes data_obs * datacard_2018.root $CHANNEL_data_obs
-shapes * * datacard_2018.root $CHANNEL_$PROCESS $CHANNEL_$PROCESS_$SYSTEMATIC
+shapes data_obs * datacard_scrun2_2018.root $CHANNEL_data_obs
+shapes * * datacard_scrun2_2018.root $CHANNEL_$PROCESS $CHANNEL_$PROCESS_$SYSTEMATIC
 ----------------------------------------------------------------------------------------------------
 bin                 Zhpt1 Zhpt2 Zhpt3
 observation         -1  -1  -1  
@@ -51,7 +51,5 @@ UE             shape -           -           -           -           -          
 hdamp          shape -           -           -           -           -           -           -           -           -           1           1           1           -           -           -           -           -           -           -           -           -           -           -           1           1           1           -           -           -           -           -           -           -           -           -           -           -           1           1           1           -           -           	
 ----------------------------------------------------------------------------------------------------
 # Float tt_bb normalization
-ttbbfnorm      lnN   -           -           -           -           -           -           -           -           -           -           10          10          -           -           -           -           -           -           -           -           -           -           -           -           10          10          -           -           -           -           -           -           -           -           -           -           -           -           10          10          -           -           	
 ----------------------------------------------------------------------------------------------------
 # MC Stats uncertainties
-#* autoMCStats 10 0  1
