@@ -181,7 +181,7 @@ nosetests.xml
 **.nav
 **.nlo
 **.out
-**.pdfsync
+v**.pdfsync
 **.ps
 **.snm
 **.synctex.gz
@@ -211,4 +211,6 @@ pm_to_blib
 ##DEEPSLEEP ##
 */log
 *files/
+*data/
 !*requirements.txt
+!*.j*.txt

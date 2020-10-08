@@ -47,6 +47,7 @@ class getData :
     minBottoms = 2
     treeDir    = cfg.tree_dir
     jec_sys   = None
+    jec_type  = None # ak4 or ak8 , might need to add sj for sdM
     doLepSel   = True
     getGenData = False # doesnt do anything atm
     getak8var  = False # doesnt do anything atm
@@ -66,6 +67,7 @@ class getData :
             print(self.sample)
             start = time.perf_counter()
             #
+            if 'UEUp' in self.sample and self.sample not in tree_dir: self.sample = self.sample.replace('UEUp','UEDUp') # because of some stupid type
             try:
                 t = tree_dir.get(self.sample)
             except:
@@ -73,8 +75,8 @@ class getData :
                 exit()
             #
             self.DF_Container.set_tree(t, self.estart, self.estop)
-            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.minBottoms, self.jec_sys)
-            if not self.isData: self.DF_Container.corr_AK8_jets()
+            self.DF_Container.set_attr(self.isData, self.year, self.njets, self.maxAk4Jets, self.minBottoms, self.jec_sys, self.jec_type)
+            if not self.isData: self.DF_Container.corr_AK8_jets() #un-disable this!
             self.DF_Container.set_current_tree_mask()
             if self.doLepSel: self.DF_Container.lep_sel_mask()
             # 
@@ -97,7 +99,8 @@ class getData :
             else:
                 gen_df   = self.DF_Container('gen', 'GenPart_Variables')
                 #TroubleShooting these systematics
-                #sys_df   = self.compute_ps_pdf_weights()
+                sys_df   = self.compute_ps_sc_weights().set_index(val_df.df.index)
+                val_df.df = pd.concat([val_df.df, sys_df], axis='columns')
                 # to-do add these to val_df
             #
             finish = time.perf_counter()
@@ -105,16 +108,17 @@ class getData :
             return ak4_df.df, ak8_df.df, val_df.df, rtc_df, gen_df.df
             #
     #
-    #@t2Run
+    @t2Run
     def cleanRC(self,ak4_LC):
-        RC_ak4    = self.DF_Container('other',   'RC_AK4LVec', var=cfg.ana_vars['ak4lvec']['TLVars'])
+        RC_lc_index = self.DF_Container('other', 'RC_LC_map', var=['Jet_lepcleaned_idx'])
         RC_vars   = self.DF_Container('RC',      'RC_TopInfo' )
         RC_vars   = RC_vars.df
         ##
-        ak4    = fillne(RC_ak4.df.sum())
+        mapLC = fillne(RC_lc_index.df['Jet_lepcleaned_idx'])
+        del RC_lc_index
+        mapLC = np.where(mapLC==-1,np.nan,mapLC)
         RCj1, RCj2, RCj3 = fillne(RC_vars['ResolvedTopCandidate_j1Idx']), fillne(RC_vars['ResolvedTopCandidate_j2Idx']), fillne(RC_vars['ResolvedTopCandidate_j3Idx'])
         ##
-        mapLC = self.cleanMap(fillne(ak4_LC), ak4, np.full(ak4.shape,np.nan))
         RCj1, RCj2, RCj3 = self.applyMap(mapLC, RCj1, RCj2, RCj3, np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan), np.full(RCj1.shape,np.nan))
         RC_vars['ResolvedTopCandidate_j1Idx'], RC_vars['ResolvedTopCandidate_j2Idx'], RC_vars['ResolvedTopCandidate_j3Idx'] = RCj1, RCj2, RCj3
         return RC_vars
@@ -135,6 +139,7 @@ class getData :
                         break
         return out
     #
+    
 
     @staticmethod
     @njit(parallel=True)
@@ -153,42 +158,31 @@ class getData :
         return o1, o2, o3
     #
     @t2Run
-    def compute_ps_pdf_weights(self):
+    def compute_ps_sc_weights(self):
         sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight'])
         #| Float_t LHE scale variation weights (w_var / w_nominal); [0] is renscfact=0.5d0 facscfact=0.5d0 ; [1] is renscfact=0.5d0 facscfact=1d0 ; [2] is renscfact=0.5d0 facscfact=2d0 ; 
         #                                                           [3] is renscfact=1d0   facscfact=0.5d0 ; [4] is renscfact=1d0   facscfact=1d0 ; [5] is renscfact=1d0   facscfact=2d0 ; 
         #                                                           [6] is renscfact=2d0   facscfact=0.5d0 ; [7] is renscfact=2d0   facscfact=1d0 ; [8] is renscfact=2d0   facscfact=2d0 
         #| Float_t PS weights (w_var / w_nominal); [0] is ISR=0.5 FSR=1; [1] is ISR=1 FSR=0.5; [2] is ISR=2 FSR=1; [3] is ISR=1 FSR=2 *
-        ps_w = sys_df.df['PSWeight']
-        sc_w = sys_df.df['LHEScaleWeight']
+        ps_w = sys_df.df['PSWeight'].pad(4).fillna(1)
+        sc_w = sys_df.df['LHEScaleWeight'].pad(9).fillna(1)
         mc_w = sys_df.df['weight']
         #
         df = pd.DataFrame()
         # TROUBLESHOOT WHICH SAMPLES HAVE SCALE WEIGHT, PSWEIGHT
-        print(pd.DataFrame(np.unique(mc_w,        return_counts=True)))
-        print(pd.DataFrame(np.unique(ps_w.counts, return_counts=True)))
-        print(pd.DataFrame(np.unique(sc_w.counts, return_counts=True)))
-        print("Where scale weights size == 0")
-        print(pd.DataFrame(np.unique(mc_w[sc_w.counts == 0], return_counts=True)))
-        print("Where ps weights size == 1")
-        print(pd.DataFrame(np.unique(mc_w[ps_w.counts == 1], return_counts=True)))
-        exit()
-        # Not quite working atm as some ScaleWeights dont all have the same size
-        #if all(ps_w.counts == 4):
-        #    df['ISR_Up']   = ps_w[:,2]
-        #    df['ISR_Down'] = ps_w[:,0]
-        #    df['FSR_Up']   = ps_w[:,3]
-        #    df['FSR_Down'] = ps_w[:,1]
-        #else:
-        #    df['ISR_Up']   = ps_w[:,0]
-        #    df['ISR_Down'] = ps_w[:,0]
-        #    df['FSR_Up']   = ps_w[:,0]
-        #    df['FSR_Down'] = ps_w[:,0]
-        ##
-        #df['mu_r_Up']   = sc_w[:,7]
-        #df['mu_r_Down'] = sc_w[:,1]
-        #df['mu_f_Up']   = sc_w[:,5]
-        #df['mu_f_Down'] = sc_w[:,3]
+
+        df['ISR_Up']   = ps_w[:,2]
+        df['ISR_Down'] = ps_w[:,0]
+        df['FSR_Up']   = ps_w[:,3]
+        df['FSR_Down'] = ps_w[:,1]
+        #
+        df['mu_r_Up']    = sc_w[:,7]
+        df['mu_r_Down']  = sc_w[:,1]
+        df['mu_f_Up']    = sc_w[:,5]
+        df['mu_f_Down']  = sc_w[:,3]
+        df['mu_rf_Up']   = sc_w[:,8]
+        df['mu_rf_Down'] = sc_w[:,0]
+
         return df
         
     #
@@ -200,6 +194,7 @@ class getData :
         '''
         tarray       = None
         tpandas      = None
+        estart       = None
         estop        = None
         allowed_types = ['ak4', 'ak8', 'event', 'gen', 'RC', 'other']
     
@@ -245,7 +240,7 @@ class getData :
             try:
                 df = type_indexer[self.var_type](self.variables)
             except KeyError:
-                raise KeyError(f"At least one variable not found:{self.variables}\nName '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
+                raise KeyError(f"At least one variable not found:{self.variables} \n Name '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
             return df
             
         def apply_event_mask(self,df):
@@ -254,17 +249,18 @@ class getData :
         @classmethod
         def set_tree(cls,tree, estart=None, estop=None):
             ''' Set tree array method and tree pandas method '''
-            cls.tarray  = functools.partial(tree.array,      entrystop=cls.estop)
-            cls.tpandas = functools.partial(tree.pandas.df , entrystop=cls.estop)
+            print(estart, estop)
+            cls.tarray  = functools.partial(tree.array,      entrystart=estart, entrystop=estop)
+            cls.tpandas = functools.partial(tree.pandas.df , entrystart=estart, entrystop=estop)
             
         @classmethod
-        def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, jec_sys=None):
+        def set_attr(cls,isData, year, njets, maxAk4Jets, minBottoms, jec_sys=None, jec_type=None):
             cls.isData = isData
             cls.year   = year
             cls.minAk4Jets = njets
             cls.maxAk4Jets = maxAk4Jets
             cls.minBottoms = minBottoms
-            cls.ana_vars = AnaVars(year,isData, jec_sys=jec_sys)
+            cls.ana_vars = AnaVars(year,isData, jec_sys=jec_sys, jec_type=jec_type)
 
         @classmethod
         def set_current_tree_mask(cls):
@@ -281,7 +277,7 @@ class getData :
             #
             cls.ak4_mask  = ((jet_pt_eta[j_pt_key] >= 30) & (abs(jet_pt_eta[j_eta_key]) <= 2.4))
             cls.ak8_mask  = (abs(fatjet_pt_eta[fj_eta_key]) <= 2.4)
-            cls.rtcd_mask = (rtcd >= 0.50)
+            cls.rtcd_mask = (rtcd >= 0.70) # trained with 75, might expand if I do re-train
             #
             n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
             del jet_pt_eta, fatjet_pt_eta
@@ -327,25 +323,34 @@ class getData :
                                 })
         #
         @classmethod
+        @t2Run
         def corr_AK8_jets(cls):
-            ak8_vars = cls.build_dict(cfg.ak8_sys_vars)
+            ak8_vars = cls.build_dict(cfg.ak8_sys_vars, with_interp=False) #tries to get jec variation before its computed (have to initially use tarray)
             from modules.jmeAK8 import JMEAK8
             ak8_fj_transformer = JMEAK8(cls.year)
             #
             ak8_fj_transformer.prepare_transformer()
             cls.fj = ak8_fj_transformer.transform_AK8(ak8_vars)
+            del ak8_fj_transformer
+            #ak8_fj_transformer.transform_SDM(ak8_vars)
+            #print(cls.fj.keys())
             
             
         @classmethod
-        def build_dict(cls,keys):
+        def build_dict(cls,keys, with_interp=True):
             executor = concurrent.futures.ThreadPoolExecutor()
-            return AnaDict({k: cls.tarray(cls.ana_vars[k], executor=executor) for k in keys})
+            if with_interp:
+                return AnaDict({k: cls.tarray(cls.ana_vars[k], executor=executor) for k in keys})
+            else:
+                return AnaDict({k: cls.tarray(k, executor=executor) for k in keys})
 
         @classmethod
+        @t2Run
         def build_dict_ak8(cls,keys):
             executor = concurrent.futures.ThreadPoolExecutor()
             _dict = AnaDict({})
             for k in keys:
+                #print(k)
                 if cls.ana_vars[k] in cls.fj:
                     _dict[k] = cls.fj[cls.ana_vars[k]]
                 else: _dict[k] = cls.tarray(cls.ana_vars[k], executor=executor)

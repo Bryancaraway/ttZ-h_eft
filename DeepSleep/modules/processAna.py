@@ -1,4 +1,4 @@
-########################AAA
+########################
 ### process code     ###
 ### for analysis     ###
 ########################
@@ -48,7 +48,10 @@ class processAna :
     isData   = False
     isSignal = False
     isttbar  = False
-    # 
+    #
+    condor = False
+    keep_all = False
+    #
     lc     = '_drLeptonCleaned'
     pt_cut = cfg.ZHptcut
     b_wp   = cfg.ZHbb_btagWP[year]
@@ -92,14 +95,21 @@ class processAna :
             self.getBCbtagSF()
 
         self.passHLT_by_year()
+        self.categorize_process()
         #
-        out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}{self.outTag}_"
-        self.ak4_df.to_pickle(out_path+"ak4.pkl")
-        self.ak8_df.to_pickle(out_path+"ak8.pkl")
+        if self.outTag != '': outTag = f'{self.outTag}_'
+        else: outTag = '' 
+        #
+        if self.condor: out_path = f'{self.sample}_{self.year}_{outTag}'
+        else:
+            out_path=f"{self.outDir}{self.year}/{'mc_files' if not self.isData else 'data_files'}/{self.sample}_{outTag}"
         self.val_df.to_pickle(out_path+"val.pkl")
-        if not self.isData:
-            self.gen_df.to_pickle(out_path+"gen.pkl")
-        self.rtc_df.to_pickle(out_path+"rtc.pkl")
+        if self.keep_all:
+            self.ak4_df.to_pickle(out_path+"ak4.pkl")
+            self.ak8_df.to_pickle(out_path+"ak8.pkl")
+            if not self.isData:
+                self.gen_df.to_pickle(out_path+"gen.pkl")
+            #self.rtc_df.to_pickle(out_path+"rtc.pkl")
         finish = time.perf_counter()
         print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
 
@@ -114,6 +124,13 @@ class processAna :
             j_df[f'{j_name}_lep_mask'] = (lep_j_dR > eta_cut) # for the future figure out how to apply this and overwrite relevent jet variables
         #
     def match_gen_tt(self):
+        # first get ttbar decay type : Had, Semi, Di
+        if   'Di' in self.sample:
+            self.val_df['tt_type'] = 'Di'
+        elif 'Semi' in self.sample:
+            self.val_df['tt_type'] = 'Semi'
+        elif 'Had' in self.sample:
+            self.val_df['tt_type'] = 'Had'
         # match tt or ttZ/h gen particles to recontructed objects
         g = 'GenPart_' 
         gen_ids, gen_mom, gen_st, gen_pt, gen_eta, gen_phi, gentt_bb = self.gen_df.loc(
@@ -124,17 +141,12 @@ class processAna :
         #
         gentt_bb = gentt_bb % 100
         is_tt_B = gentt_bb>=51
+        print(gentt_bb[is_tt_B])
+
         is_tt_b  = gentt_bb == 51
         is_tt_2b = gentt_bb == 52
         is_tt_bb = gentt_bb >= 53
         # 
-        #is_tt_bb = (((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) > 6)).sum() >= 2)
-        extra_bb  = ((abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) != 6) & ((gen_st == 23) | (gen_st == 21))) # in tt+bb dedicated powheg sample the +bb has status 23
-        print(f'all: {np.nansum(extra_bb.sum() >= 0)}')
-        print(f'tt+B:{np.nansum(extra_bb.sum() > 0)}, tt+bb:{np.nansum(extra_bb.sum() >= 2)}')
-        #is_tt_bb  = ((extra_bb).sum() >= 2)
-        #is_tt_bb  = ((extra_bb).sum() >= 1) # tt+B (tt+bb, tt+B, tt+2b)
-        extra_bb_dr = deltaR(rZh_eta,rZh_phi,gen_eta,gen_phi)
         self.val_df['tt_B'] = is_tt_B
         self.val_df['tt_b'] = is_tt_b
         self.val_df['tt_2b'] = is_tt_2b
@@ -144,11 +156,6 @@ class processAna :
         print('tt+b', sum(is_tt_b))
         print('tt+2b', sum(is_tt_2b))
         print('tt+bb', sum(is_tt_bb))
-        #print(np.nansum( self.val_df['tt_bb']))
-        self.val_df['genMatched_tt_bb'] = (((extra_bb_dr < 1.2) & (extra_bb)).sum() >= 2)
-        #self.val_df['genMatched_tt_bb'] = (((extra_bb_dr < 1.2) & (extra_bb)).sum() >= 1)
-        #print(f"tt+2b: {np.nansum(self.val_df['genMatched_tt_bb'])}")
-        #
         # calculate toppt weight for powheg only
         if 'pow' in self.sample:
             tt_pt = gen_pt[(abs(gen_ids) == 6)]
@@ -176,8 +183,8 @@ class processAna :
     def match_gen_sig(self):
         # match tt or ttZ/h gen particles to recontructed objects
         g = 'GenPart_' 
-        gen_ids, gen_mom, gen_pt, gen_eta, gen_phi = self.gen_df.loc(
-            [g+'pdgId',g+'genPartIdxMother',g+'pt',g+'eta',g+'phi']
+        gen_ids, gen_mom, gen_pt, gen_eta, gen_phi, gen_mass = self.gen_df.loc(
+            [g+'pdgId',g+'genPartIdxMother',g+'pt',g+'eta',g+'phi',g+'mass']
         ).values()
         #
         #fj= 'FatJet_'
@@ -187,17 +194,29 @@ class processAna :
         rZh_eta = self.val_df['Zh_eta'].values
         rZh_phi = self.val_df['Zh_phi'].values
         #
-        isbb_fromZ = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 23))
-        isqq_fromZ = ((abs(gen_ids) <  5) & (gen_ids[gen_mom] == 23))
-        isbb_fromH = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 25))
-        isHbb  = ((gen_ids == 25) & (isbb_fromH.sum() == 2))
-        isZbb  = ((gen_ids == 23) & (isbb_fromZ.sum() == 2))
-        isZqq  = ((gen_ids == 23) & (isqq_fromZ.sum() == 2))
-        isZH = ((isHbb) | (isZbb) | (isZqq))
+        isbb_fromZ     = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 23))
+        isqq_fromZ     = ((abs(gen_ids) <  5) & (gen_ids[gen_mom] == 23))
+        isllnunu_fromZ = ((abs(gen_ids) >=  11) & (abs(gen_ids) <= 16) & (gen_ids[gen_mom] == 23))
+        isbb_fromH    = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 25))
+        isnonbb_fromH = ((abs(gen_ids) != 5) & (gen_ids[gen_mom] == 25))
+        isHbb     = ((gen_ids == 25) & (isbb_fromH.sum() == 2))
+        isHnonbb  = ((gen_ids == 25) & (isbb_fromH.sum() == 0))
+        isZbb  = ((gen_ids == 23) & (isbb_fromZ.sum() == 2) & ((isHbb.sum() == 0) & (isHnonbb.sum() == 0)))
+        isZqq  = ((gen_ids == 23) & (isqq_fromZ.sum() == 2) & ((isHbb.sum() == 0) & (isHnonbb.sum() == 0)))
+        isZllnunu = ((gen_ids == 23) & (isllnunu_fromZ.sum() == 2) & ((isHbb.sum() == 0) & (isHnonbb.sum() == 0)))
+        isZH = ((isHbb) | (isZbb) | (isZqq) | (isZllnunu) | (isHnonbb))
+        print("isHbb", sum(isHbb.sum()))
+        print("isHnonbb", sum(isHnonbb.sum()))
+        print("isZbb", sum(isZbb.sum()))
+        print("isZqq", sum(isZqq.sum()))
+        print("isZllnunu", sum(isZllnunu.sum()))
+        print("recoZH",len(rZh_eta),len(rZh_phi))
         #
         zh_pt  = fill1e(gen_pt [isZH]).flatten()
         zh_eta = fill1e(gen_eta[isZH]).flatten()
         zh_phi = fill1e(gen_phi[isZH]).flatten()
+        zh_mass = fill1e(gen_mass[isZH]).flatten()
+
         #
         zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
         #zh_match_dR = deltaR(zh_eta,zh_phi,ak8_eta,ak8_phi)
@@ -207,10 +226,13 @@ class processAna :
         #
         self.val_df['Zbb']= (isZbb.sum() > 0)
         self.val_df['Hbb']= (isHbb.sum() > 0)
+        self.val_df['Hnonbb']= (isHnonbb.sum() > 0)
         self.val_df['Zqq']= (isZqq.sum() > 0)
+        self.val_df['Zllnunu']= (isZllnunu.sum() > 0)
         self.val_df['genZHpt']  = zh_pt
         self.val_df['genZHeta'] = zh_eta
         self.val_df['genZHphi'] = zh_phi
+        self.val_df['genZHmass'] = zh_mass
         #
         self.val_df['matchedGenZH']    = (zh_match).sum() > 0 
         self.val_df['matchedGen_Zbb']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZbb.sum() >  0))
@@ -226,6 +248,7 @@ class processAna :
         gen_mom = self.gen_df['GenPart_genPartIdxMother']
         gen_eta = self.gen_df['GenPart_eta']
         gen_phi = self.gen_df['GenPart_phi']
+        
         #
         islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24)))
         #print('Number of leptons in sample (from W and W from Top) that pass our SingleLepton Req.')
@@ -246,6 +269,9 @@ class processAna :
         ak4_pt, ak4_eta, ak4_phi, ak4_mass, ak4_btag = self.ak4_df.loc(
             [j+str_+self.lc for str_ in ['pt','eta','phi','mass','btagDeepB']]
         )[self.ak4_df[j+'lep_mask']].values()
+        ht= ak4_pt.sum()
+        print(ht)
+        self.val_df['HT'] = ht
         b_pt, b_eta, b_phi, b_mass, b_btag = [ak4_k[ak4_btag >= self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         q_pt, q_eta, q_phi, q_mass, q_btag = [ak4_k[ak4_btag <  self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_bbtag, ak8_Zhbbtag, w_tag, t_tag, subj1, subj2 = self.ak8_df.loc(
@@ -292,6 +318,7 @@ class processAna :
         b_tlv   = getTLVm( *map(lambda b : fillne(b).T, [b_pt,b_eta,b_phi,b_mass])) 
         lep_tlv = getTLV( lep_pt,lep_eta,lep_phi,lep_M)
         bl_tlv = lep_tlv + b_tlv
+        self.val_df['max_lb_invM_alt'] = np.nanmax(bl_tlv.mass.T, axis=1)
         lb_mtb = lib.calc_mtb(bl_tlv.pt.T,bl_tlv.phi.T,met_pt.values,met_phi.values)            
         #
         ind_lb = np.argsort(l_b_dr,axis=1) 
@@ -321,6 +348,7 @@ class processAna :
         rt_id1, rt_id2, rt_id3   = self.rtc_df.loc(['ResolvedTopCandidate_j1Idx','ResolvedTopCandidate_j2Idx','ResolvedTopCandidate_j3Idx']).values()
         clean_rtc_fromZh = self.clean_rtc_Zh(rt_disc, rt_id1, rt_id2, rt_id3, ak4_outZh, np.full(rt_disc.shape, 0.0))
         best_rt_score = np.nanmax(clean_rtc_fromZh, axis=1)
+        del self.rtc_df
         #
         self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
         self.val_df['Zh_score']  = Zh_Zhbbtag[:,0]
@@ -380,6 +408,7 @@ class processAna :
     def applyDNN(self):
         from modules.dnn_model import DNN_model as dnn
         nn_dir   = cfg.dnn_ZH_dir 
+
         train_df = pd.read_pickle(nn_dir+'train.pkl')
         train_df = pd.read_pickle(nn_dir+'train.pkl')
         trainX   = dnn.resetIndex(train_df.drop(columns=[ 'Signal',*re.findall(r'\w*weight', ' '.join(train_df.keys()))]))
@@ -406,11 +435,14 @@ class processAna :
                 for lep_type in ('muon','electron'):
                     #eff = AnaDict.read_pickle(f'{self.outDir}{self.year}/eff_files/{lep_type}_eff_{self.year}_{eff_tag}.pkl')
                     eff = AnaDict.read_pickle(f'{self.dataDir}lep_eff_files/{lep_type}_eff_{self.year}_{eff_tag}.pkl')
-                    self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}']  = self.addLepEff(kinem, lep_type, eff[k_name])
+                    self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}'], self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}_up'], self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}_down']  = self.addLepEff(kinem, lep_type, eff[k_name])
                 #
-                self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}'] = pd.concat(
-                    [self.val_df[f'electron_eff_{eff_tag}_{k_name}'][self.val_df['passSingleLepElec']==1],
-                     self.val_df[f'muon_eff_{eff_tag}_{k_name}'][self.val_df['passSingleLepMu']==1]]).sort_index()
+                for varr in ['','_up','_down']:
+                    self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}{varr}'] = pd.concat(
+                        [self.val_df[f'electron_eff_{eff_tag}_{k_name}{varr}'][self.val_df['passSingleLepElec']==1],
+                         self.val_df[f'muon_eff_{eff_tag}_{k_name}{varr}'][self.val_df['passSingleLepMu']==1]]).sort_index()
+                    #print(self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}{varr}'])
+                
         #self.val_df['Muon_eff'] = eff_fun_dict[self.year](lep_pt)
 
     @t2Run
@@ -420,7 +452,8 @@ class processAna :
         for lep_type in ('muon','electron'):
             #sf = AnaDict.read_pickle(f'{self.outDir}{self.year}/lepton_sf_files/{lep_type}_sf_{self.year}.pkl')
             sf = AnaDict.read_pickle(f'{self.dataDir}lep_sf_files/{lep_type}_sf_{self.year}.pkl')
-            total_lep_sf = np.ones(len(lep_pt))
+            total_lep_sf = [np.ones(len(lep_pt)),np.zeros(len(lep_pt))]
+            #total_lep_sf = [np.ones(len(lep_pt)),np.ones(len(lep_pt))]
             for k in sf:
                 # dict structure is sf type : eta_bins: pt_bins: values, up, down
                 if ((lep_type == 'muon' and self.year != '2016') or k == 'SF'): lep_eta = abs(lep_eta)
@@ -433,21 +466,28 @@ class processAna :
                 pt_digi  = pd.cut(lep_pt.clip(pt_bins[0]+eps,pt_bins[-1]-eps), bins=pt_bins, right=True, include_lowest=True, 
                                   labels=sorted(pt_keys, key= lambda z : float(z.split(',')[0])))
                 #lep_sf = pd.concat([eta_digi,pt_digi], axis='columns').apply(lambda x: sf[k][x[0]][x[1]]['values'], axis='columns')
-                lep_sf = [(lambda x,y: sf[k][x][y]['values'])(x,y) for x,y in zip(eta_digi.values,pt_digi.values)]
+                lep_sf = np.array([(lambda x,y: np.array([sf[k][x][y]['values'], sf[k][x][y]['up']]))(x,y) for x,y in zip(eta_digi.values,pt_digi.values)]) # this should be propagating the error properly
                 #total_lep_sf *= lep_sf.to_numpy(dtype=float)
-                total_lep_sf *= lep_sf
-            self.val_df[f'{lep_type}_sf'] = total_lep_sf
+                total_lep_sf[0] *= lep_sf[:,0]
+                lep_sf_err = abs(lep_sf[:,1] - lep_sf[:,0]) 
+                total_lep_sf[1] = total_lep_sf[0]*np.sqrt(np.power(lep_sf_err/lep_sf[:,0],2)+ np.power(total_lep_sf[1]/total_lep_sf[0],2)) 
+            self.val_df[f'{lep_type}_sf']      = total_lep_sf[0]
+            self.val_df[f'{lep_type}_sf_up']   = total_lep_sf[1]+total_lep_sf[0]
+            self.val_df[f'{lep_type}_sf_down'] = total_lep_sf[0]-total_lep_sf[1]
         #
-        self.val_df[f'lep_sf'] = pd.concat(
-            [self.val_df['electron_sf'][self.val_df['passSingleLepElec']==1],
-             self.val_df['muon_sf'][self.val_df['passSingleLepMu']==1]]).sort_index()
+        for var in ['','_up','_down']:
+            self.val_df[f'lep_sf{var}'] = pd.concat(
+                [self.val_df[f'electron_sf{var}'][self.val_df['passSingleLepElec']==1],
+                 self.val_df[f'muon_sf{var}'][self.val_df['passSingleLepMu']==1]]).sort_index()
 
 
     def addLepEff(self, dist, lep_type, eff):
         bins=[float(bin_str.split(',')[0]) for bin_str in eff] + [float(list(eff.keys())[-1].split(',')[1])]
         digi = pd.cut(dist.clip(bins[0]+eps,bins[-1]-eps), bins=bins, labels= sorted(eff.keys(), key= lambda z : float(z.split(',')[0])))
         lep_eff = digi.map(lambda k: eff[k]['values'])
-        return lep_eff.to_numpy(dtype=float)
+        lep_eff_up = digi.map(lambda k: eff[k]['up'])
+        lep_eff_down = digi.map(lambda k: eff[k]['down'])
+        return (lep_eff.to_numpy(dtype=float),lep_eff_up.to_numpy(dtype=float),lep_eff_down.to_numpy(dtype=float))
      
     @t2Run
     def getBCbtagSF(self):
@@ -473,6 +513,86 @@ class processAna :
     def passHLT_by_year(self):
         self.val_df['pbt_elec'] = cfg.hlt_path['electron'][self.year](self.val_df)
         self.val_df['pbt_muon'] = cfg.hlt_path['muon'][self.year](self.val_df)
+    
+    def categorize_process(self):
+        # categorize_processes in sample
+        # for datacard making script
+        #
+        # special rules for handling TTZH, TTZ_bb
+        # TTBar, tt_bb, and Data
+        self.val_df['process'] = ''
+        def handleTTZH():
+            self.val_df.loc[(self.val_df['Hbb']== True),'process'] = 'ttHbb'
+            #if self.year == '2018':
+            #    self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'old_ttZbb' # will change to old
+            #else:
+            self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'ttZbb' # will change to old
+            self.val_df.loc[(self.val_df['Zqq']== True),'process'] = 'ttX'
+        def handleTTZ():
+            self.val_df['process'] = 'ttZ'
+        def handleTTH():
+            self.val_df['process'] = 'ttH'
+        def handleTTZ_bb():
+            #if self.year == '2018':
+            self.val_df['process'] = 'new_ttZbb' # think of this as just extra statistics for ttz, z->bb # thinking about this more, its not --> have to just replace
+            self.val_df['weight']  = 0.001421 # mistake with calculating cross-section
+        def handleTTBar():
+            self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'TTBar'
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_bb'
+        def handleTT_bb():
+            self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'non_tt_bb'
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'tt_bb' 
+            self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'tt_2b' # this is a subset of tt_B 
+            self.add_weights_to_ttbb()
+        def handleTTX():
+            self.val_df['process'] = 'ttX'
+        def handleVjets():
+            self.val_df['process'] = 'Vjets'
+        def handleOther():
+            self.val_df['process'] = 'other'
+        def handleEleData():
+            self.val_df.loc[((self.val_df['pbt_elec'] == True) & 
+                             (self.val_df['passSingleLepElec'] == True)),'process'] = 'Data'
+            self.val_df.loc[(self.val_df['process'] != 'Data'), 'process'] = 'non_Data'
+        def handleMuData():
+            self.val_df.loc[((self.val_df['pbt_muon'] == True) & 
+                             (self.val_df['passSingleLepMu'] == True)),'process'] =   'Data'
+            self.val_df.loc[(self.val_df['process'] != 'Data'), 'process'] = 'non_Data'
+
+        sample_to_process = {'TTZH'                                 : handleTTZH,
+                             'TTZ'                                  : handleTTZ,
+                             'TTH'                                  : handleTTH,
+                             'TTZ_bb'                               : handleTTZ_bb,
+                             'TTBar'+self.sample.replace('TTBar',''): handleTTBar,
+                             'TTbb'+self.sample.replace('TTbb','')  : handleTT_bb,
+                             'TTX'                                  : handleTTX,
+                             'WJets'                                : handleVjets,
+                             'DY'                                   : handleVjets,
+                             'EleData'                              : handleEleData,
+                             'MuData'                               : handleMuData
+        }
+        sample_to_process.get(self.sample, handleOther)()
+        #print(self.val_df['process'])
+
+    def add_weights_to_ttbb(self):
+        tt_bb_norms_scales = AnaDict.read_pickle(self.dataDir + '/tt_bb_nom.pkl')
+        for w_or_scale,_dict in tt_bb_norms_scales.items():
+            for key, v in _dict.items():
+                if self.year in key:
+                    if self.sample.split('_')[0].replace('TTbb','') in key: # check which type this is Di, Semi, Had
+                        prefix = key.replace(key.split('_')[0]+'_','').strip(f'_{self.year}') 
+                        if 'nom' in key and 'hdamp' not in self.sample:
+                            self.val_df["weight"] = v
+                            print(self.val_df["weight"])
+                        elif( 'hdampUp' in key and 'hdampUp' in self.sample): # my brain is dead so this hacky solution should work
+                            self.val_df["weight"] = v
+                            print(self.val_df["weight"])
+                        elif( 'hdampDown' in key and 'hdampDown' in self.sample):
+                            self.val_df["weight"] = v
+                            print(self.val_df["weight"])
+                        elif 'hdamp' not in key and 'nom' not in key:
+                            self.val_df[f"{prefix}_{w_or_scale}"] = v
+                            print(self.val_df[f"{prefix}_{w_or_scale}"])
 
     @staticmethod
     @njit(parallel=True)
@@ -493,15 +613,15 @@ if __name__ == '__main__':
 
     from modules.AnaDict import AnaDict
     # will need to open pkl files for testing
-    #sample = 'TTBarLep_pow'
-    sample = 'TT_bb_pow'
+    sample = 'TTBarLep_pow'
+    #sample = 'TT_bb_pow'
     print('Reading Files...')
-    dir_ = 'files/2018/mc_files/'
+    dir_ = 'files/2017/mc_files/'
     ak4_df = AnaDict.read_pickle(dir_+f'{sample}_ak4.pkl')
     ak8_df = AnaDict.read_pickle(dir_+f'{sample}_ak8.pkl')
     val_df = pd     .read_pickle(dir_+f'{sample}_val.pkl')
     gen_df = AnaDict.read_pickle(dir_+f'{sample}_gen.pkl')
     rtc_df = AnaDict.read_pickle(dir_+f'{sample}_rtc.pkl')
     print('Processing data...')
-    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample, 'year':'2018', 'isData':False, 'isSignal': False, 'isttbar':True}
+    process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample, 'year':'2017', 'isData':False, 'isSignal': False, 'isttbar':True}
     processAna(process_ana_dict)

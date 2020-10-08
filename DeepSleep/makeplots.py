@@ -1,3 +1,4 @@
+
 from modules.plotAna import Plotter, StackedHist, Hist
 import operator as op
 import pandas as pd
@@ -9,32 +10,43 @@ import config.ana_cff as cfg
 
 ###----=======-----###
 
+#jjec = 'ak8'
+#jec_list = ['JESUp','JESDown','JERUp','JERDown']
+processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','ttX','Vjets','other']
 
-
-for y in ['2017']:#cfg.Years: 
-    Plotter.load_data(y, addBSF=False)
+for y in cfg.Years: 
+    #for jec in jec_list:
+    #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
+    Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
     ''' LOOK AT STACKED DATA VS MC '''
-    #StackedHist(cfg.MC_pow,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=False, addData=True)  
+    #StackedHist(processes,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=False, addData=True)  
     #StackedHist(cfg.MC_pow,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=True, addData=True)  
-    #
-    #StackedHist(cfg.MC_pow,    'Zh_M', bin_range=[0,250],  n_bins=20,  doCuts=False, addData=True)  
-    #StackedHist(cfg.MC_pow,    'Zh_M', bin_range=[0,250],  n_bins=20,  doCuts=True, addData=True)  
-    #
-    #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, addData=True)  
-    #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, add_cuts='n_b_outZh>1', addData=True)  
-    #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=True, addData=True)  
-    #
-    #StackedHist(cfg.MC_pow,    'n_q_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, addData=True)  
-    #StackedHist(cfg.MC_pow,    'n_q_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=True, addData=True)  
-    ##
-    #StackedHist(cfg.MC_pow,    'nonZhbb_b1_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=False, addData=True)  
-    #StackedHist(cfg.MC_pow,    'nonZhbb_b1_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=True, addData=True)  
-    ##
-    #StackedHist(cfg.MC_pow,    'nonZhbb_b2_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=False, addData=True)  
-    #StackedHist(cfg.MC_pow,    'nonZhbb_b2_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=True, addData=True)  
-    ####====####
+        #
+    #StackedHist(processes,    'Zh_M', bin_range=[25,225],  bins=[50,80,105,145,200],  doCuts=False, addData=True)  
+        #StackedHist(cfg.MC_pow,    'Zh_M', bin_range=[0,250],  n_bins=20,  doCuts=True, addData=True)  
+        #
+        #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, addData=True)  
+        #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, add_cuts='n_b_outZh>1', addData=True)  
+        #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=True, addData=True)  
+        #
+        #StackedHist(cfg.MC_pow,    'n_q_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, addData=True)  
+        #StackedHist(cfg.MC_pow,    'n_q_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=True, addData=True)  
+        ##
+        #StackedHist(cfg.MC_pow,    'nonZhbb_b1_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=False, addData=True)  
+        #StackedHist(cfg.MC_pow,    'nonZhbb_b1_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=True, addData=True)  
+        ##
+        #StackedHist(cfg.MC_pow,    'nonZhbb_b2_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=False, addData=True)  
+        #StackedHist(cfg.MC_pow,    'nonZhbb_b2_dr', bin_range=[0,5.5],  n_bins=10,  doCuts=True, addData=True)  
+        ####====####
 
-    StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=0.80', doCuts=True, sepGenOpt='sepGenBkg;++', addData=True)  
+    #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8', sepGenOpt='sepGenBkg;--', doCuts=True, addData=True)  
+
+    StackedHist(processes,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8',  doCuts=True, addData=True)  
+
+    #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80;Zh_pt>=300;Zh_pt<450;Zh_M>=105;Zh_M<145', add_d_cuts='NN<=0.8', sepGenOpt='sepGenBkg;--', doCuts=True, addData=True)  
+
+    #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=0.80', doCuts=True, sepGenOpt='sepGenBkg;++', addData=True)  
+    #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', doCuts=True, sepGenOpt='sepGenBkg;++', addData=False)  
     #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=0.80', doCuts=True, addData=True)  
     #StackedHist(cfg.MC_samples,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=.80', doCuts=True, addData=True)  
     #StackedHist(cfg.MC_pow,    'n_ak4jets', bin_range=[4,12],  bins=[4,5,6,7,8,9,10,11,12],  doCuts=False, addData=True)  
@@ -94,8 +106,21 @@ for y in ['2017']:#cfg.Years:
     
     ''' STUDY TTZ,Zbb vs DEDICATED TTZ,Zbb '''
     
-    #Hist(['TTZ_bb','TTZH'],'Zh_M', xlabel='Zh_M (NN>0.9;Zh_pt>300)', bin_range=[50,200],bins=[50,80,105,145,200], doNorm=True,  sepGenOpt='sepGenSig', dropZqq=True,  add_cuts='NN>0.9;Zh_pt>300', doCuts=True, addData=False)
-    #Hist(['TTZH','TTZ_bb'],'NN', bin_range=[0,1], doNorm=True,  sepGenOpt='sepGenSig',  n_bins=20, dropZqq=True,  doCuts=True, addData=False
+    #Hist(['TTZH','TTBarLep_pow'], 'Zh_M', xlabel='Zh_M (NN>0.9;Zh_pt>300)', bin_range=[50,200], bins=[50,80,105,145,200], doNorm=True,  sepGenOpt='sepGenSig;sepGenBkg;++', droptt=True, dropZqq=True, add_cuts='NN>0.9;Zh_pt>300', doCuts=True, addData=False)
+    #Hist(['ttZ','new_ttZbb'],'HT', bin_range=[0,1200], n_bins=20, doNorm=False,   sepGenOpt='sepGenSig',            doCuts=False, addData=False) 
+    #Hist(['ttZ','new_ttZbb'],'n_ak4jets', bin_range=[3.5,10.5], n_bins=7, doNorm=False,   sepGenOpt='sepGenSig',    doCuts=False, addData=False)
+    #Hist(['ttZ','new_ttZbb'],'nBottoms_drLeptonCleaned', bin_range=[-0.5,6.5], n_bins=7, doNorm=False,  sepGenOpt='sepGenSig',  doCuts=False, addData=False)
+    #
+    ##Hist(['TTBar','ttZbb','ttHbb','new_tt_bb','new_tt_2b'],'Zh_M', xlabel='Zh_M (NN>0.9;Zh_pt>300)', bin_range=[50,200],bins=[50,80,105,145,200], doNorm=True, add_cuts='NN>0.9;Zh_pt>300', doCuts=True, addData=False)
+    #Hist(['ttZ','new_ttZbb'],'genZHmass', xlabel='GEN Z/h mass', bin_range=[0,200], n_bins=30, doNorm=False,  sepGenOpt='sepGenSig', doCuts=False, addData=False)
+    ##Hist(['ttZ','new_ttZbb'],'Zh_pt', xlabel='RECO Z/h_pt', bin_range=[100,500], n_bins=30, doNorm=True,   sepGenOpt='sepGenMatchedSig', dropZqq=True,   doCuts=False, addData=False) 
+    #Hist(['ttZ','new_ttZbb'],'Zh_M', xlabel='Zh_M', bin_range=[50,200], n_bins=30,        doNorm=False,          sepGenOpt='sepGenSig',  doCuts=False, addData=False)
+    #Hist(['ttZ','new_ttZbb'],'Zh_M', xlabel='Zh_M (Zh_pt > 450)', bin_range=[50,200],n_bins=30, doNorm=False,  sepGenOpt='sepGenSig', add_cuts='Zh_pt>450',        doCuts=True, addData=False)
+    #Hist(['ttZ','new_ttZbb'],'NN', xlabel='NN (80<Zh_M<105)', bin_range=[0,1], doNorm=False,  sepGenOpt='sepGenSig',  n_bins=20, add_cuts='Zh_M<105;Zh_M>80',     doCuts=True, addData=False)
+    #Hist(['ttZ','new_ttZbb'],'NN', xlabel='NN (105<Zh_M<145)', bin_range=[0,1], doNorm=False,  sepGenOpt='sepGenSig',  n_bins=20, add_cuts='Zh_M<145;Zh_M>105',   doCuts=True, addData=False)
+    #
+    ##Hist(['ttH','ttZ'],'NN', bin_range=[0,1], doNorm=True,  sepGenOpt='sepGenSig',  n_bins=20,   doCuts=True, addData=False)
+    #Hist(['ttH','ttZ'],'NN', bin_range=[0,1], doNorm=False,  sepGenOpt='sepGenSig',  n_bins=20,   doCuts=True, addData=False)
     
     #Hist(['TTZH','TTZ_bb'],'n_b_outZh', bin_range=[-0.5,4.5], n_bins=5, doNorm=True,  sepGenOpt='sepGenSig', dropZqq=True,  doCuts=False, addData=False)
     #Hist(['TTZH','TTZ_bb'],'Zh_score', bin_range=[0,1], doNorm=True,  sepGenOpt='sepGenSig',  n_bins=20, dropZqq=True,  doCuts=True, addData=False)
