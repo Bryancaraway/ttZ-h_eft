@@ -183,8 +183,8 @@ class processAna :
     def match_gen_sig(self):
         # match tt or ttZ/h gen particles to recontructed objects
         g = 'GenPart_' 
-        gen_ids, gen_mom, gen_pt, gen_eta, gen_phi = self.gen_df.loc(
-            [g+'pdgId',g+'genPartIdxMother',g+'pt',g+'eta',g+'phi']
+        gen_ids, gen_mom, gen_pt, gen_eta, gen_phi, gen_mass = self.gen_df.loc(
+            [g+'pdgId',g+'genPartIdxMother',g+'pt',g+'eta',g+'phi',g+'mass']
         ).values()
         #
         #fj= 'FatJet_'
@@ -194,17 +194,29 @@ class processAna :
         rZh_eta = self.val_df['Zh_eta'].values
         rZh_phi = self.val_df['Zh_phi'].values
         #
-        isbb_fromZ = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 23))
-        isqq_fromZ = ((abs(gen_ids) <  5) & (gen_ids[gen_mom] == 23))
-        isbb_fromH = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 25))
-        isHbb  = ((gen_ids == 25) & (isbb_fromH.sum() == 2))
-        isZbb  = ((gen_ids == 23) & (isbb_fromZ.sum() == 2))
-        isZqq  = ((gen_ids == 23) & (isqq_fromZ.sum() == 2))
-        isZH = ((isHbb) | (isZbb) | (isZqq))
+        isbb_fromZ     = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 23))
+        isqq_fromZ     = ((abs(gen_ids) <  5) & (gen_ids[gen_mom] == 23))
+        isllnunu_fromZ = ((abs(gen_ids) >=  11) & (abs(gen_ids) <= 16) & (gen_ids[gen_mom] == 23))
+        isbb_fromH    = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 25))
+        isnonbb_fromH = ((abs(gen_ids) != 5) & (gen_ids[gen_mom] == 25))
+        isHbb     = ((gen_ids == 25) & (isbb_fromH.sum() == 2))
+        isHnonbb  = ((gen_ids == 25) & (isbb_fromH.sum() == 0))
+        isZbb  = ((gen_ids == 23) & (isbb_fromZ.sum() == 2) & ((isHbb.sum() == 0) & (isHnonbb.sum() == 0)))
+        isZqq  = ((gen_ids == 23) & (isqq_fromZ.sum() == 2) & ((isHbb.sum() == 0) & (isHnonbb.sum() == 0)))
+        isZllnunu = ((gen_ids == 23) & (isllnunu_fromZ.sum() == 2) & ((isHbb.sum() == 0) & (isHnonbb.sum() == 0)))
+        isZH = ((isHbb) | (isZbb) | (isZqq) | (isZllnunu) | (isHnonbb))
+        print("isHbb", sum(isHbb.sum()))
+        print("isHnonbb", sum(isHnonbb.sum()))
+        print("isZbb", sum(isZbb.sum()))
+        print("isZqq", sum(isZqq.sum()))
+        print("isZllnunu", sum(isZllnunu.sum()))
+        print("recoZH",len(rZh_eta),len(rZh_phi))
         #
         zh_pt  = fill1e(gen_pt [isZH]).flatten()
         zh_eta = fill1e(gen_eta[isZH]).flatten()
         zh_phi = fill1e(gen_phi[isZH]).flatten()
+        zh_mass = fill1e(gen_mass[isZH]).flatten()
+
         #
         zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
         #zh_match_dR = deltaR(zh_eta,zh_phi,ak8_eta,ak8_phi)
@@ -214,10 +226,13 @@ class processAna :
         #
         self.val_df['Zbb']= (isZbb.sum() > 0)
         self.val_df['Hbb']= (isHbb.sum() > 0)
+        self.val_df['Hnonbb']= (isHnonbb.sum() > 0)
         self.val_df['Zqq']= (isZqq.sum() > 0)
+        self.val_df['Zllnunu']= (isZllnunu.sum() > 0)
         self.val_df['genZHpt']  = zh_pt
         self.val_df['genZHeta'] = zh_eta
         self.val_df['genZHphi'] = zh_phi
+        self.val_df['genZHmass'] = zh_mass
         #
         self.val_df['matchedGenZH']    = (zh_match).sum() > 0 
         self.val_df['matchedGen_Zbb']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZbb.sum() >  0))
@@ -233,6 +248,7 @@ class processAna :
         gen_mom = self.gen_df['GenPart_genPartIdxMother']
         gen_eta = self.gen_df['GenPart_eta']
         gen_phi = self.gen_df['GenPart_phi']
+        
         #
         islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24)))
         #print('Number of leptons in sample (from W and W from Top) that pass our SingleLepton Req.')
@@ -253,6 +269,9 @@ class processAna :
         ak4_pt, ak4_eta, ak4_phi, ak4_mass, ak4_btag = self.ak4_df.loc(
             [j+str_+self.lc for str_ in ['pt','eta','phi','mass','btagDeepB']]
         )[self.ak4_df[j+'lep_mask']].values()
+        ht= ak4_pt.sum()
+        print(ht)
+        self.val_df['HT'] = ht
         b_pt, b_eta, b_phi, b_mass, b_btag = [ak4_k[ak4_btag >= self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         q_pt, q_eta, q_phi, q_mass, q_btag = [ak4_k[ak4_btag <  self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_bbtag, ak8_Zhbbtag, w_tag, t_tag, subj1, subj2 = self.ak8_df.loc(
@@ -509,16 +528,21 @@ class processAna :
             #else:
             self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'ttZbb' # will change to old
             self.val_df.loc[(self.val_df['Zqq']== True),'process'] = 'ttX'
+        def handleTTZ():
+            self.val_df['process'] = 'ttZ'
+        def handleTTH():
+            self.val_df['process'] = 'ttH'
         def handleTTZ_bb():
             #if self.year == '2018':
             self.val_df['process'] = 'new_ttZbb' # think of this as just extra statistics for ttz, z->bb # thinking about this more, its not --> have to just replace
+            self.val_df['weight']  = 0.001421 # mistake with calculating cross-section
         def handleTTBar():
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'TTBar'
             self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_bb'
         def handleTT_bb():
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'non_tt_bb'
-            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'new_tt_bb' 
-            self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'new_tt_2b' # this is a subset of tt_B 
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'tt_bb' 
+            self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'tt_2b' # this is a subset of tt_B 
             self.add_weights_to_ttbb()
         def handleTTX():
             self.val_df['process'] = 'ttX'
@@ -526,21 +550,26 @@ class processAna :
             self.val_df['process'] = 'Vjets'
         def handleOther():
             self.val_df['process'] = 'other'
-        def handleData():
+        def handleEleData():
             self.val_df.loc[((self.val_df['pbt_elec'] == True) & 
                              (self.val_df['passSingleLepElec'] == True)),'process'] = 'Data'
+            self.val_df.loc[(self.val_df['process'] != 'Data'), 'process'] = 'non_Data'
+        def handleMuData():
             self.val_df.loc[((self.val_df['pbt_muon'] == True) & 
                              (self.val_df['passSingleLepMu'] == True)),'process'] =   'Data'
             self.val_df.loc[(self.val_df['process'] != 'Data'), 'process'] = 'non_Data'
 
         sample_to_process = {'TTZH'                                 : handleTTZH,
+                             'TTZ'                                  : handleTTZ,
+                             'TTH'                                  : handleTTH,
                              'TTZ_bb'                               : handleTTZ_bb,
                              'TTBar'+self.sample.replace('TTBar',''): handleTTBar,
-                             'TTbb'+self.sample.replace('TTbb',''): handleTT_bb,
+                             'TTbb'+self.sample.replace('TTbb','')  : handleTT_bb,
                              'TTX'                                  : handleTTX,
                              'WJets'                                : handleVjets,
                              'DY'                                   : handleVjets,
-                             self.sample.replace('Data', '')+'Data' : handleData
+                             'EleData'                              : handleEleData,
+                             'MuData'                               : handleMuData
         }
         sample_to_process.get(self.sample, handleOther)()
         #print(self.val_df['process'])

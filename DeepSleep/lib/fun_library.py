@@ -164,18 +164,19 @@ def getZhbbBaseCuts(df_):
     return base_cuts
 
 def getZhbbWeight(df_, year):
+    import config.ana_cff as cfg
     tot_weight = (df_['weight']* np.sign(df_['genWeight']) 
                   * (np.where(df_['weight']>300,0,1))
-                  #* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
-                  #* (df_['BC_btagSF'] if self.addBSF else 1.0)
-                  #* (self.lumi/cfg.Lumi[self.year])
+                  #####* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
+                  #####* (df_['BC_btagSF'] if self.addBSF else 1.0)
+                  ###* (cfg.Lumi['Total']/cfg.Lumi[year])
                   * df_['Stop0l_topptWeight']
                   * (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
-                  #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
+                  #####* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
                   * df_['lep_trig_eff_tight_pt']
-                  #* v['lep_trig_eff_tight_eta']
+                  ####* v['lep_trig_eff_tight_eta']
                   * df_['lep_sf']
-                  #* df_['BTagWeight'] 
+                  ####* df_['BTagWeight'] 
                   * df_['BTagWeightLight'] 
                   * df_['BTagWeightHeavy'] 
                   * df_['puWeight']  
@@ -238,6 +239,41 @@ def getLaLabel(str_):
     la_str = ''
     col_str= ''
     la_col_map = {
+        'ttZ':            [r't$\mathregular{\bar{t}}$Z',
+                             'tab:blue'],
+        'ttH':            [r't$\mathregular{\bar{t}}$H',
+                             'gold'],
+        'ttH_Hbb':        [r't$\mathregular{\bar{t}}$Htobb',
+                           'gold'],
+        'ttH_Hnonbb':     [r't$\mathregular{\bar{t}}$HtoNonbb',
+                           'indianred'],
+        'ttZ_Zbb':        [r't$\mathregular{\bar{t}}$Ztobb',
+                           'tab:blue'],
+        'ttZ_Zqq':        [r't$\mathregular{\bar{t}}$Ztoqq',
+                           'darkgreen'],
+        'ttZ_Zllnunu':    [r't$\mathregular{\bar{t}}$Ztollnunu',
+                           'tab:olive'],
+
+        'new_ttZbb':            [r't$\mathregular{\bar{t}}$Ztobb',
+                                 'tab:cyan'],
+
+        'ttZbb':            [r't$\mathregular{\bar{t}}$Ztobb',
+                             'tab:blue'],
+        'ttHbb':            [r't$\mathregular{\bar{t}}$Htobb',
+                             'gold'],
+        'ttX':              [r't($\mathregular{\bar{t}}$)X',
+                             'tab:red'],
+        'TTBar':            [r't$\mathregular{\bar{t}}$',
+                             'tab:orange'],
+        'tt_bb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
+                             'tab:green'],
+        'tt_2b':        [r't$\mathregular{\bar{t}}+$2b',
+                             'tab:purple'],
+        'Vjets':            [r'V$+$jets',
+                             'tab:cyan'],
+        'other':            ['other',
+                             'tab:pink'],
+        #
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
                             'tab:blue'],
         'TTZ_bb':          [r't$\mathregular{\bar{t}}$Ztobb_ded',
@@ -250,6 +286,8 @@ def getLaLabel(str_):
                             'black'],
         'TTZH_genZbb':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedZbb',
                             'tab:blue'],
+        'TTZ_genZbb':      [r't$\mathregular{\bar{t}}$Ztobb_ded_genMatched',
+                            'tab:orange'],
         'TTZH_genZqq':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedZqq',
                             'darkgreen'],
         'TTZH_genHbb':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedHbb',
@@ -319,3 +357,22 @@ def t2Run(func):
         print(f'\nTime to finish {func.__name__}: {finish-start:.2f}\n')
         return out
     return wrapper
+
+# decorator to save figures to given pdf
+
+
+def save_pdf(pdf_name = 'dummy.pdf'):
+    import matplotlib.backends.backend_pdf as matpdf 
+    import matplotlib.pyplot as plt
+    def inner (func):
+        def wrapper(*args,**kwargs):
+            pdf = matpdf.PdfPages(f"pdf/{pdf_name}")  
+            func(*args, **kwargs) # doesnt return anything
+            for fig_ in range(1, plt.gcf().number+1):
+                pdf.savefig( fig_ )
+            print(f"Saving figures to: pdf/{pdf_name}")
+            pdf.close()
+            plt.close('all')
+
+        return wrapper
+    return inner

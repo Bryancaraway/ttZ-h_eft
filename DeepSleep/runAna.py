@@ -1,5 +1,6 @@
 import time
 import argparse
+import re
 import config.ana_cff as cfg
 from modules.getdata import getData
 from modules.processAna import processAna
@@ -25,7 +26,7 @@ class runAna ():
     sample   = args.sample if args.sample != 'test' else 'TriBoson' # should change to parsargs  at some point
     roofile  = (args.roofile if args.roofile is not None else (f'Data_{args.year}' if 'Data' in args.sample else f'MC_{args.year}') ) 
     isData   = 'Data' in roofile
-    isSignal = 'TTZH' in sample or 'TTZ_bb' in sample
+    isSignal = re.search(r'TT[Z,H]*\w*', sample) is not None #'TTZH' in sample or 'TTZ_bb' in sample
     print(isSignal)
     isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples
     if (args.jetjec is None and args.jec is not None) or (args.jetjec is not None and args.jec is None):

@@ -18,6 +18,9 @@ def worker(roo):
     ttbb  = ttbb % 100
     scale = t.array('LHEScaleWeight').pad(9).fillna(1)
     ps    = t.array('PSWeight'      ).pad(4).fillna(1)
+    # need pdf as well
+    pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
+    pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
     tot_count= sum(gw>=0.0) - sum(gw<0.0)
     #
     ttbb_count = sum((gw>=0.0) & (ttbb>=51)) - sum((gw<0.0) & (ttbb>=51))
@@ -40,12 +43,17 @@ def worker(roo):
     isr_up_ttbb, isr_down_ttbb = ps_ttbb[2], ps_ttbb[0]
     fsr_up_ttbb, fsr_down_ttbb = ps_ttbb[3], ps_ttbb[1]
     #
+    pdf_up_tot, pdf_down_tot = sum(pdf_up), sum(pdf_down)
+    pdf_up_ttbb, pdf_down_ttbb = sum(pdf_up[(ttbb>=51)]), sum(pdf_down[(ttbb>=51)])
+    #
     return [tot_count,  # 0
             mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 1-6
             isr_up_tot, isr_down_tot, fsr_up_tot, fsr_down_tot, # 7-10
-            ttbb_count,  # 11
-            mur_up_ttbb, mur_down_ttbb, muf_up_ttbb, muf_down_ttbb, murf_up_ttbb, murf_down_ttbb, # 12-17
-            isr_up_ttbb, isr_down_ttbb, fsr_up_ttbb, fsr_down_ttbb] # 18-21
+            pdf_up_tot, pdf_down_tot, # 11-12
+            ttbb_count,  # 13
+            mur_up_ttbb, mur_down_ttbb, muf_up_ttbb, muf_down_ttbb, murf_up_ttbb, murf_down_ttbb, # 14-19
+            isr_up_ttbb, isr_down_ttbb, fsr_up_ttbb, fsr_down_ttbb,# 20-23
+            pdf_up_ttbb, pdf_down_ttbb] # 24-25
     
 def sys_worker(roo):
     if 'kodiak' in roo:
@@ -82,12 +90,12 @@ def process(sample, target_file, xsec, pool):
             print(f'\n For sample: with xsec : Tot Count : tt_bb Yield')
             print('{0}, {1}, {2}, {3}'.format(sample, xsec, *results[:]))
         else:
-            results = [ sum(result_list[:,i]) for i in range(22)]
-            print(f'\n For sample: with xsec : Tot Count : Total Yield mu r up/down, mu f up/down, mu rf up/down, ISR up/down, FSR up/down')
-            print('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}'.format(sample, xsec, *results[:11]))
+            results = [ sum(result_list[:,i]) for i in range(26)]
+            print(f'\n For sample: with xsec : Tot Count : Total Yield mu r up/down, mu f up/down, mu rf up/down, ISR up/down, FSR up/down : pdf up/down')
+            print('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}'.format(sample, xsec, *results[:13]))
             #
-            print(f'\n tt_bb Count : tt_bb Yield mu r up/down, mu f up/down, mu rf up/down, ISR up/down, FSR up/down')
-            print('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}'.format(*results[11:]))
+            print(f'\n tt_bb Count : tt_bb Yield mu r up/down, mu f up/down, mu rf up/down, ISR up/down, FSR up/down : pdf up/down')
+            print('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}'.format(*results[13:]))
         #
 
 

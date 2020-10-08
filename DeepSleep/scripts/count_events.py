@@ -12,11 +12,26 @@ def worker(roo):
     if 'kodiak' in roo:
         roo = roo.replace('root://kodiak-se.baylor.edu//','/cms/data/')
     t=uproot.open(roo)['Events']
-
     gw = t.array('genWeight')#, executor=executor, blocking=True)
+    scale = t.array('LHEScaleWeight').pad(9).fillna(1) * np.sign(gw)
+    pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
+    pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
+    #
+    sc_tot = [ sum( scale[:,i] ) for i in range(9)]
+    mur_up_tot, mur_down_tot   = sc_tot[7], sc_tot[1]
+    muf_up_tot, muf_down_tot   = sc_tot[5], sc_tot[3]
+    murf_up_tot, murf_down_tot = sc_tot[8], sc_tot[0]
+    #
+    pdf_up_tot, pdf_down_tot = sum(pdf_up), sum(pdf_down)
+    #
     p_count= sum(gw>=0.0)
     n_count= sum(gw<0.0)
-    return [p_count, n_count]
+    tot_count = p_count - n_count
+    return [p_count, n_count, # 0-1
+            tot_count,        # 2
+            mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 3-8
+            pdf_up_tot, pdf_down_tot # 9-10
+    ]
  
 def process(sample, target_file, pool):
     with open(target_file) as roo_files:
@@ -24,9 +39,14 @@ def process(sample, target_file, pool):
         #
         print('\nFor sample: {}'.format(sample))
         result_list = np.array(pool.map(worker, ( roo for roo in roo_list)))
-        p_count, n_count = sum(result_list[:,0]), sum(result_list[:,1])
+        #results = sum(result_list[:,0]), sum(result_list[:,1])
+        results  = [ sum(result_list[:,i]) for i in range(11) ]
         #
-        print('p_events, n_events: {}, {}'.format(p_count,n_count))
+        #print(results)
+        #
+        print('p_events, n_events: {}, {}'.format(results[0], results[1]))
+        print('Sample : Tot events : u r up/down, mu f up/down, mu rf up/down : pdf up/down')
+        print('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}'.format(sample, *results[2:]))
 
 
 def main(cfg_file,get_s=None):

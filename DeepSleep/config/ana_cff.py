@@ -34,9 +34,11 @@ Years             = ['2016','2017','2018']
 ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 #['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow', 'TTBarHad', 'TTBarLep']
 MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-Sig_MC            = ['TTZH', 'TTZ_bb']
-Bkg_MC            = ['QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-All_MC            = ['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+Sig_MC            = [#'TTZH', 
+                     'TTZ_bb','TTZ','TTH']
+Bkg_MC            = [#'QCD', 
+    'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+All_MC            = ['TTZH', 'TTZ_bb', 'TTZ', 'TTH', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 #['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep','TTBarLep_pow', 'TT_bb_pow']
 # Handle systematic sample docs
 tt_sys_samples    = ['TTBarHad_pow_erdOn','TTBarHad_pow_UEUp','TTBarHad_pow_UEDown','TTBarHad_pow_hdampUp','TTBarHad_pow_hdampDown',
@@ -56,11 +58,12 @@ bkg_sys_samples   = [bkg+'_'+jec for bkg in Bkg_MC for jec in jec_variations] + 
 all_sys_samples   = sig_sys_samples + bkg_sys_samples
 #
 Data_samples      = ['EleData','MuData']
-Lumi              = {'2016': 35.9,
-                     '2017': 41.9,
-                     '2018': 58.9,
+Lumi              = {'2016': 35.917149,
+                     '2017': 41.525338,
+                     '2018': 59.72444,
                      '2018preHEM' : 21.1,
-                     '2018postHEM': 38.6
+                     '2018postHEM': 38.6,
+                     'Total': 137.166648
                   } 
 ##
 ##############

@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import re
 from functools import partial, reduce
+from multiprocessing import Pool
 import operator as op
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -10,7 +11,7 @@ from matplotlib.ticker import AutoMinorLocator, FixedLocator, FormatStrFormatter
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Patch, Rectangle
 rc("savefig",dpi=250)
-rc("figure", figsize=(6, 6*(6./8.)), dpi=200)                                                            
+rc("figure", figsize=(6, 6*(6./8.)), dpi=200)
 #rc("text.latex", preamble=r"\usepackage{amsmath}")                                                             
 #rc('font',**{'family':'serif','serif':['Times']})
 rc("hatch", linewidth=0.2, color='r') 
@@ -36,6 +37,7 @@ class Plotter :
     i_dict    = None
     real_data = None
     HEM_opt   = ''
+    #
 
     def __init__(self,samples, kinem, bin_range, 
                  xlabel=None, n_bins=20, bins=None,
@@ -71,42 +73,47 @@ class Plotter :
                  for sample in self.data_samples]),self.bin_range[0],self.bin_range[-1])}
         #
         self.data = data
-        self.sepData()
         
+        self.sepData()
         #
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
                        * (np.where(v['weight']>300,0,1))
                        #* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
                        * (v['BC_btagSF'] if self.addBSF else 1.0)
-                       * (self.lumi/cfg.Lumi[self.year])
+                       #* (self.lumi/cfg.Lumi[self.year])
                        * v['Stop0l_topptWeight']
                        * (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
-                       #* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
                        * v['lep_trig_eff_tight_pt']
-                       #* v['lep_trig_eff_tight_eta']
+                       ####* v['lep_trig_eff_tight_eta']
                        * v['lep_sf']
-                       * v['BTagWeight'] 
+                       #* v['BTagWeight'] 
                        * v['puWeight']  
                        * (v['PrefireWeight'] if self.year != '2018' else 1.0)
                        #* v['ISRWeight']  
                        for k,v in self.data.items()}
 
 
-        self.i_dict = {k: sum(v) for k,v in self.w_dict.items()}
+        self.i_dict     = {k: sum(v) for k,v in self.w_dict.items()}
+        self.i_err_dict = {k: np.sqrt(sum(np.power(v,2))) for k,v in self.w_dict.items()}
         #
         self.data = {k: np.clip(v[self.kinem],self.bin_range[0],self.bin_range[-1]) for k,v in self.data.items()}
     
     def apply_data_cuts(self, leptype, df):
         temp_add_cuts = self.add_cuts
-        add_by_lep = {'EleData':'passSingleLepElec==1;pbt_elec==1', 
-                      'MuData' :'passSingleLepMu==1;pbt_muon==1'} 
+        if self.byprocess:
+            add_by_lep = {'EleData':"process==Data", 
+                          'MuData' :"process==Data"} 
+            print(add_by_lep)
+        else:
+            add_by_lep = {'EleData':'passSingleLepElec==1;pbt_elec==1', 
+                          'MuData' :'passSingleLepMu==1;pbt_muon==1'} 
         add_by_HEM = {'preHEM' :';run<319077',
                       'postHEM':';run>=319077',
                       '':''}
         data_cuts = add_by_lep[leptype]+add_by_HEM[self.HEM_opt]
         if self.add_d_cuts != '':
             data_cuts = data_cuts+';'+self.add_d_cuts
-        if self.add_cuts is '':
+        if self.add_cuts == '':
             self.add_cuts = data_cuts
         else:
             self.add_cuts += ';'+data_cuts
@@ -116,7 +123,7 @@ class Plotter :
 
     def apply_cuts(self,df):
         df_mask = self.cut_func(df) if self.doCuts else True
-        if self.add_cuts is '': 
+        if self.add_cuts == '': 
             if self.doCuts:
                 return df[df_mask]
             else:
@@ -126,7 +133,10 @@ class Plotter :
         interp_dict = {'>=':op.ge, '<=':op.le, '>':op.gt, '<':op.lt, '==':op.eq, '!=':op.ne}
         for cut, k in zip(self.add_cuts.split(';'),b_str):
             kinem, val = cut.split(k)
-            df_mask = interp_dict[k](df[kinem],float(val)) & df_mask
+            try: # if cut is an number
+                df_mask = interp_dict[k](df[kinem],float(val)) & df_mask
+            except ValueError:
+                df_mask = interp_dict[k](df[kinem],val) & df_mask
         return df[df_mask]
 
     def sepData(self):
@@ -143,11 +153,27 @@ class Plotter :
         
     def sepGenSig(self):
         df = self.data
-        df['TTZH_Zbb'] = (lambda x : x[x['Zbb'] == True])(df['TTZH'])
-        df['TTZH_Hbb'] = (lambda x : x[x['Hbb'] == True])(df['TTZH'])
-        df['TTZH_Zqq'] = (lambda x : x[x['Zqq'] == True])(df['TTZH'])
-        self.data.update(df)
-        self.data.pop('TTZH')
+        # check through 'TTZH' and TTZ_bb
+        if self.byprocess:
+            if 'ttH' in df:
+                df['ttH_Hbb']    =  (lambda x : x[x['Hbb'] == True])(df['ttH'])
+                df['ttH_Hnonbb'] =  (lambda x : x[x['Hnonbb'] == True])(df['ttH'])
+                self.data.update(df)
+                self.data.pop('ttH')
+            if 'ttZ' in df:
+                df['ttZ_Zbb']     =  (lambda x : x[x['Zbb'] == True])(df['ttZ'])
+                df['ttZ_Zqq']     =  (lambda x : x[x['Zqq'] == True])(df['ttZ'])
+                df['ttZ_Zllnunu'] =  (lambda x : x[x['Zllnunu'] == True])(df['ttZ'])
+                self.data.update(df)
+                self.data.pop('ttZ')
+        else:
+            df['TTZH_Zbb'] = (lambda x : x[x['Zbb'] == True])(df['TTZH'])
+            df['TTZH_Hbb'] = (lambda x : x[x['Hbb'] == True])(df['TTZH'])
+            df['TTZH_Zqq'] = (lambda x : x[x['Zqq'] == True])(df['TTZH'])
+            self.data.update(df)
+            self.data.pop('TTZH')
+            if 'TTZ_bb' in self.data:
+                df['TTZ_bb'] = (lambda x : x[x['Zbb'] == True])(df['TTZ_bb'])
 
     def sepGenBkg(self):
         df = self.data.copy()
@@ -183,6 +209,10 @@ class Plotter :
                                                           (x['matchedGen_ZHbb'] == False)])(df['TTZH'])
         self.data.update(df) 
         self.data.pop('TTZH')
+        if 'TTZ_bb' in self.data:
+            df['TTZ_genZbb'] = (lambda x : x[x['matchedGen_Zbb'] == True])(df['TTZ_bb'])
+            self.data.update(df)
+            self.data.pop('TTZ_bb')
 
     def sepGenMatchedBkg(self):
         df = self.data
@@ -194,11 +224,12 @@ class Plotter :
     @property
     def retData(self):
         k_    = np.array([k for k in self.data])
-        h_   = np.array([self.data[k].to_numpy()    for k in self.data], dtype=object)
-        w_   = np.array([self.w_dict[k].to_numpy()  for k in self.data], dtype=object)
-        i_   = np.array([self.i_dict[k]             for k in self.data])
+        h_    = np.array([self.data[k].to_numpy()    for k in self.data], dtype=object)
+        w_    = np.array([self.w_dict[k].to_numpy()  for k in self.data], dtype=object)
+        i_    = np.array([self.i_dict[k]             for k in self.data])
+        ierr_ = np.array([self.i_err_dict[k]         for k in self.data])
         l_,c_ = np.array([np.array(getLaLabel(k))   for k in self.data]).T
-        l_   = np.array([f'{x} ({y:3.1f})' for x,y in zip(l_,i_)])
+        l_   = np.array([f'{x} ({y:3.1f}+/-{z:3.1f})' for x,y,z in zip(l_,i_,ierr_)])
         #print( h_,w_,i_,c_,l_)
         return k_,h_,w_,i_,c_,l_
 
@@ -228,6 +259,8 @@ class Plotter :
         self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
         plt.xlabel(self.xlabel+self.tag, fontsize = self.fontsize)
         self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
+        #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )
+        
         plt.xlim(self.bin_range)
         if self.doLog: self.ax.set_yscale('log')
         #plt.grid(True)
@@ -237,31 +270,71 @@ class Plotter :
         handles = handles + [hatch_patch]
         labels  = labels + ['Stat Unc.']
         self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize='xx-small')
+        self.ax.set_ylim(ymin=self.ax.get_ylim()[0],ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: plt.show()
         plt.close(self.fig)
         #plt.close('all') # for lpc
 
     @classmethod
-    def load_data(cls,year='2017',HEM_opt='',samples=None,tag=None, addBSF=False):
+    def load_data(cls,year='2017',HEM_opt='',samples=None,tag=None, addBSF=False, byprocess=False):
         cls.year = year
         cls.addBSF = addBSF
         cls.mc_samples = samples if samples is not None else cfg.All_MC
         cls.HEM_opt = HEM_opt
-        cls.lumi = cfg.Lumi[year+HEM_opt]
+        cls.lumi = round(cfg.Lumi[year+HEM_opt],1)
         cls.data_dict = {}
         cls.tag = '' if tag is None else '_'+tag
+        cls.byprocess = byprocess
         #
-        for sample in cls.mc_samples:
-            try : 
-                #cls.data_dict[(sample.replace(tag,'') if tag is not None else sample)] = \
-                #pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl')
-                cls.data_dict[sample] = pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}{cls.tag}_val.pkl')
-            except:
-                pass
+        pool = Pool()
+        #
+        if byprocess:
+            pro_worker = partial(cls.pro_worker, pklDir=cls.pklDir, year=cls.year, tag=cls.tag)
+            results = pool.map(pro_worker, cls.mc_samples)
+            #results = map(pro_worker, cls.mc_samples)
+        else:
+            nom_worker = partial(cls.nom_worker, pklDir=cls.pklDir, year=cls.year, tag=cls.tag)
+            results = pool.map(nom_worker, cls.mc_samples)
+            #results = map(nom_worker, cls.mc_samples)
+        for result in results:
+            if result is None: continue
+            for k,v in result.items():
+                #print(k)
+                if k in cls.data_dict:
+                    cls.data_dict[k] = pd.concat([cls.data_dict[k],v], axis='rows', ignore_index=True)
+                else:
+                    cls.data_dict[k] = v
+        #
+        pool.close()
+        #print(cls.data_dict)
+            #for sample in cls.mc_samples:
+            #    try : 
+            #        #cls.data_dict[(sample.replace(tag,'') if tag is not None else sample)] = \
+            #            #pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl')
+            #        cls.data_dict[sample] = pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}{cls.tag}_val.pkl')
+            #    except:
+            #        pass
         #cls.data_dict = {(sample.replace(tag,'') if tag is not None else sample):
         #pd.read_pickle(f'{cls.pklDir}{year}/mc_files/{sample}_val.pkl') 
         #                 for sample in cls.mc_samples}
+    @staticmethod
+    def pro_worker(sample, pklDir=None, year=None, tag=None):
+        try:
+            df = pd.read_pickle(f'{pklDir}{year}/mc_files/{sample}{tag}_val.pkl')
+        except:
+            return None
+        group = df.groupby(by='process')
+        o_dict = {n:g for n,g in group}
+        return o_dict
+    @staticmethod
+    def nom_worker(sample, pklDir=None, year=None, tag=None):
+        try:
+            df = pd.read_pickle(f'{pklDir}{year}/mc_files/{sample}{tag}_val.pkl')  
+            return {sample:df}
+        except:
+            return None
+
 
 class StackedHist(Plotter) :
     #Creates stacked histograms
@@ -365,12 +438,12 @@ class StackedHist(Plotter) :
     def sortInputs(self):
         k_,h_,w_,i_,c_,l_ = self.retData
         # insert signal in first slot for stack plot
-        sig = np.argwhere(k_=='TTZH')
+        sig = np.argwhere((k_=='TTZH') | (k_ == 'ttHbb') | (k_ == 'ttZbb') | (k_ =='new_ttZbb') | (k_ == 'ttZ') | (k_ == 'ttH'))
         sigh, sigw, sigi, sigc, sigl = map(lambda x: x[sig], [h_,w_,i_,c_,l_])
         h_,w_,i_,c_,l_ = map(lambda x: np.delete(x,sig), [h_,w_,i_,c_,l_])
         #
         ind_ = np.argsort(i_)
-        h_,w_,i_,c_,l_ = [np.insert(x[ind_],0,y) 
+        h_,w_,i_,c_,l_ = [np.insert(x[ind_],0,y.flatten()) if len(x.shape) == 1 else np.insert(x[ind_],0,y,axis=0)
                           for x,y in zip([h_,w_,i_,c_,l_],[sigh, sigw, sigi, sigc, sigl])]
         return h_,w_,i_,c_,l_
 
