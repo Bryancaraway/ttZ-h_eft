@@ -8,7 +8,8 @@ import config.ana_cff as cfg
 #
 # add parsargs at some point for year, rundata, minibatch
 parser = argparse.ArgumentParser(description='Run analysis over many samples and years using batch system')
-parser.add_argument('-s', dest='samples', type=str, choices=cfg.All_MC+cfg.Data_samples+cfg.tt_sys_samples+['all','mc','data','tt','ttsys','ttbb','ttbbsys'], 
+parser.add_argument('-s', dest='samples', type=str, 
+                    choices=cfg.All_MC+cfg.Data_samples+cfg.tt_sys_samples+['all','mc','data','tt','ttsys','ttbb','ttbbsys']+cfg.Sig_EFT_MC, 
                     required=True, help='analyze all, mc only, or data only')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years+['all'],
                     required=True, help='year or all years')

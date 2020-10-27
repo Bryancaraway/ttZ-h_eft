@@ -14,11 +14,10 @@ def worker(step_str):
     nano_dir = '/cms/data/store/user/bcaraway/nanoAOD/'+f'{step_str}Processed/201*/*/'
     
     pro_files = glob(nano_dir)
-    
     for f in pro_files:
         roofiles = np.array(glob(f+'**/*.root', recursive=True))
         # check for duplicates by checking prod201\dMC_NANO_x this part and _x.root 
-        if step_str is 'post':
+        if step_str == 'post':
             roo_names = [roofile.split('/')[-1] for roofile in roofiles] # strips directory 
             prefix = re.findall(r'prod201\dMC_NANO_\d+' ,' '.join(roo_names)) 
             suffix = re.findall(r'_\d+.root' ,' '.join(roo_names))

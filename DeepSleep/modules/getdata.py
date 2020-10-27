@@ -159,14 +159,15 @@ class getData :
     #
     @t2Run
     def compute_ps_sc_weights(self):
-        sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight'])
+        sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight','LHEReweightingWeight'])
         #| Float_t LHE scale variation weights (w_var / w_nominal); [0] is renscfact=0.5d0 facscfact=0.5d0 ; [1] is renscfact=0.5d0 facscfact=1d0 ; [2] is renscfact=0.5d0 facscfact=2d0 ; 
         #                                                           [3] is renscfact=1d0   facscfact=0.5d0 ; [4] is renscfact=1d0   facscfact=1d0 ; [5] is renscfact=1d0   facscfact=2d0 ; 
         #                                                           [6] is renscfact=2d0   facscfact=0.5d0 ; [7] is renscfact=2d0   facscfact=1d0 ; [8] is renscfact=2d0   facscfact=2d0 
         #| Float_t PS weights (w_var / w_nominal); [0] is ISR=0.5 FSR=1; [1] is ISR=1 FSR=0.5; [2] is ISR=2 FSR=1; [3] is ISR=1 FSR=2 *
-        ps_w = sys_df.df['PSWeight'].pad(4).fillna(1)
-        sc_w = sys_df.df['LHEScaleWeight'].pad(9).fillna(1)
-        mc_w = sys_df.df['weight']
+        ps_w  = sys_df.df['PSWeight'].pad(4).fillna(1)
+        sc_w  = sys_df.df['LHEScaleWeight'].pad(9).fillna(1)
+        mc_w  = sys_df.df['weight']
+        eft_w = sys_df.df['LHEReweightingWeight'].pad(184).fillna(1)
         #
         df = pd.DataFrame()
         # TROUBLESHOOT WHICH SAMPLES HAVE SCALE WEIGHT, PSWEIGHT
@@ -182,7 +183,11 @@ class getData :
         df['mu_f_Down']  = sc_w[:,3]
         df['mu_rf_Up']   = sc_w[:,8]
         df['mu_rf_Down'] = sc_w[:,0]
+        #
+        for i in range(184):
+            df[f'EFT{i}'] = eft_w[:,i]
 
+        
         return df
         
     #
@@ -351,9 +356,11 @@ class getData :
             _dict = AnaDict({})
             for k in keys:
                 #print(k)
-                if cls.ana_vars[k] in cls.fj:
+                #if cls.ana_vars[k] in cls.fj:
+                try:
                     _dict[k] = cls.fj[cls.ana_vars[k]]
-                else: _dict[k] = cls.tarray(cls.ana_vars[k], executor=executor)
+                except: 
+                    _dict[k] = cls.tarray(cls.ana_vars[k], executor=executor)
             return _dict
 ##
 

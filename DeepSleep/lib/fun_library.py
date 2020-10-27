@@ -230,8 +230,8 @@ def clop_pear_ci(k,n,cl=0.68, return_error=False):
     lo = scipy.stats.beta.ppf(alpha/2, k, n-k+1)
     hi = scipy.stats.beta.ppf(1 - alpha/2, k+1, n-k)
     #lo, hi = map(np.nan_to_num,[lo, hi])
-    if return_error: return [np.nan_to_num(abs(lo-(k/n))), np.nan_to_num(abs(hi-(k/n)))]
-    return [np.nan_to_num(lo),np.nan_to_num(hi)]
+    if return_error: return [np.nan_to_num(abs(lo-(k/n))), np.nan_to_num(abs(hi-(k/n)), nan=1.)]
+    return [np.nan_to_num(lo),np.nan_to_num(hi, nan=1.)]
     
 
 def getLaLabel(str_):

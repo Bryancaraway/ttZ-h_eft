@@ -36,6 +36,7 @@ ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow',
 MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 Sig_MC            = [#'TTZH', 
                      'TTZ_bb','TTZ','TTH']
+Sig_EFT_MC        = ['TTH_EFT']
 Bkg_MC            = [#'QCD', 
     'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 All_MC            = ['TTZH', 'TTZ_bb', 'TTZ', 'TTH', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']

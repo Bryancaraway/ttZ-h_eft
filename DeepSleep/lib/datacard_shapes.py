@@ -48,14 +48,17 @@ class DataCardShapes():
             for i in range(1,len(self.pt_bins[:-1])):
                 sub_df = df[df['pt_bin'] == f'Zhpt{i}']
                 quantiles = np.linspace(0,1,self.n_NN_bins+1) # actual quantiles, 10% intervals
-                if self.isblind:
-                    nn_df = sub_df['NN'] 
-                else:
-                    nn_df = sub_df['NN'][sub_df['NN']<=0.7]
+                #if self.isblind:
+                nn_df = sub_df['NN'] 
+                #else:
+                #    nn_df = sub_df['NN'][sub_df['NN']<=1.7]
 
                 nn_bins = weighted_quantile(nn_df,
                                             quantiles, 
                                             getZhbbWeight(sub_df,y))
+                if self.isblind == False:
+                    nn_bins = nn_bins[:6]
+                nn_bins = nn_bins[1:] # drop first background dominated bin
                 print(nn_bins)
                 self.hist_dict[y][i] = functools.partial(
                     np.histogram2d,
