@@ -359,7 +359,7 @@ class MakeDataCard:
 
         self.histos = ShapeSystematic('UE',     'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
         #self.histos = ShapeSystematic('erdOn', 'shape',  ['TTBar'], 1) # not working with just one shape at the moment
-        self.histos = ShapeSystematic('hdamp', 'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
+        self.histos = ShapeSystematic('hdamp', 'shape', 'qconly', ['TTBar'], 1, extraQC=False).get_shape()
         self.histos = ShapeSystematic('hdamp_ttbb', 'shape', 'qconly', ['tt_bb', 'tt_2b'], 1, extraQC=True).get_shape()
         #
         self.write2dc(100*'-'+'\n')
@@ -519,7 +519,7 @@ class MakeDataCard:
 
     def initialize_datacard(self):
         # creat 3 data cards , 1 per year
-        dc_dict = {y: open(f'datacard_{self.tag}{y}.txt', 'w') for y in self.years}
+        dc_dict = {y: open(f'{self.dc_dir}/datacard_{self.tag}{y}.txt', 'w') for y in self.years}
         for y,txt in dc_dict.items():
             txt.writelines([
                 f'Datacard for {y}\n',
@@ -546,7 +546,7 @@ class MakeDataCard:
         # for this use case
         roo_dict = {}
         for y in self.years:
-            roo_name = f'datacard_{self.tag}{y}.root'
+            roo_name = f'{self.dc_dir}/datacard_{self.tag}{y}.root'
             if os.path.exists(roo_name):
                 os.system(f"rm {roo_name}")
             roo_dict[y] = uproot.create(roo_name) 

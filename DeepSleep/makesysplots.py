@@ -26,6 +26,7 @@ Script to grab all histograms from datacard root files
 and plot the effect of each systematic per process
 '''
 # globals
+dc_dir = 'Higgs-Combine-Tool'
 file_pre = 'datacard' # format file_pre_[year].txt/.root
 years    = ['2016','2017','2018']
 tag = '' if len(sys.argv) < 2 else sys.argv[1]+'_'
@@ -54,7 +55,7 @@ sys_mult = {'2016':
 def main():
     for y in years:
         print(y)
-        roofile = f'{file_pre}_{tag}{y}.root'
+        roofile = f'{dc_dir}/{file_pre}_{tag}{y}.root'
         with uproot.open(roofile) as roo:
             histos = {hist.decode().replace(';1',''):rHist(roo[hist]) for hist in roo} # store hist objects in dict
             #print(histos.keys()) # hist name format is ALWAYS bin_process_sys or bin_process (nominal)

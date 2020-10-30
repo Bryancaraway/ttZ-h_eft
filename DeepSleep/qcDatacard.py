@@ -201,7 +201,7 @@ class MakeQCDataCard(MakeDataCard):
 
     def initialize_datacard(self):
         # creat 3 data cards , 1 per year
-        dc_dict = {y: open(f'datacard_{self.tag}{y}.txt', 'w') for y in self.years}
+        dc_dict = {y: open(f'{self.dc_dir}/datacard_{self.tag}{y}.txt', 'w') for y in self.years}
         for y,txt in dc_dict.items():
             txt.writelines([
                 f'Datacard for {y}\n',

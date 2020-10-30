@@ -364,13 +364,17 @@ def t2Run(func):
 def save_pdf(pdf_name = 'dummy.pdf'):
     import matplotlib.backends.backend_pdf as matpdf 
     import matplotlib.pyplot as plt
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output(
+        'echo $(git rev-parse --show-cdup)',
+        shell=True).decode().strip('\n')+'DeepSleep/')
     def inner (func):
         def wrapper(*args,**kwargs):
-            pdf = matpdf.PdfPages(f"pdf/{pdf_name}")  
+            pdf = matpdf.PdfPages(f"{sys.path[1]}pdf/{pdf_name}")  
             func(*args, **kwargs) # doesnt return anything
             for fig_ in range(1, plt.gcf().number+1):
                 pdf.savefig( fig_ )
-            print(f"Saving figures to: pdf/{pdf_name}")
+            print(f"Saving figures to: {sys.path[1]}pdf/{pdf_name}")
             pdf.close()
             plt.close('all')
 
