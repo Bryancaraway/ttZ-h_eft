@@ -29,6 +29,7 @@ import config.process_norms as p_norms
 from lib.fun_library import weighted_quantile, getZhbbBaseCuts, getZhbbWeight, t2Run
 from lib.TH1 import export1d
 from lib.datacard_shapes import DataCardShapes
+from modules.eftParam import EFTParam
 #
 import uproot
 #import uproot_methods
@@ -144,6 +145,7 @@ class MakeDataCard:
         # add systematics to histos
         self.setup_Systematics()
         self.add_Systematics()
+        self.add_wcs()
         #print(self.histos.keys())
         if self.isblind:
             self.data_to_pdata()
@@ -370,6 +372,7 @@ class MakeDataCard:
         self.write2dc('# MC Stats uncertainties\n') 
         #self.histos = ShapeSystematic(f'mcstat','shape','mcstat', all_mc, 1).get_shape()
         self.write2dc('* autoMCStats 10 0  1\n') 
+        self.write2dc(100*'-'+'\n')
         #
 
     @t2Run
@@ -472,13 +475,22 @@ class MakeDataCard:
         self.write2dc('# MC Stats uncertainties\n') 
         #self.histos = ShapeSystematic(f'mcstat','shape','mcstat', all_mc, 1).get_shape()
         self.write2dc('#* autoMCStats 10 0  1\n') 
+        
         #
 
-        
+    def add_wcs(self):
+        eft = EFTParam()
+        for y in self.years:
+            dc_lines = eft.get_EFT_lines(year=y) # adds dc lines as an attribute to EFTParam class
+            self.writelines2dc(dc_lines, y)
 
     def write2dc(self, str2write):
         for y in self.years:
             self.dc_dict[y].write(str2write)
+    
+    def writelines2dc(self,lines,y): # by year
+        if lines: 
+            self.dc_dict[y].writelines(lines)
             
     def data_to_pdata(self):
         for y in self.years:
@@ -507,6 +519,7 @@ class MakeDataCard:
                 else:
                     to_flat = (lambda a : a[pt_bin,:,:].flatten())
                 temp_dict = {'sumw' : to_flat(v['sumw'])}#* (1 if y != '2017' else 3.3032)}#2.2967)} # to just scale to full run2
+                temp_dict = {'sumw' : to_flat(v['sumw'])* (1 if y != '2018' else cfg.Lumi['run2']/cfg.Lumi['2018'])} # to just scale to full run2
                 hist_name = f'Zhpt{pt_bin+1}_{process}{sys}'
                 if 'sumw2' in v:
                     temp_dict['sumw2'] = to_flat(v['sumw2'])
@@ -789,73 +802,11 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
                         down[:,:,i] = nom[:,:,i] * np.nansum(down[:,:,i])/np.nansum(nom[:,:,i])
                 self.histos[f'{process}_{y}_{self.name}Up']['sumw']   = up     # handle nan later
                 self.histos[f'{process}_{y}_{self.name}Down']['sumw'] = down   # handle nan later in TH1
-
-
-class DCParam :
-    '''
-    Handles different parameter types
-    to be added to datacard
-    '''    
-    datacard     = None
-    #
-    def __init__(self, name, param_type, process, i_val=None, sigma=None, up=None, down=None, write=True):
-        self.name       = name
-        self.param_type = param_type
-        self.process    = process
-        self.i_val      = i_val
-        self.sigma      = sigma
-        self.up         = up
-        self.down       = down
-        self.param_dict = {'param'    :self.get_param_line(),
-                           'flatParam':self.get_param_line(),
-                           'extArg'   :self.get_extarg_line(),
-                           'ratParam' :self.get_rateparam_line()
-        }
-        if write:  self.write_to_dc()
-    
-    @classmethod
-    def set_current_dc(cls, datacard):
-        cls.datacard = datacard
-    
-    def get_param_line(self):
-        _line = f'{self.name:8} {self.param_type:14} {self.i_val:14} {self.sigma:14}\n'
-        return _line
-    def get_extarg_line(self):
-        _line = f'{self.name:8} {self.param_type:14} {self.i_val:6} [{self.up},{self.down}]\n'
-        return _line
-    def get_rateparam_line(self):
-        _line = f'{self.name:8} {self.param_type:14} *\t {self.process:14} {self.i_val:6} [{self.up},{self.down}]\n'
-        return _line
-    def write_to_dc(self):
-        self.datacard.write(self.param_dict[self.param_type])
-
-class EFTParam(DCParam):
-    '''
-    Inheiriting DCParam class to handle the task
-    of adding relevent EFT parameter rates
-    including WC args, P Q R rates and 
-    overall EFT scale factor per gen bin
-    
-    Must specify ttH or ttZ
-    '''
-    
-    def __init__(self, sig_type):
-        self.sig_type = sig_type
-        self.pqr_df   = pd.from_pickle('pqr_df.pkl')
-        self.wc_range = pd.from_pickle('wc_minmax_df.pkl')
-        self.datacard = super().datacard
-        # add WC ext args using DCParam class
-        # then take care of ther remaining 55 parameters, 1 SM, 9 Q, 45 P
-
-    def add_WC_to_DC(self):
-        #dcparam = super().__init__(args go here for WC, get WC from df)
-        pass
-        
         
                 
 if __name__ == '__main__':
     #
     # initialize datacard making process
-    hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=False) # syntax np2d[year][ith_ptbin]
+    hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=True) # syntax np2d[year][ith_ptbin]
     MakeDataCard(isblind=isblind).makeDC()
 
