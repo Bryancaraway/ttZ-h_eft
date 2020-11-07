@@ -481,7 +481,7 @@ class MakeDataCard:
     def add_wcs(self):
         eft = EFTParam()
         for y in self.years:
-            dc_lines = eft.get_EFT_lines(year=y) # adds dc lines as an attribute to EFTParam class
+            dc_lines = eft.get_EFT_lines(year='2018') # adds dc lines as an attribute to EFTParam class # add 2018 calc to all dc
             self.writelines2dc(dc_lines, y)
 
     def write2dc(self, str2write):
@@ -519,7 +519,7 @@ class MakeDataCard:
                 else:
                     to_flat = (lambda a : a[pt_bin,:,:].flatten())
                 temp_dict = {'sumw' : to_flat(v['sumw'])}#* (1 if y != '2017' else 3.3032)}#2.2967)} # to just scale to full run2
-                temp_dict = {'sumw' : to_flat(v['sumw'])* (1 if y != '2018' else cfg.Lumi['run2']/cfg.Lumi['2018'])} # to just scale to full run2
+                #temp_dict = {'sumw' : to_flat(v['sumw'])* (1 if y != '2018' else cfg.Lumi['run2']/cfg.Lumi['2018'])} # to just scale to full run2
                 hist_name = f'Zhpt{pt_bin+1}_{process}{sys}'
                 if 'sumw2' in v:
                     temp_dict['sumw2'] = to_flat(v['sumw2'])
