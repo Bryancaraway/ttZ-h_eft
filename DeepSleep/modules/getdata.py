@@ -159,7 +159,8 @@ class getData :
     #
     @t2Run
     def compute_ps_sc_weights(self):
-        sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight','LHEReweightingWeight'])
+        sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight'])
+        #sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight','LHEReweightingWeight'])
         #| Float_t LHE scale variation weights (w_var / w_nominal); [0] is renscfact=0.5d0 facscfact=0.5d0 ; [1] is renscfact=0.5d0 facscfact=1d0 ; [2] is renscfact=0.5d0 facscfact=2d0 ; 
         #                                                           [3] is renscfact=1d0   facscfact=0.5d0 ; [4] is renscfact=1d0   facscfact=1d0 ; [5] is renscfact=1d0   facscfact=2d0 ; 
         #                                                           [6] is renscfact=2d0   facscfact=0.5d0 ; [7] is renscfact=2d0   facscfact=1d0 ; [8] is renscfact=2d0   facscfact=2d0 
@@ -167,10 +168,9 @@ class getData :
         ps_w  = sys_df.df['PSWeight'].pad(4).fillna(1)
         sc_w  = sys_df.df['LHEScaleWeight'].pad(9).fillna(1)
         mc_w  = sys_df.df['weight']
-        eft_w = sys_df.df['LHEReweightingWeight'].pad(184).fillna(1)
+        #eft_w = sys_df.df['LHEReweightingWeight'].pad(184).fillna(1)
         #
         df = pd.DataFrame()
-        # TROUBLESHOOT WHICH SAMPLES HAVE SCALE WEIGHT, PSWEIGHT
 
         df['ISR_Up']   = ps_w[:,2]
         df['ISR_Down'] = ps_w[:,0]
@@ -184,8 +184,11 @@ class getData :
         df['mu_rf_Up']   = sc_w[:,8]
         df['mu_rf_Down'] = sc_w[:,0]
         #
-        for i in range(184):
-            df[f'EFT{i}'] = eft_w[:,i]
+        if 'EFT' in self.sample:
+            eft_df = self.DF_Container('other','EFT_weights',['LHEReweightingWeight'])
+            eft_w = eft_df.df['LHEReweightingWeight'].pad(184).fillna(1)
+            for i in range(184):
+                df[f'EFT{i}'] = eft_w[:,i]
 
         
         return df

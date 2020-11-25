@@ -51,6 +51,7 @@ isblind = False # this is still "blinded" if true, uses NN score  up to .7
 #
 pt_bins  = [0,200,300,450]
 sdM_bins = [50,80,105,145,200]
+
 #[50, 75, 85, 100, 110, 120, 135, 150, 200]
 #hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=isblind) # syntax np2d[year][ith_ptbin]
 #
@@ -74,6 +75,7 @@ def get_sumw_sumw2(df, weights, year):
 
     return sumw, sumw2
 #
+
 
 class MakeDataCard:
     '''
@@ -145,7 +147,7 @@ class MakeDataCard:
         # add systematics to histos
         self.setup_Systematics()
         self.add_Systematics()
-        self.add_wcs()
+        #self.add_wcs()
         #print(self.histos.keys())
         if self.isblind:
             self.data_to_pdata()
@@ -335,9 +337,9 @@ class MakeDataCard:
         #
         self.histos = ShapeSystematic(f'pref_2016', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'pref_2017', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
-        self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down').get_shape()
+        #self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down').get_shape() # obsolete now i think (theo driven)
         self.histos = ShapeSystematic(f'isr', 'shape', 'ps', ['TTBar'], 1, 'ISR_Up','ISR_Down').get_shape()
-        self.histos = ShapeSystematic(f'fsr', 'shape', 'ps', ['TTBar'], 1, 'FSR_Up','FSR_Down', extraQC=False).get_shape()
+        self.histos = ShapeSystematic(f'fsr', 'shape', 'ps', ['TTBar'], 1, 'FSR_Up','FSR_Down', extraQC=True).get_shape()
         #self.histos = ShapeSystematic(f'mu_r', 'shape', 'normup/down', all_but_ttbb, 1, 'mu_r_Up','mu_r_Down').get_shape()
         #self.histos = ShapeSystematic(f'mu_f', 'shape', 'normup/down', all_but_ttbb, 1, 'mu_f_Up','mu_f_Down').get_shape()
         self.histos = ShapeSystematic(f'mu_r_tt', 'shape', 'normup/down', ['TTBar'], 1, 'mu_r_Up','mu_r_Down').get_shape()
@@ -347,7 +349,7 @@ class MakeDataCard:
         self.histos = ShapeSystematic(f'mu_r_ttz', 'shape', 'normup/down', ttz_sig, 1, 'mu_r_Up','mu_r_Down').get_shape()
         self.histos = ShapeSystematic(f'mu_f_ttz', 'shape', 'normup/down', ttz_sig, 1, 'mu_f_Up','mu_f_Down').get_shape()
         self.histos = ShapeSystematic(f'isr_ttbb', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'ISR_Up','ISR_Down').get_shape()
-        self.histos = ShapeSystematic(f'fsr_ttbb', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'FSR_Up','FSR_Down', extraQC=False).get_shape()
+        self.histos = ShapeSystematic(f'fsr_ttbb', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'FSR_Up','FSR_Down', extraQC=True).get_shape()
         self.histos = ShapeSystematic(f'mu_r_ttbb', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_r_Up','mu_r_Down').get_shape()
         self.histos = ShapeSystematic(f'mu_f_ttbb', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_f_Up','mu_f_Down').get_shape()
         # redundant #self.histos = ShapeSystematic(f'mu_rf', 'shape', 'normup/down', all_mc, 1, 'mu_rf_Up','mu_rf_Down').get_shape()
@@ -361,7 +363,7 @@ class MakeDataCard:
 
         self.histos = ShapeSystematic('UE',     'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
         #self.histos = ShapeSystematic('erdOn', 'shape',  ['TTBar'], 1) # not working with just one shape at the moment
-        self.histos = ShapeSystematic('hdamp', 'shape', 'qconly', ['TTBar'], 1, extraQC=False).get_shape()
+        self.histos = ShapeSystematic('hdamp', 'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
         self.histos = ShapeSystematic('hdamp_ttbb', 'shape', 'qconly', ['tt_bb', 'tt_2b'], 1, extraQC=True).get_shape()
         #
         self.write2dc(100*'-'+'\n')
@@ -431,7 +433,7 @@ class MakeDataCard:
             self.histos = ShapeSystematic(f'ak8JER_{y}', 'shape', 'qconly', all_mc, 1,    extraQC=True).get_shape()
             self.histos = ShapeSystematic(f'ak8JES_{y}', 'shape', 'qconly', all_mc, 1,    extraQC=True).get_shape() 
 
-            self.histos = ShapeSystematic(f'toppt_{y}', 'shape', 'up/down', ttbar_mc, 1, 'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down').get_shape()
+            #self.histos = ShapeSystematic(f'toppt_{y}', 'shape', 'up/down', ttbar_mc, 1, 'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down').get_shape()
             self.histos = ShapeSystematic(f'isr_{y}', 'shape', 'ps', ['TTBar'], 1, 'ISR_Up','ISR_Down').get_shape()
             self.histos = ShapeSystematic(f'fsr_{y}', 'shape', 'ps', ['TTBar'], 1, 'FSR_Up','FSR_Down', extraQC=False).get_shape()
             #self.histos = ShapeSystematic(f'mu_r', 'shape', 'normup/down', all_but_ttbb, 1, 'mu_r_Up','mu_r_Down').get_shape()
@@ -791,12 +793,14 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
                 down = np.float64(self.histos[f'{process}_{y}_{self.name}Down']['sumw'])
                 #
                 # shape (3, 4, 4) pt,nn,sdm
-                if 'JES' in self.name or 'JEC' in self.name:
+
+                #if 'JES' in self.name or 'JEC' in self.name: # sum across NN per pt,sdM
+                if False:
                     for i in range(nom.shape[-1]): # for sdM
                         for j in range(nom.shape[0]): # for pt
                             up[j,:,i]   = nom[j,:,i] * np.nansum(up[j,:,i])/np.nansum(nom[j,:,i])
                             down[j,:,i] = nom[j,:,i] * np.nansum(down[j,:,i])/np.nansum(nom[j,:,i])
-                else: # dedicated sample sys
+                else: # dedicated sample sys, # sum across pt and NN
                     for i in range(nom.shape[-1]):
                         up[:,:,i]   = nom[:,:,i] * np.nansum(up[:,:,i])/np.nansum(nom[:,:,i])
                         down[:,:,i] = nom[:,:,i] * np.nansum(down[:,:,i])/np.nansum(nom[:,:,i])

@@ -85,20 +85,29 @@ class PostFit:
                 self.fig.suptitle(pt)
                 self.make_pulls(pt)
         if self.doPull:
+            pass
             self.plot_1dpulls()
 
     def plot_1dpulls(self):
-        plt.close('all')
+        #plt.close('all')
         print(self.year)
         print(len(self.pulls))
         print(self.pulls[abs(self.pulls)>3].flatten())
         fig, ax = plt.subplots(1,1)
-        ax.hist(abs(self.pulls.flatten()), bins=[0,1,2,3,4])#bins=[-4,-3,-2,-1,1,2,3,4])
+        ax.hist(self.pulls.flatten(), 
+                bins=[-4,-3.5,-3.0,-2.5,-2.0,-1.25,-0.75,-0.25,
+                      0.25,0.75,1.25,2.0,2.5,3,3.5,4])#[-4,-3,-2,-1,1,2,3,4])
+                #bins=[0,1,2,3,4])
+        print('mean:',self.pulls.flatten())
+        print('mean:',np.nanmean(self.pulls.flatten()))
+        print('std:',np.nanstd(self.pulls.flatten()))
+        ax.text(x=1,y=30,
+                s=f'Mean: {np.nanmean(self.pulls.flatten()):.3}\nStd.: {np.nanstd(self.pulls.flatten()):.3}')
         ax.set_xlabel('Pull')
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         ax.grid(True)
         fig.suptitle(f'Pulls in {self.year}')
-        plt.show()
+        #plt.show()
     #
     def init_axes(self):
         # init fig and four axes

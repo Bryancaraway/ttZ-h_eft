@@ -50,8 +50,9 @@ class EFTFitParams():
     sig     = ['ttZ','ttH']
     pt_bins = [0,200,300,450,500] # clip at 500
     
-    def __init__(self, aux='aux_eftv1.pkl'):
-        self.aux_df = pd.read_pickle(f'{self.aux_dir}{aux}')
+    def __init__(self):
+        # seperate aux for different signals
+        self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}/aux_eft_{s.upper()}.pkl') for s in self.sig }
         self.__worker()
 
     def __worker(self):
@@ -63,30 +64,31 @@ class EFTFitParams():
                 df = pd.read_pickle(f'{self.file_dir}{y}/{self.mc_dir}{s.upper()}_EFT_val.pkl').filter( regex="EFT|genZHpt|NN", axis='columns')
                 df['pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]-1), bins=self.pt_bins,
                                       labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
-                df = self.calcBeta(df[df['NN']>=0.0])
+                df = self.calcBeta(df[df['NN']>=0.0], s)
                 # store SM normalized PQR parameters per
                 self.eft_df[y][s] = {f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index')
                                      for i in range(len(self.pt_bins)-1)}
             #
         #
 
-    def calcBeta(self,df):
-         # taken from Jon's code  
-         # Build the experiment matrix
-         _x =[np.ones(len(self.aux_df.index.values))]
-         beta_cols = ['SM']
-         for i in range(len(self.aux_df.columns.values)):
-             for j in range(i+1):
-                 _x.append(self.aux_df.iloc[:,i].values * self.aux_df.iloc[:,j].values)
-                 beta_cols.append(f'{self.aux_df.columns.values[i]}_{self.aux_df.columns.values[j]}')
-             _x.append(self.aux_df.iloc[:,i].values)
-             beta_cols.append(f'{self.aux_df.columns.values[i]}')
-         _x = np.matrix(_x).T
-         # Build the result matrix y
-         _y = np.asmatrix(df.filter(regex=r'EFT').to_numpy()).T
-         # Compute beta matrix
-         beta = ((_x.T * _x).I * _x.T * _y).A
-         return pd.concat([df.reset_index(),pd.DataFrame(data = beta.T, columns=beta_cols)], axis='columns')
+    def calcBeta(self,df, sig):
+        # taken from Jon's code  
+        # Build the experiment matrix
+        aux_df = self.aux_df[sig]
+        _x =[np.ones(len(aux_df.index.values))]
+        beta_cols = ['SM']
+        for i in range(len(aux_df.columns.values)):
+            for j in range(i+1):
+                _x.append(aux_df.iloc[:,i].values * aux_df.iloc[:,j].values)
+                beta_cols.append(f'{aux_df.columns.values[i]}_{aux_df.columns.values[j]}')
+            _x.append(aux_df.iloc[:,i].values)
+            beta_cols.append(f'{aux_df.columns.values[i]}')
+        _x = np.matrix(_x).T
+        # Build the result matrix y
+        _y = np.asmatrix(df.filter(regex=r'EFT').to_numpy()).T
+        # Compute beta matrix
+        beta = ((_x.T * _x).I * _x.T * _y).A
+        return pd.concat([df.reset_index(),pd.DataFrame(data = beta.T, columns=beta_cols)], axis='columns')
 
 
 class EFTParam():
@@ -99,6 +101,24 @@ class EFTParam():
     Must specify ttH or ttZ
     '''
     aux_dir = 'data/EFT'
+    out_dict = {}
+    wc_range = {'cQei' :[-200,200],
+                'cQl3i':[-200,200],
+                'cQlMi':[-200,200],
+                'cbW'  :[-10,10],
+                'cpQ3' :[-20,22],
+                'cpQM' :[-30,50],
+                'cpt'  :[-40,40],
+                'cptb' :[-40,40],
+                'ctG'  :[-3,3],
+                'ctW'  :[-6,6],
+                'ctZ'  :[-7,7],
+                'ctei' :[-200,200],
+                'ctlSi':[-200,200],
+                'ctlTi':[-200,200],
+                'ctli' :[-200,200],
+                'ctp'  :[-35,65]}
+
 
     def __init__(self):
         #
@@ -115,12 +135,12 @@ class EFTParam():
                     if 'SM' in c: continue 
                     add_lines.append(f'{p}_{year}_{c} extArg {np.float32(df[c])}')
                 # 
-                wc = sorted(set(re.findall(r'c[a-zA-Z]+', ' '.join(df.keys()))))
-                self.eft_form(p, year, add_lines, wc)
+                wc = sorted(set(re.findall(r'c[a-zA-Z3]+', ' '.join(df.keys()))))
+                self.eft_formula(p, year, add_lines, wc)
                 # if first iteration, first take care of WC flatParams
                 if self.wc is None : 
                     self.wc = wc
-                    add_lines = [f'{w} param 0 10' for w in wc] + [f'{w} flatParam' for w in wc] + add_lines
+                    add_lines = [f'{w} param 0 {self.wc_range[w][1]}' for w in wc] + [f'{w} flatParam' for w in wc] + add_lines
                 # add \n to the end of each line
                 add_lines = [l+' \n' for l in add_lines]
                 dc_lines += add_lines
@@ -129,7 +149,7 @@ class EFTParam():
         return dc_lines
         #
 
-    def eft_form(self, p, y, lines, wc): 
+    def eft_formula(self, p, y, lines, wc): 
         wc_index = OrderedDict({w: i for i,w in enumerate(wc)})
         o_str = f'CMS_EFT_{p}_{y} rateParam * {p} '
         f_str = ''
@@ -137,9 +157,15 @@ class EFTParam():
         a_str = ','.join(wc_index.keys())
         for l in lines:
             if '#' in l: continue
-            wc2add = re.findall(r'c[a-zA-Z]+',l)
-            f_str  += f'@{f_index}'
-            a_str  += f",{l.split()[0]}"
+            f_str  += f'{l.split()[-1]}'
+            # special format for parameter values
+            #pq_val = l.split()[-1]
+            #f_str += re.search('\d+\.\d{5}',pq_val).group() + (re.search(r'e.*',pq_val).group() if 'e' in pq_val else '')
+            #
+            #f_str  += f'@{f_index}'
+            #a_str  += f",{l.split()[-1]}"
+            #a_str  += f",{l.split()[0]}"
+            wc2add = re.findall(r'c[a-zA-Z3]+',l)
             for w in wc2add:
                 f_str += f'*@{wc_index[w]}'
             f_str +='+'
@@ -148,13 +174,42 @@ class EFTParam():
         #
         o_str += f'({f_str}1.0) {a_str}'
         lines.append(o_str)
-        
+
+    def save_to_dict(self, year=None, pt_bins=[1,2,3], force_year=None): # construct dictionary based on datacard channels
+        if force_year is None: force_year = year
+        self.wc = None
+        out_dict  = {}
+        for k in self.eft_fit[force_year]: # (ttZ,ttH)
+            for p,df in self.eft_fit[force_year][k].items(): # (ttZ0,ttZ1,ttZ2,ttZ3)
+                wc_dict = {}
+                for wc in df.keys():
+                    pqr = wc.split('_')
+                    if len(pqr) > 1:
+                        wc_dict[tuple(pqr)] = df[wc]
+                    elif 'SM' in wc:
+                        wc_dict[('sm','sm')] = df[wc]
+                    else:
+                        wc_dict[('sm',wc)] = df[wc]
+                for pt in pt_bins:
+                    out_dict[(p,f'y{year}_Zhpt{pt}')] = wc_dict
+        self.out_dict.update(out_dict)
+                    
+
 
 if __name__ == '__main__':
     eft = EFTParam()
-    dc_lines = eft.get_EFT_lines(year='2018')
-    print(dc_lines)
-    dc_lines = eft.get_EFT_lines(year='2017')
-    print('here')
-    print(dc_lines)
+    eft.save_to_dict(year='2016', force_year='2018')
+    eft.save_to_dict(year='2017', force_year='2018')
+    eft.save_to_dict(year='2018', force_year='2018')
+    import pickle
+    #np.save(sys.path[1]+'Higgs-Combine-Tool/EFT_Parameterization_v1.npy', eft.out_dict, allow_pickle=True, fix_imports=True) # save to Higgs-Combine-Tool dir
+    out_path = sys.path[1]+'Higgs-Combine-Tool/'
+    out_file = 'EFT_Parameterization_v1.npy'
+    pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
+    
+    #dc_lines = eft.get_EFT_lines(year='2018')
+    #print(dc_lines)
+    #dc_lines = eft.get_EFT_lines(year='2017')
+    #print('here')
+    #print(dc_lines)
     

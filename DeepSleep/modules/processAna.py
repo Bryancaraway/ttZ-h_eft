@@ -133,8 +133,8 @@ class processAna :
             self.val_df['tt_type'] = 'Had'
         # match tt or ttZ/h gen particles to recontructed objects
         g = 'GenPart_' 
-        gen_ids, gen_mom, gen_st, gen_pt, gen_eta, gen_phi, gentt_bb = self.gen_df.loc(
-            [g+'pdgId',g+'genPartIdxMother',g+'status',g+'pt',g+'eta',g+'phi', 'genTtbarId']
+        gen_ids, gen_mom, gen_st, gen_pt, gen_eta, gen_phi, gen_mass, gentt_bb = self.gen_df.loc(
+            [g+'pdgId',g+'genPartIdxMother',g+'status',g+'pt',g+'eta',g+'phi', g+'mass', 'genTtbarId']
         ).values()
         rZh_eta = self.val_df['Zh_eta'].values
         rZh_phi = self.val_df['Zh_phi'].values
@@ -156,10 +156,22 @@ class processAna :
         print('tt+b', sum(is_tt_b))
         print('tt+2b', sum(is_tt_2b))
         print('tt+bb', sum(is_tt_bb))
+        # calc invM of extra bb
+        if 'bb' in self.sample:
+            ext_bb = (lambda c: c[(gen_mom <= 0) & (abs(gen_ids) == 5)])#[((gen_mom <= 0) & (abs(gen_ids) == 5)).sum() == 2])
+            getTLVm = TLorentzVectorArray.from_ptetaphim
+            b1 = getTLVm(*map((lambda b: b.pad(2)[:,0]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+            b2 = getTLVm(*map((lambda b: b.pad(2)[:,1]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+            self.val_df['invm_genbb'] = (b1+b2).mass
+        #
         # calculate toppt weight for powheg only
         if 'pow' in self.sample:
             tt_pt = gen_pt[(abs(gen_ids) == 6)]
-            wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800)))
+            ##wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800))) # old data driven re-weighting
+
+            # Using the newer theo (NNLO QCD + NLO EW) corrections which is better for BSM analysis aspects
+            wgt = (lambda x: 0.103*np.exp(-0.0118*np.clip(x,0,np.inf)) - 0.000134*np.clip(x,0,np.inf) + 0.973) #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Case_3_3_The_Effective_Field_The
+
             #toppt_sys = AnaDict.read_pickle(f'{self.outDir}toppt_sys_files/toppt_sys.pkl')
             toppt_sys = AnaDict.read_pickle(f'{self.dataDir}toppt_sys_files/toppt_sys.pkl')
             up_, dn_ = toppt_sys['topPt_up'], toppt_sys['topPt_dn']

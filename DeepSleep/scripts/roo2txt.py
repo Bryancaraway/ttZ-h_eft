@@ -40,7 +40,8 @@ def worker(step_str):
         f2strip = f.split('_')[-1]
         year = re.search('/201\d/', f).group().strip('/')
         #
-        format_map = {'pre' : f.replace(f2strip,'')+year+'.txt',
+        format_map = {#'pre' : f.replace(f2strip,'')+year+'.txt',
+                      'pre' : f.rstrip(f2strip)+year+'.txt',
                       'post': f.rstrip('/')+'.txt'}
         #
         txt_name = format_map[step_str]

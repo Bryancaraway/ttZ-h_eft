@@ -19,7 +19,7 @@ for y in cfg.Years:
     #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
     Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
     ''' LOOK AT STACKED DATA VS MC '''
-    #StackedHist(processes,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=False, addData=True)  
+    StackedHist(processes,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=False, addData=True)  
     #StackedHist(cfg.MC_pow,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=True, addData=True)  
         #
     #StackedHist(processes,    'Zh_M', bin_range=[25,225],  bins=[50,80,105,145,200],  doCuts=False, addData=True)  
