@@ -57,7 +57,7 @@ class DataCardShapes():
                                             quantiles, 
                                             getZhbbWeight(sub_df,y))
                 if self.isblind == False:
-                    nn_bins = nn_bins[:6]
+                    nn_bins = nn_bins[:8] # first 4 bins to first 6
                 nn_bins = nn_bins[1:] # drop first background dominated bin
                 print(nn_bins)
                 self.hist_dict[y][i] = functools.partial(

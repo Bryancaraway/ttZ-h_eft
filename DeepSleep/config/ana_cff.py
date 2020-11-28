@@ -173,7 +173,7 @@ BC_btag_sf = {'2016': {'values': [1.0, 1.0, 0.94241418, 0.98314421, 1.05133896, 
     
 
 ana_vars = {
-    'ak4vars'    : ['Jet_btagDeepB'+LC, 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
+    'ak4vars'    : ['Jet_btagDeepB'+LC,],# 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
     'ak4lvec'    : {'TLV'         :['JetTLV'+LC],
                     'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
                     'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass'],
@@ -198,7 +198,9 @@ ana_vars = {
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother', # these are MC only
                     'genTtbarId'], # event level identifier for ttbar+bb
     'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
-    'valvars'    : ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
+    'valvars'    : ['nJets30'+LC, 'nBottoms'+LC, 
+                    #'nSoftBottoms'+LC,
+                    #'nResolvedTops'+LC,'nMergedTops'+LC,
                     'passSingleLepElec', 'passSingleLepMu',
                     'MET_phi', 'MET_pt', #'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',

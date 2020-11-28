@@ -19,10 +19,10 @@ for y in cfg.Years:
     #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
     Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
     ''' LOOK AT STACKED DATA VS MC '''
-    StackedHist(processes,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=False, addData=True)  
+    StackedHist(processes,    'Zh_pt', xlabel=r'Z/H $p_{T}$ (GeV)', bin_range=[200,550],  bins=[200,300,450,550],  doCuts=True, addData=True)  
     #StackedHist(cfg.MC_pow,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=True, addData=True)  
         #
-    #StackedHist(processes,    'Zh_M', bin_range=[25,225],  bins=[50,80,105,145,200],  doCuts=False, addData=True)  
+    StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200],  doCuts=True, addData=True)  
         #StackedHist(cfg.MC_pow,    'Zh_M', bin_range=[0,250],  n_bins=20,  doCuts=True, addData=True)  
         #
         #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, addData=True)  
@@ -41,7 +41,7 @@ for y in cfg.Years:
 
     #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8', sepGenOpt='sepGenBkg;--', doCuts=True, addData=True)  
 
-    StackedHist(processes,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8',  doCuts=True, addData=True)  
+    #StackedHist(processes,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8',  doCuts=True, addData=True)  
 
     #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80;Zh_pt>=300;Zh_pt<450;Zh_M>=105;Zh_M<145', add_d_cuts='NN<=0.8', sepGenOpt='sepGenBkg;--', doCuts=True, addData=True)  
 

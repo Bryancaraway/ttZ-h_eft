@@ -248,7 +248,12 @@ class getData :
             try:
                 df = type_indexer[self.var_type](self.variables)
             except KeyError:
-                raise KeyError(f"At least one variable not found:{self.variables} \n Name '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
+                for v in self.variables:
+                    try:
+                        _ = self.build_dict([v])
+                    except KeyError:
+                        raise KeyError(f"Variable '{v}' is not found in TTree!!!")
+                raise KeyError(f"Name '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
             return df
             
         def apply_event_mask(self,df):

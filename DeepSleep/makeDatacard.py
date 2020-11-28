@@ -86,10 +86,10 @@ class MakeDataCard:
     file_dir = './files/'
     #
     pt_bins = [0,200,300,450] # [200,300,400]
-    #print(pt_bins[1:])
-    #pt_bin_dict = {'200':'lopt', '300':'hipt'}
+    
     dc_dir = 'Higgs-Combine-Tool'
-    #output_rootfile = 'input_'+str(pt_bins[-1])+'inc.root'
+    eft_out_file = 'EFT_Parameterization_v3.npy' # update this if settings are changed
+    
     tag = '' if len(sys.argv) < 2 else sys.argv[1]+'_'
     #sig and bkg variables
     weights = ['weight','genWeight','Stop0l_topptWeight', #'SAT_HEMVetoWeight_drLeptonCleaned',
@@ -147,8 +147,10 @@ class MakeDataCard:
         # add systematics to histos
         self.setup_Systematics()
         self.add_Systematics()
-        #self.add_wcs()
-        #print(self.histos.keys())
+        # make eft param file is needed
+        self.make_eftparam_file()
+        #self.add_wcs() # antiquated, adds eft params directly to datacard
+        #
         if self.isblind:
             self.data_to_pdata()
         self.fill_roofile()
@@ -337,7 +339,7 @@ class MakeDataCard:
         #
         self.histos = ShapeSystematic(f'pref_2016', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'pref_2017', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
-        #self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down').get_shape() # obsolete now i think (theo driven)
+        self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down').get_shape() # using hacky unc.
         self.histos = ShapeSystematic(f'isr', 'shape', 'ps', ['TTBar'], 1, 'ISR_Up','ISR_Down').get_shape()
         self.histos = ShapeSystematic(f'fsr', 'shape', 'ps', ['TTBar'], 1, 'FSR_Up','FSR_Down', extraQC=True).get_shape()
         #self.histos = ShapeSystematic(f'mu_r', 'shape', 'normup/down', all_but_ttbb, 1, 'mu_r_Up','mu_r_Down').get_shape()
@@ -479,6 +481,17 @@ class MakeDataCard:
         self.write2dc('#* autoMCStats 10 0  1\n') 
         
         #
+
+    def make_eftparam_file(self):
+        out_path = sys.path[1]+'Higgs-Combine-Tool/'
+        out_file = self.eft_out_file #'EFT_Parameterization_v2.npy' # manually change this 
+        if os.path.exists(out_path+out_file): return
+        eft = EFTParam()
+        eft.save_to_dict(year='2016', force_year='2016')
+        eft.save_to_dict(year='2017', force_year='2017')
+        eft.save_to_dict(year='2018', force_year='2018')
+        import pickle
+        pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2)
 
     def add_wcs(self):
         eft = EFTParam()

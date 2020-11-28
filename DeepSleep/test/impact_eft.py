@@ -33,7 +33,7 @@ class main():
     sig_p   = ['ttH','ttZ']
     #
     f_dir   = f'{sys.path[1]}/Higgs-Combine-Tool/'
-    fit_f   = 'EFT_Parameterization_v1.npy' 
+    fit_f   = 'EFT_Parameterization_v2.npy' 
     fit     = np.load(f_dir+fit_f, allow_pickle=True)
 
     wc_ranges = { 
@@ -64,6 +64,7 @@ class main():
             for wc, r in self.wc_ranges.items():
                 dummy_key = f'y{y}_Zhpt1'
                 self.worker(wc, r, dummy_key)
+                self.plot_slopes(wc, r, dummy_key)
                 
     
     def worker(self, wc, r, d_k):
@@ -86,8 +87,10 @@ class main():
                         where='post', label=f'{wc} {_r}')
         #
         self.endPlt(axs[1],'ttH')
-        #
         fig.suptitle(f'{wc} 2$\sigma$ Effects')
+        #
+
+    def plot_slopes(self,  wc, r, d_k):
         # now make linear vs quad impacts per wc, using linear regression ot get the slope of the distribution
         fig, axs = self.initPlt()
         tth_i = np.array([[self.get_eftnorm_v1(k=(f'ttH{i}',d_k),pqr=pqr, v=wc_v) for i in self.pt_bins] for wc_v in np.linspace(r[0],r[1], 20+1)])
@@ -108,6 +111,7 @@ class main():
         #
         fig.suptitle(rf'Lin. regression slope of diff. $p_T$ impact vs. {wc}')
         #exit()
+
     def initPlt(self):
         fig, axs = plt.subplots(1,2, sharey=True)
         fig.subplots_adjust(

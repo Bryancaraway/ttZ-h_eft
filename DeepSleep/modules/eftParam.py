@@ -58,13 +58,15 @@ class EFTFitParams():
     def __worker(self):
         # assemble eft_df dictionary here by year, signal process, and genZHpt bin
         self.eft_df = {y:{s:{} for s in self.sig} for y in self.years} 
+        cut_for_fit = (lambda x: ((x['NN']>=0.0) & (x['EFT183'] < 100)) )
         for y in self.years:
             for s in self.sig:
                 if not os.path.exists(f'{self.file_dir}{y}/{self.mc_dir}{s.upper()}_EFT_val.pkl'): continue
                 df = pd.read_pickle(f'{self.file_dir}{y}/{self.mc_dir}{s.upper()}_EFT_val.pkl').filter( regex="EFT|genZHpt|NN", axis='columns')
                 df['pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]-1), bins=self.pt_bins,
                                       labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
-                df = self.calcBeta(df[df['NN']>=0.0], s)
+                #df = self.calcBeta(df[df['NN']>=0.0], s)
+                df = self.calcBeta(df[cut_for_fit(df)], s)
                 # store SM normalized PQR parameters per
                 self.eft_df[y][s] = {f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index')
                                      for i in range(len(self.pt_bins)-1)}
@@ -204,7 +206,7 @@ if __name__ == '__main__':
     import pickle
     #np.save(sys.path[1]+'Higgs-Combine-Tool/EFT_Parameterization_v1.npy', eft.out_dict, allow_pickle=True, fix_imports=True) # save to Higgs-Combine-Tool dir
     out_path = sys.path[1]+'Higgs-Combine-Tool/'
-    out_file = 'EFT_Parameterization_v1.npy'
+    out_file = 'EFT_Parameterization_v2.npy'
     pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
     
     #dc_lines = eft.get_EFT_lines(year='2018')

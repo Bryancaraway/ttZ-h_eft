@@ -170,16 +170,26 @@ class processAna :
             ##wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800))) # old data driven re-weighting
 
             # Using the newer theo (NNLO QCD + NLO EW) corrections which is better for BSM analysis aspects
-            wgt = (lambda x: 0.103*np.exp(-0.0118*np.clip(x,0,np.inf)) - 0.000134*np.clip(x,0,np.inf) + 0.973) #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Case_3_3_The_Effective_Field_The
+            sf = (lambda x: 0.103*np.exp(-0.0118*np.clip(x,0,np.inf)) - 0.000134*np.clip(x,0,np.inf) + 0.973) #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Case_3_3_The_Effective_Field_The
 
-            #toppt_sys = AnaDict.read_pickle(f'{self.outDir}toppt_sys_files/toppt_sys.pkl')
-            toppt_sys = AnaDict.read_pickle(f'{self.dataDir}toppt_sys_files/toppt_sys.pkl')
-            up_, dn_ = toppt_sys['topPt_up'], toppt_sys['topPt_dn']
-            tt_up = np.column_stack([self.getToppt_sys(tt_pt[:,i],up_) for i in [0,1]])
-            tt_dn = np.column_stack([self.getToppt_sys(tt_pt[:,i],dn_) for i in [0,1]])
-            self.val_df['Stop0l_topptWeight']      = np.sqrt(wgt(tt_pt[:,0]) * wgt(tt_pt[:,1]))
-            self.val_df['Stop0l_topptWeight_Up']   = np.sqrt(wgt(tt_pt[:,0]) * tt_up[:,0] * wgt(tt_pt[:,1]) * tt_up[:,1])
-            self.val_df['Stop0l_topptWeight_Down'] = np.sqrt(wgt(tt_pt[:,0]) * tt_dn[:,0] * wgt(tt_pt[:,1]) * tt_dn[:,1])
+            #toppt_sys = AnaDict.read_pickle(f'{self.dataDir}toppt_sys_files/toppt_sys.pkl')
+            #https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf'
+            # the theo toppt event re-weighting unc. is based on [1, w**2] where w is the event reweighting 
+            toppt_rwgt = np.sqrt(sf(tt_pt[:,0]) * sf(tt_pt[:,1])) 
+            toppt_rwgt_up = np.where(toppt_rwgt > 1.0, toppt_rwgt**2,  1.0)
+            toppt_rwgt_dn = np.where(toppt_rwgt < 1.0, toppt_rwgt**2,  1.0)
+            self.val_df['Stop0l_topptWeight']      = toppt_rwgt
+            self.val_df['Stop0l_topptWeight_Up']   = toppt_rwgt_up
+            self.val_df['Stop0l_topptWeight_Down'] = toppt_rwgt_dn
+
+            # old data-driven approach
+
+            #up_, dn_ = toppt_sys['topPt_up'], toppt_sys['topPt_dn']
+            #tt_up = np.column_stack([self.getToppt_sys(tt_pt[:,i],up_) for i in [0,1]])
+            #tt_dn = np.column_stack([self.getToppt_sys(tt_pt[:,i],dn_) for i in [0,1]])
+            #self.val_df['Stop0l_topptWeight']      = np.sqrt(wgt(tt_pt[:,0]) * wgt(tt_pt[:,1]))
+            #self.val_df['Stop0l_topptWeight_Up']   = np.sqrt(wgt(tt_pt[:,0]) * tt_up[:,0] * wgt(tt_pt[:,1]) * tt_up[:,1])
+            #self.val_df['Stop0l_topptWeight_Down'] = np.sqrt(wgt(tt_pt[:,0]) * tt_dn[:,0] * wgt(tt_pt[:,1]) * tt_dn[:,1])
 
 
             

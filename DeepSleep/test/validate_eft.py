@@ -24,7 +24,7 @@ class main():
              'TTH': ['Hbb','Hnonbb']}
     
     f_dir = f'{sys.path[1]}/files/year/mc_files/'
-    years = ['2017','2018'] # for now
+    years = ['2016','2017','2018'] # for now
 
     @save_pdf('eft_validation.pdf')
     def run(self):
@@ -40,32 +40,44 @@ class main():
         for sp in sub_p:
             fig, ax = plt.subplots()
             cut = (lambda df: (df['NN']>= 0) & (df[sp] == True))
-         
-            self.plots_with_stats(nom['genZHpt'][cut(nom)].clip(0,500),
+            print(f'Raw counts: \nCentral for {p},{y} with {sp}, passing NN cuts: {len(nom[cut(nom)])}\nPrivate for {p},{y} with {sp}, passing NN cuts: {len(eft[cut(eft)])}')
+            self.plots_with_stats(nom['genZHpt'][cut(nom)].clip(0,600),
                                   nom['genWeight'][cut(nom)]/sum(nom['genWeight'][cut(nom)]),
-                                  f'Nom. {sp}',
-                                  'orange', ax)
-            self.plots_with_stats(eft['genZHpt'][cut(eft)].clip(0,500), 
+                                  f'Cen. {sp}',
+                                  'orange', ax,
+                                  b=[0,200,300,450,600]
+                              )
+            self.plots_with_stats(eft['genZHpt'][cut(eft)].clip(0,600), 
                                   eft['EFT183'][cut(eft)]/sum(eft['EFT183'][cut(eft)]),
-                                  f'EFT {sp}',
-                                  'blue', ax)
+                                  f'Priv. {sp}',
+                                  'blue', ax,
+                                  b=[0,200,300,450,600]
+                              )
 
             ax.legend()
-            ax.set_title(f'{p} EFT vs Nom {y}')
+            ax.set_xlabel(r'GEN Z/H $p_{T}$ (GeV)')
+            ax.set_ylabel('Fraction of total / bin')
+            ax.set_title(f'{p} Private vs Central {y}')
             #
             fig, ax = plt.subplots()
             cut = (lambda df: (df['NN']>= 0) & (df[sp] == True))
          
-            self.plots_with_stats(nom['genZHpt'][cut(nom)].clip(0,500),
+            self.plots_with_stats(nom['genZHpt'][cut(nom)].clip(0,600),
                                   nom['genWeight'][cut(nom)]/sum(nom['genWeight'][cut(nom)]),
-                                  f'Nom. {sp}',
-                                  'orange', ax)
-            self.plots_with_stats(eft['genZHpt'][(eft['EFT183'] < 100) & cut(eft)].clip(0,500), 
+                                  f'Cen. {sp}',
+                                  'orange', ax,
+                                  b=[0,200,300,450,600]
+                              )
+            self.plots_with_stats(eft['genZHpt'][(eft['EFT183'] < 100) & cut(eft)].clip(0,600), 
                                   eft['EFT183'][(eft['EFT183'] < 100) & cut(eft)]/sum(eft['EFT183'][(eft['EFT183'] < 100) & cut(eft)]),
-                                  f'EFT (fix) {sp}',
-                                  'blue', ax)
+                                  f'Priv. (fix) {sp}',
+                                  'blue', ax,
+                                  b=[0,200,300,450,600]
+                              )
             ax.legend()
-            ax.set_title(f'{p} EFT (fix) vs Nom {y}')
+            ax.set_xlabel(r'GEN Z/H $p_{T}$ (GeV)')
+            ax.set_ylabel('Fraction of total / bin')
+            ax.set_title(f'{p} Private (weight fix) vs Central {y}')
             #plt.show() 
             #plt.close('all')
             fig, ax = plt.subplots()
@@ -77,6 +89,8 @@ class main():
             ax.set_title(f'{p} {sp} EFT183 weight {y}')
             ax.set_yscale('log')
             ax.set_xscale('log')
+            ax.set_xlabel("EFTrwgt 'SM'")
+            ax.set_ylabel('Count / bin')
             #
             #plt.close('all')
             fig, ax = plt.subplots()
@@ -85,13 +99,15 @@ class main():
                     histtype='step',
                     range=(0,1))
             ax.set_title(f'{p} {sp} EFT183 weight / sum(EFT183) {y}')
+            ax.set_xlabel(r"EFTrwgt 'SM' / $\Sigma$ EFTrwgt 'SM'")
+            ax.set_ylabel('Count / bin')
             ax.set_yscale('log')
             ax.set_xscale('log')
             #plt.show()
             
             
             
-    def plots_with_stats(self, i , w, l, c, ax, b=10, r=(0,500)):
+    def plots_with_stats(self, i , w, l, c, ax, b=10, r=(0,600)):
         sumw,  edges = np.histogram(i, weights=w,             bins=b, range=r)
         sumw2, _ = np.histogram(i, weights=np.power(w,2), bins=b, range=r)
         ax.step(    x=edges, 
@@ -99,8 +115,11 @@ class main():
         ax.errorbar(x=(edges[1:]+edges[:-1])/2, 
                      y=sumw, yerr=np.sqrt(sumw2), fmt='.', color=c)
         ax.set_xlim(r)
-        ax.set_ylim(0,0.4)
-        
+        ax.set_ylim(0,0.75)
+        if type(b) is list:
+            ax.set_xticks(b)
+            ax.set_xticklabels([str(i) for i in b[:-1]]+['>450'])
+
 
 if __name__ == '__main__':
     _ = main()
