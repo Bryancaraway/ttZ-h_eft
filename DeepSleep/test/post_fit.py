@@ -27,7 +27,7 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 def main():
     # fitDiagnostics_test_2016.root, fitDiagnostics_test_2017.root, fitDiagnostics_test_2018.root, sfitDiagnostics_test_run2.root
     #PostFit("fitDiagnostics_test_2016.root").makeplots()
-    f_list = [f"fitDiagnostics_test_{i}.root" for i in ['2016','2017','2018','run2']]
+    f_list = [f"fitDiagnostics_blind_{i}.root" for i in ['2016','2017','2018','run2']] # test
     for f in f_list:
         postfit = PostFit(f)
         save_pdf(f.replace('root','pdf'))(postfit.makeplots)() # decorator
@@ -81,7 +81,7 @@ class PostFit:
             self.fig.suptitle(pt)
             self.make_stackhist(pt)
             if doPull:
-                self.init_axes()
+                self.init_axes(opt='pulls')
                 self.fig.suptitle(pt)
                 self.make_pulls(pt)
         if self.doPull:
@@ -94,25 +94,48 @@ class PostFit:
         print(len(self.pulls))
         print(self.pulls[abs(self.pulls)>3].flatten())
         fig, ax = plt.subplots(1,1)
-        ax.hist(self.pulls.flatten(), 
-                bins=[-4,-3.5,-3.0,-2.5,-2.0,-1.25,-0.75,-0.25,
-                      0.25,0.75,1.25,2.0,2.5,3,3.5,4])#[-4,-3,-2,-1,1,2,3,4])
+        from scipy.stats import norm
+        import seaborn as sns
+        self.pulls = self.pulls[~np.isnan(self.pulls)]
+        mu, std = norm.fit(self.pulls.flatten())
+        h = ax.hist(self.pulls.flatten(), 
+                    histtype='step',
+                    #bins=[-4,-3.5,-3.0,-2.5,-2.0,-1.25,-0.75,-0.25,
+                    #0.25,0.75,1.25,2.0,2.5,3,3.5,4])#[-4,-3,-2,-1,1,2,3,4])
+                    bins = 40,
+        density=True)
+        xmin, xmax = ax.get_xlim()
+        x = np.linspace(xmin, xmax, 100)
+        p = norm.pdf(x, mu, std)
+        ax.plot(x, p, 'k', linewidth=2)
+        #sns.distplot(self.pulls, fit=norm, kde=False,ax=ax)
                 #bins=[0,1,2,3,4])
         print('mean:',self.pulls.flatten())
         print('mean:',np.nanmean(self.pulls.flatten()))
         print('std:',np.nanstd(self.pulls.flatten()))
-        ax.text(x=1,y=30,
+        fig.text(x=.60,
+                 y=.60,
                 s=f'Mean: {np.nanmean(self.pulls.flatten()):.3}\nStd.: {np.nanstd(self.pulls.flatten()):.3}')
         ax.set_xlabel('Pull')
+        ax.set_ylabel('Norm. / bin')
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
         ax.yaxis.set_minor_locator(AutoMinorLocator())
-        ax.grid(True)
-        fig.suptitle(f'Pulls in {self.year}')
+        ax.grid(False)
+        fig.text(0.15,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 12)
+        fig.text(0.70,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
+        ax.set_title(f'Pulls in {self.year}')
+        #fig.suptitle(f'Pulls in {self.year}')
         #plt.show()
     #
-    def init_axes(self):
+    def init_axes(self, opt=''):
         # init fig and four axes
         #fig, (ax1t, ax1b, ax2t, ax2b) = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
-        fig, axs = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
+        fig_ax_map = {
+                '' : (lambda _ : plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # 
+            'pulls': (lambda _ : plt.subplots(2,1, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # just 1 axes for pulls
+        }
+        #fig, axs = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
+        fig, axs = fig_ax_map[opt](None)
         fig.subplots_adjust(
             top=0.88,
             bottom=0.11,
@@ -123,7 +146,7 @@ class PostFit:
         )
         self.fig = fig
         self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 12)
-        self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
+        self.fig.text(0.70,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
         self.axs = np.array(axs) # [1:[t,b],2:[t,b]]
     #
     def do_stack(self, d, top_axs, ch):
@@ -170,8 +193,8 @@ class PostFit:
     #
     def make_pulls(self,pt):
         # only for post fit
-        axt = self.axs[0,1]
-        axb = self.axs[1,1]
+        axt = self.axs[0]
+        axb = self.axs[1]
         d = self.hists['postfit'][pt]
         ## stack portion
         self.do_stack(d, axt ,pt)
@@ -185,13 +208,13 @@ class PostFit:
                      fmt='.', label='data', color='k')
         #self.make_error_boxes(axb, (self.edges[pt][1:]+self.edges[pt][:-1])/2, np.ones_like(d['total']['values']),
         #                      xerror=(self.edges[pt][1:]-self.edges[pt][:-1])/2, yerror=d['total']['err']/d['total']['values'], label='stat+sys')
-        self.endaxs(axt,axb,'postfit',self.doPull)
-        self.addlegend()
+        self.endaxs(axt,axb,'postfit',self.doPull, pt)
+        self.addlegend(opt='pulls')
         
 
-    def endaxs(self,axt,axb,p,doPull=False):
+    def endaxs(self,axt,axb,p,doPull=False, pt='Zhpt1'):
         #axt
-        axt.set_xlim(0,16)
+        axt.set_xlim(0,self.edges[pt][-1])
         axt.set_ylim(0)
         axt.set_ylabel('Events / bin')
         axt.set_title(rf'${p}$', y=1.0, pad=-14)
@@ -214,8 +237,13 @@ class PostFit:
         axb.set_xlabel('bin #')
         axb.grid(True)
         
-    def addlegend(self):
-        ax = self.axs[0,1]
+    def addlegend(self, opt=''):
+        leg_map = {
+            '': (lambda _: self.axs[0,1]), # defualt
+            'pulls': (lambda _: self.axs[0]), # pulls
+            }
+        #ax = self.axs[0,1]
+        ax = leg_map[opt](None)
         handles, labels = ax.get_legend_handles_labels()
         hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w')
         handles = handles + [hatch_patch]

@@ -278,22 +278,46 @@ class getData :
         @classmethod
         def set_current_tree_mask(cls):
             #
-            jet_pt_eta    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:2])
-            fatjet_pt_eta = cls.build_dict_ak8(cfg.ana_vars['ak8lvec']['TLVarsLC'][:2])
+            jet_pt_eta_phi    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:3])
+            fatjet_pt_eta_phi = cls.build_dict_ak8(cfg.ana_vars['ak8lvec']['TLVarsLC'][:3])
             nbottoms     = cls.tarray(cls.ana_vars['nBottoms_drLeptonCleaned'])
             met_pt       = cls.tarray(cls.ana_vars['MET_pt'])
             
             rtcd = cls.tarray(cls.ana_vars[cfg.ana_vars['valRCvars'][0]])
-            j_pt_key, j_eta_key   = cfg.ana_vars['ak4lvec']['TLVarsLC'][:2]
-            fj_pt_key, fj_eta_key = cfg.ana_vars['ak8lvec']['TLVarsLC'][:2]
+            j_pt_key, j_eta_key, j_phi_key   = cfg.ana_vars['ak4lvec']['TLVarsLC'][:3]
+            fj_pt_key, fj_eta_key, fj_phi_key = cfg.ana_vars['ak8lvec']['TLVarsLC'][:3]
             
             #
-            cls.ak4_mask  = ((jet_pt_eta[j_pt_key] >= 30) & (abs(jet_pt_eta[j_eta_key]) <= 2.4))
-            cls.ak8_mask  = (abs(fatjet_pt_eta[fj_eta_key]) <= 2.4)
+            cls.ak4_mask  = ((jet_pt_eta_phi[j_pt_key] >= 30) & (abs(jet_pt_eta_phi[j_eta_key]) <= 2.4))
+            cls.ak8_mask  = (abs(fatjet_pt_eta_phi[fj_eta_key]) <= 2.4)
+            # HEM object mask 
+            '''
+            float narrow_eta_low  =  -3.0;
+            1754     float narrow_eta_high =  -1.4;
+            1755     float narrow_phi_low  =  -1.57;
+            1756     float narrow_phi_high =  -0.87;
+            1757     float wide_eta_low    =  -3.2;
+            1758     float wide_eta_high   =  -1.2;
+            1759     float wide_phi_low    =  -1.77;
+            1760     float wide_phi_high   =  -0.67;
+            1761     float min_electron_pt =  20.0; // i think i should change to 30                                                                                                                                                                                  
+            1762     float min_photon_pt   = 220.0;
+            1763     float jet_pt_cut      =  30.0;
+            1764     // bool PassObjectVeto(std::vector<TLorentzVector> objects, float eta_low, float eta_high, float phi_low, float phi_high, float pt_low)                                                                                                          
+            1765     bool SAT_Pass_HEMVeto = true;
+            1766     SAT_Pass_HEMVeto = SAT_Pass_HEMVeto && PassObjectVeto(Electrons, narrow_eta_low, narrow_eta_high, narrow_phi_low, narrow_phi_high, min_electron_pt);
+            1767     //SAT_Pass_HEMVeto = SAT_Pass_HEMVeto && PassObjectVeto(Photons,   narrow_eta_low, narrow_eta_high, narrow_phi_low, narrow_phi_high, min_photon_pt);                                                                                             
+            1768     SAT_Pass_HEMVeto = SAT_Pass_HEMVeto && PassObjectVeto(Jets,      wide_eta_low,   wide_eta_high,   wide_phi_low,   wide_phi_high,   jet_pt_cut);
+            
+            '''
+            
+            #cls.ak4_mask = cls.ak4_mask & ~((jet_pt_eta_phi[j_eta_key] < -1.2) & (jet_pt_eta_phi[j_phi_key] > -1.77) & (jet_pt_eta_phi[j_phi_key] < -0.67))
+            #cls.ak8_mask = cls.ak8_mask & ~((fatjet_pt_eta_phi[fj_eta_key] < -1.2) & (fatjet_pt_eta_phi[fj_phi_key] > -1.77) & (fatjet_pt_eta_phi[fj_phi_key] < -0.67))
+            #
             cls.rtcd_mask = (rtcd >= 0.70) # trained with 75, might expand if I do re-train
             #
-            n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
-            del jet_pt_eta, fatjet_pt_eta
+            n_ak4jets , n_ak8jets = jet_pt_eta_phi[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta_phi[fj_pt_key][(fatjet_pt_eta_phi[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
+            del jet_pt_eta_phi, fatjet_pt_eta_phi
             #
             event_mask = ((n_ak4jets >= cls.minAk4Jets) & 
                           (n_ak4jets <= cls.maxAk4Jets) &
@@ -315,6 +339,8 @@ class getData :
             #
             mu_mask =cfg.lep_sel['muon'](mu_info)  
             el_mask =cfg.lep_sel['electron'][cls.year](el_info)
+            # HEM veto
+            #el_mask = el_mask & ~((el_info['Electron_eta'] > -3) & (el_info['Electron_eta'] < -1.4) & (el_info['Electron_phi'] > -1.57) & (el_info['Electron_phi'] < -0.87))
             #
             lep_event_mask = ((mu_mask[mu_mask].counts + el_mask[el_mask].counts) == 1)
             cls.event_mask = cls.event_mask & lep_event_mask

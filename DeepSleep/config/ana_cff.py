@@ -36,7 +36,10 @@ ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow',
 MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 Sig_MC            = [#'TTZH', 
                      'TTZ_bb','TTZ','TTH']
+## EFT ##
 Sig_EFT_MC        = ['TTZ_EFT','TTH_EFT']
+tt_eft_samples    = ['TTBB_EFT']
+#########
 Bkg_MC            = [#'QCD', 
     'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 All_MC            = ['TTZH', 'TTZ_bb', 'TTZ', 'TTH', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
@@ -239,7 +242,8 @@ dnn_ZH_vars = [
     'max_lb_dr','max_lb_invM', 'n_Zh_btag_sj', 'n_ak4jets', 'Zh_score', 'best_rt_score',
     'n_q_outZh', 'n_b_outZh', 'Zh_l_dr', 'n_Zh_sj', 'n_b_inZh', 'Zh_bestb_sj', 'Zh_worstb_sj',
     'Zh_eta','Zh_deepB','b1_outZh_score', 'best_Zh_b_invM_sd', 'Zh_b1_invM_sd', 'Zh_b2_invM_sd','Zh_l_invM_sd',
-    'Zh_Wscore', 'Zh_Tscore', 'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets', 'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
+    'Zh_Wscore', 'Zh_Tscore', 'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets',  # repeated?
+    'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
     'Zh_bbscore_sj', 
     'b1_over_Zhpt', 'bb_over_Zhpt',
     'spher','aplan','n_q_inZh']

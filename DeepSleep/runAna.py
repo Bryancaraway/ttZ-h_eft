@@ -7,7 +7,7 @@ from modules.processAna import processAna
 
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
 parser.add_argument('-s', dest='sample', type=str, 
-                    choices=cfg.All_MC+cfg.Data_samples+['test']+cfg.tt_sys_samples+cfg.Sig_EFT_MC, 
+                    choices=cfg.All_MC+cfg.Data_samples+['test']+cfg.tt_sys_samples+cfg.Sig_EFT_MC+cfg.tt_eft_samples, 
                     required=True, help='sample to analyze')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
                     required=True, help='year')
@@ -29,7 +29,7 @@ class runAna ():
     isData   = 'Data' in roofile
     isSignal = re.search(r'TT[Z,H]*\w*', sample) is not None #'TTZH' in sample or 'TTZ_bb' in sample
     print(isSignal)
-    isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples
+    isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
     if (args.jetjec is None and args.jec is not None) or (args.jetjec is not None and args.jec is None):
         raise('Must use --jjec AND --jec to run analysis with jec variation ')
     tag      = (args.tag + args.jetjec +args.jec if args.jec is not None else args.tag)

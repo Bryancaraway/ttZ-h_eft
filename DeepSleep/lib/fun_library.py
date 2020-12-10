@@ -273,6 +273,8 @@ def getLaLabel(str_):
                              'tab:cyan'],
         'other':            ['other',
                              'tab:pink'],
+        'rare':            ['Rare',
+                            'tab:pink'],
         #
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
                             'tab:blue'],

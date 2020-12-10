@@ -73,10 +73,10 @@ class EFTFitParams():
             #
         #
 
-    def calcBeta(self,df, sig):
+    def calcBeta(self,df, sample):
         # taken from Jon's code  
         # Build the experiment matrix
-        aux_df = self.aux_df[sig]
+        aux_df = self.aux_df[sample]
         _x =[np.ones(len(aux_df.index.values))]
         beta_cols = ['SM']
         for i in range(len(aux_df.columns.values)):
@@ -92,6 +92,35 @@ class EFTFitParams():
         beta = ((_x.T * _x).I * _x.T * _y).A
         return pd.concat([df.reset_index(),pd.DataFrame(data = beta.T, columns=beta_cols)], axis='columns')
 
+class BkgEFTFitParams(EFTFitParams):
+    # copy the functionality from EFTFItParams
+    bkg = ['ttbb']
+    aux_dict = {'ttbb':'aux_eft_TTZ.pkl'}
+
+    def __init__(self):
+        self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}/{self.aux_dict[s]}') for s in self.bkg}
+        self.__worker()
+
+    def __worker(self, kinem=['Zh_pt','ttbb_genbb_pt','ttbb_genbb_invm','process'], k_bins=[-np.inf,np.inf]):
+        # assemble eft_df dictionary here by year, signal process, and genZHpt bin
+        self.eft_df = {y:{s:{} for s in self.bkg} for y in self.years} 
+        cut_for_fit = (lambda x: ((x['NN']>=0.0) & (x['EFT183'] < 100)) )
+        for y in self.years:
+            for s in self.bkg:
+                if not os.path.exists(f'{self.file_dir}{y}/{self.mc_dir}{s.upper()}_EFT_val.pkl'): continue
+                df = pd.read_pickle(f'{self.file_dir}{y}/{self.mc_dir}{s.upper()}_EFT_val.pkl').filter( regex=f"EFT|{'|'.join(kinem)}|NN", axis='columns')
+                #df['pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]-1), bins=self.pt_bins,
+                #labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
+                #df = self.calcBeta(df[df['NN']>=0.0], s)
+                df = self.calcBeta(df[cut_for_fit(df)], s)
+                # store SM normalized PQR parameters per
+                #self.eft_df[y][s] = {f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index')
+                #                     for i in range(len(self.pt_bins)-1)}
+                self.eft_df[y][s] = df.filter(regex=r'^(?!EFT)')
+            #
+        #
+
+        
 
 class EFTParam():
     '''
@@ -125,6 +154,8 @@ class EFTParam():
     def __init__(self):
         #
         self.eft_fit = EFTFitParams().eft_df
+        self.eftbkg_fit  = BkgEFTFitParams().eft_df
+        #print(BkgEFTFitParams().eft_df['2018']['ttbb'].keys())
 
     def get_EFT_lines(self, year=None):
         self.wc = None
@@ -207,11 +238,10 @@ if __name__ == '__main__':
     #np.save(sys.path[1]+'Higgs-Combine-Tool/EFT_Parameterization_v1.npy', eft.out_dict, allow_pickle=True, fix_imports=True) # save to Higgs-Combine-Tool dir
     out_path = sys.path[1]+'Higgs-Combine-Tool/'
     out_file = 'EFT_Parameterization_v2.npy'
-    pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
+    #pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
+    # for ttbb testing
+    out_path = sys.path[1]+'test/'
+    out_file = 'EFT_Parameterization_ttbb.npy'
+    pickle.dump(eft.eftbkg_fit, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
     
-    #dc_lines = eft.get_EFT_lines(year='2018')
-    #print(dc_lines)
-    #dc_lines = eft.get_EFT_lines(year='2017')
-    #print('here')
-    #print(dc_lines)
     

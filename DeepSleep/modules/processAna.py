@@ -157,12 +157,13 @@ class processAna :
         print('tt+2b', sum(is_tt_2b))
         print('tt+bb', sum(is_tt_bb))
         # calc invM of extra bb
-        if 'bb' in self.sample:
+        if 'bb' in self.sample.lower():
             ext_bb = (lambda c: c[(gen_mom <= 0) & (abs(gen_ids) == 5)])#[((gen_mom <= 0) & (abs(gen_ids) == 5)).sum() == 2])
             getTLVm = TLorentzVectorArray.from_ptetaphim
             b1 = getTLVm(*map((lambda b: b.pad(2)[:,0]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
             b2 = getTLVm(*map((lambda b: b.pad(2)[:,1]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
-            self.val_df['invm_genbb'] = (b1+b2).mass
+            self.val_df['ttbb_genbb_invm'] = (b1+b2).mass
+            self.val_df['ttbb_genbb_pt'] = (b1+b2).pt
         #
         # calculate toppt weight for powheg only
         if 'pow' in self.sample:
@@ -587,6 +588,7 @@ class processAna :
                              'TTZ_bb'                               : handleTTZ_bb,
                              'TTBar'+self.sample.replace('TTBar',''): handleTTBar,
                              'TTbb'+self.sample.replace('TTbb','')  : handleTT_bb,
+                             'TTBB_EFT'                             : handleTT_bb,
                              'TTX'                                  : handleTTX,
                              'WJets'                                : handleVjets,
                              'DY'                                   : handleVjets,

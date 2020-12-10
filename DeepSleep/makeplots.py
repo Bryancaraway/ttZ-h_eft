@@ -19,10 +19,10 @@ for y in cfg.Years:
     #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
     Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
     ''' LOOK AT STACKED DATA VS MC '''
-    StackedHist(processes,    'Zh_pt', xlabel=r'Z/H $p_{T}$ (GeV)', bin_range=[200,550],  bins=[200,300,450,550],  doCuts=True, addData=True)  
+    #StackedHist(processes,    'Zh_pt', xlabel=r'Z/H $p_{T}$ (GeV)', bin_range=[200,550],  bins=[200,300,450,550],  doCuts=True, addData=True)  
     #StackedHist(cfg.MC_pow,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=True, addData=True)  
         #
-    StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200],  doCuts=True, addData=True)  
+    #StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200],  doCuts=True, addData=True)  
         #StackedHist(cfg.MC_pow,    'Zh_M', bin_range=[0,250],  n_bins=20,  doCuts=True, addData=True)  
         #
         #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, addData=True)  
@@ -106,7 +106,8 @@ for y in cfg.Years:
     
     ''' STUDY TTZ,Zbb vs DEDICATED TTZ,Zbb '''
     
-    #Hist(['TTZH','TTBarLep_pow'], 'Zh_M', xlabel='Zh_M (NN>0.9;Zh_pt>300)', bin_range=[50,200], bins=[50,80,105,145,200], doNorm=True,  sepGenOpt='sepGenSig;sepGenBkg;++', droptt=True, dropZqq=True, add_cuts='NN>0.9;Zh_pt>300', doCuts=True, addData=False)
+    #StackedHist(processes, 'Zh_M', xlabel='Z/H $m_{sd}$ ($NN > 0.9$; Z/H $p_{t}>300$)', bin_range=[50,200], bins=[50,80,105,145,200], add_cuts='NN>0.9;Zh_pt>300', doCuts=True, addData=False)
+    Hist(['ttZ','ttH','tt_bb','tt_2b'], 'Zh_M', xlabel='Z/H $m_{sd}$ ($NN > 0.9$; Z/H $p_{t}>300$)', bin_range=[50,200], bins=[50,80,105,145,200], doNorm=False, add_cuts='NN>0.9;Zh_pt>300', doCuts=True, addData=False)
     #Hist(['ttZ','new_ttZbb'],'HT', bin_range=[0,1200], n_bins=20, doNorm=False,   sepGenOpt='sepGenSig',            doCuts=False, addData=False) 
     #Hist(['ttZ','new_ttZbb'],'n_ak4jets', bin_range=[3.5,10.5], n_bins=7, doNorm=False,   sepGenOpt='sepGenSig',    doCuts=False, addData=False)
     #Hist(['ttZ','new_ttZbb'],'nBottoms_drLeptonCleaned', bin_range=[-0.5,6.5], n_bins=7, doNorm=False,  sepGenOpt='sepGenSig',  doCuts=False, addData=False)

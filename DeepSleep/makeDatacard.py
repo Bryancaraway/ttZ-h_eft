@@ -140,6 +140,7 @@ class MakeDataCard:
 
     def makeDC(self):
         self.getdatav2()
+        self.process_sig(self.data_dict) # add new_ttZbb meging , need to rewrite a bit
         #print(self.data_dict.keys())
         self.initialize_hists() # switch to np.histogramdd , also, might be nice to get systematic shape plots here
         self.initialize_roofile() # format in file : $CHANNEL_$PROCESS, $CHANNEL_$PROCESS_$SYSTEMATIC
@@ -183,7 +184,6 @@ class MakeDataCard:
         del results, pool
         print('Done with signal')
         #print(self.data_dict['new_tt_2b_2017'])
-        self.process_sig(self.data_dict) # add new_ttZbb meging , need to rewrite a bit
         #self.process_bkg(data_dict,y) # for tt_bb merging 
             
     def worker(self, process):
@@ -824,6 +824,6 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
 if __name__ == '__main__':
     #
     # initialize datacard making process
-    hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=True) # syntax np2d[year][ith_ptbin]
+    hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=False)# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
     MakeDataCard(isblind=isblind).makeDC()
 

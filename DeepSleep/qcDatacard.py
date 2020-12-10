@@ -119,6 +119,7 @@ class MakeQCDataCard(MakeDataCard):
 
     def makeQCDC(self):
         super().getdatav2()
+        super().process_sig(self.data_dict)
         #print(self.data_dict.keys())
         super().initialize_hists() 
         super().initialize_roofile() # format in file : $CHANNEL_$PROCESS, $CHANNEL_$PROCESS_$SYSTEMATIC
