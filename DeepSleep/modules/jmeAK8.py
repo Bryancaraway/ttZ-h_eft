@@ -91,7 +91,7 @@ class JMEAK8 :
                                                        eta=ak8_vars['FatJet_eta_drLeptonCleaned'].flatten(),
                                                        phi=ak8_vars['FatJet_phi_drLeptonCleaned'].flatten(),
                                                        mass=ak8_vars['FatJet_msoftdrop_drLeptonCleaned'].flatten())
-
+        print(self.fj.pt)
         # have to pad because shitty argmatch function doesnt really like empty arrays
         genfj = JaggedCandidateArray.candidatesfromcounts(ak8_vars['GenJetAK8_pt'].pad(1).fillna(0.1).counts,
                                                           pt=ak8_vars  ['GenJetAK8_pt'].pad(1).fillna(0.1).flatten(),
@@ -116,9 +116,10 @@ class JMEAK8 :
         # prepare jet collection to return with the right format for my anaylsis
         #'pt_jer_up', 'mass_jer_up', 'pt_jer_down', 'mass_jer_down', 'pt_jes_up', 'mass_jes_up', 'pt_jes_down', 'mass_jes_down']
         _fj = {}
-
+        print(self.fj.pt)
+        print(self.fj[f'__fast_pt'])
         for k in ['pt']:#,'mass']:
-            _fj[f'FatJet_{k}_drLeptonCleaned']              = self.fj[f'__fast_{k}']  
+            #_fj[f'FatJet_{k}_drLeptonCleaned']              = self.fj[f'__fast_{k}']  
             _fj[f'FatJet_{k}_jesTotalUp_drLeptonCleaned']   = self.fj[f'{k}_jes_up']  
             _fj[f'FatJet_{k}_jesTotalDown_drLeptonCleaned'] = self.fj[f'{k}_jes_down']
             _fj[f'FatJet_{k}_jerUp_drLeptonCleaned']        = self.fj[f'{k}_jer_up']  

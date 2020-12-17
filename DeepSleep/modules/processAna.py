@@ -133,8 +133,8 @@ class processAna :
             self.val_df['tt_type'] = 'Had'
         # match tt or ttZ/h gen particles to recontructed objects
         g = 'GenPart_' 
-        gen_ids, gen_mom, gen_st, gen_pt, gen_eta, gen_phi, gentt_bb = self.gen_df.loc(
-            [g+'pdgId',g+'genPartIdxMother',g+'status',g+'pt',g+'eta',g+'phi', 'genTtbarId']
+        gen_ids, gen_mom, gen_st, gen_pt, gen_eta, gen_phi, gen_mass, gentt_bb = self.gen_df.loc(
+            [g+'pdgId',g+'genPartIdxMother',g+'status',g+'pt',g+'eta',g+'phi', g+'mass', 'genTtbarId']
         ).values()
         rZh_eta = self.val_df['Zh_eta'].values
         rZh_phi = self.val_df['Zh_phi'].values
@@ -156,18 +156,41 @@ class processAna :
         print('tt+b', sum(is_tt_b))
         print('tt+2b', sum(is_tt_2b))
         print('tt+bb', sum(is_tt_bb))
+        # calc invM of extra bb
+        if 'bb' in self.sample.lower():
+            ext_bb = (lambda c: c[(gen_mom <= 0) & (abs(gen_ids) == 5)])#[((gen_mom <= 0) & (abs(gen_ids) == 5)).sum() == 2])
+            getTLVm = TLorentzVectorArray.from_ptetaphim
+            b1 = getTLVm(*map((lambda b: b.pad(2)[:,0]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+            b2 = getTLVm(*map((lambda b: b.pad(2)[:,1]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+            self.val_df['ttbb_genbb_invm'] = (b1+b2).mass
+            self.val_df['ttbb_genbb_pt'] = (b1+b2).pt
+        #
         # calculate toppt weight for powheg only
         if 'pow' in self.sample:
             tt_pt = gen_pt[(abs(gen_ids) == 6)]
-            wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800)))
-            #toppt_sys = AnaDict.read_pickle(f'{self.outDir}toppt_sys_files/toppt_sys.pkl')
-            toppt_sys = AnaDict.read_pickle(f'{self.dataDir}toppt_sys_files/toppt_sys.pkl')
-            up_, dn_ = toppt_sys['topPt_up'], toppt_sys['topPt_dn']
-            tt_up = np.column_stack([self.getToppt_sys(tt_pt[:,i],up_) for i in [0,1]])
-            tt_dn = np.column_stack([self.getToppt_sys(tt_pt[:,i],dn_) for i in [0,1]])
-            self.val_df['Stop0l_topptWeight']      = np.sqrt(wgt(tt_pt[:,0]) * wgt(tt_pt[:,1]))
-            self.val_df['Stop0l_topptWeight_Up']   = np.sqrt(wgt(tt_pt[:,0]) * tt_up[:,0] * wgt(tt_pt[:,1]) * tt_up[:,1])
-            self.val_df['Stop0l_topptWeight_Down'] = np.sqrt(wgt(tt_pt[:,0]) * tt_dn[:,0] * wgt(tt_pt[:,1]) * tt_dn[:,1])
+            ##wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800))) # old data driven re-weighting
+
+            # Using the newer theo (NNLO QCD + NLO EW) corrections which is better for BSM analysis aspects
+            sf = (lambda x: 0.103*np.exp(-0.0118*np.clip(x,0,np.inf)) - 0.000134*np.clip(x,0,np.inf) + 0.973) #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Case_3_3_The_Effective_Field_The
+
+            #toppt_sys = AnaDict.read_pickle(f'{self.dataDir}toppt_sys_files/toppt_sys.pkl')
+            #https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf'
+            # the theo toppt event re-weighting unc. is based on [1, w**2] where w is the event reweighting 
+            toppt_rwgt = np.sqrt(sf(tt_pt[:,0]) * sf(tt_pt[:,1])) 
+            toppt_rwgt_up = np.where(toppt_rwgt > 1.0, toppt_rwgt**2,  1.0)
+            toppt_rwgt_dn = np.where(toppt_rwgt < 1.0, toppt_rwgt**2,  1.0)
+            self.val_df['Stop0l_topptWeight']      = toppt_rwgt
+            self.val_df['Stop0l_topptWeight_Up']   = toppt_rwgt_up
+            self.val_df['Stop0l_topptWeight_Down'] = toppt_rwgt_dn
+
+            # old data-driven approach
+
+            #up_, dn_ = toppt_sys['topPt_up'], toppt_sys['topPt_dn']
+            #tt_up = np.column_stack([self.getToppt_sys(tt_pt[:,i],up_) for i in [0,1]])
+            #tt_dn = np.column_stack([self.getToppt_sys(tt_pt[:,i],dn_) for i in [0,1]])
+            #self.val_df['Stop0l_topptWeight']      = np.sqrt(wgt(tt_pt[:,0]) * wgt(tt_pt[:,1]))
+            #self.val_df['Stop0l_topptWeight_Up']   = np.sqrt(wgt(tt_pt[:,0]) * tt_up[:,0] * wgt(tt_pt[:,1]) * tt_up[:,1])
+            #self.val_df['Stop0l_topptWeight_Down'] = np.sqrt(wgt(tt_pt[:,0]) * tt_dn[:,0] * wgt(tt_pt[:,1]) * tt_dn[:,1])
 
 
             
@@ -565,6 +588,7 @@ class processAna :
                              'TTZ_bb'                               : handleTTZ_bb,
                              'TTBar'+self.sample.replace('TTBar',''): handleTTBar,
                              'TTbb'+self.sample.replace('TTbb','')  : handleTT_bb,
+                             'TTBB_EFT'                             : handleTT_bb,
                              'TTX'                                  : handleTTX,
                              'WJets'                                : handleVjets,
                              'DY'                                   : handleVjets,

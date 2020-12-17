@@ -160,16 +160,17 @@ class getData :
     @t2Run
     def compute_ps_sc_weights(self):
         sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight'])
+        #sys_df   = self.DF_Container('other', 'LHE_PS_weights', ['LHEScaleWeight', 'PSWeight','weight','LHEReweightingWeight'])
         #| Float_t LHE scale variation weights (w_var / w_nominal); [0] is renscfact=0.5d0 facscfact=0.5d0 ; [1] is renscfact=0.5d0 facscfact=1d0 ; [2] is renscfact=0.5d0 facscfact=2d0 ; 
         #                                                           [3] is renscfact=1d0   facscfact=0.5d0 ; [4] is renscfact=1d0   facscfact=1d0 ; [5] is renscfact=1d0   facscfact=2d0 ; 
         #                                                           [6] is renscfact=2d0   facscfact=0.5d0 ; [7] is renscfact=2d0   facscfact=1d0 ; [8] is renscfact=2d0   facscfact=2d0 
         #| Float_t PS weights (w_var / w_nominal); [0] is ISR=0.5 FSR=1; [1] is ISR=1 FSR=0.5; [2] is ISR=2 FSR=1; [3] is ISR=1 FSR=2 *
-        ps_w = sys_df.df['PSWeight'].pad(4).fillna(1)
-        sc_w = sys_df.df['LHEScaleWeight'].pad(9).fillna(1)
-        mc_w = sys_df.df['weight']
+        ps_w  = sys_df.df['PSWeight'].pad(4).fillna(1)
+        sc_w  = sys_df.df['LHEScaleWeight'].pad(9).fillna(1)
+        mc_w  = sys_df.df['weight']
+        #eft_w = sys_df.df['LHEReweightingWeight'].pad(184).fillna(1)
         #
         df = pd.DataFrame()
-        # TROUBLESHOOT WHICH SAMPLES HAVE SCALE WEIGHT, PSWEIGHT
 
         df['ISR_Up']   = ps_w[:,2]
         df['ISR_Down'] = ps_w[:,0]
@@ -182,7 +183,14 @@ class getData :
         df['mu_f_Down']  = sc_w[:,3]
         df['mu_rf_Up']   = sc_w[:,8]
         df['mu_rf_Down'] = sc_w[:,0]
+        #
+        if 'EFT' in self.sample:
+            eft_df = self.DF_Container('other','EFT_weights',['LHEReweightingWeight'])
+            eft_w = eft_df.df['LHEReweightingWeight'].pad(184).fillna(1)
+            for i in range(184):
+                df[f'EFT{i}'] = eft_w[:,i]
 
+        
         return df
         
     #
@@ -240,7 +248,12 @@ class getData :
             try:
                 df = type_indexer[self.var_type](self.variables)
             except KeyError:
-                raise KeyError(f"At least one variable not found:{self.variables} \n Name '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
+                for v in self.variables:
+                    try:
+                        _ = self.build_dict([v])
+                    except KeyError:
+                        raise KeyError(f"Variable '{v}' is not found in TTree!!!")
+                raise KeyError(f"Name '{self.var_type}' is not defined, Required to be: {self.allowed_types}")
             return df
             
         def apply_event_mask(self,df):
@@ -265,22 +278,46 @@ class getData :
         @classmethod
         def set_current_tree_mask(cls):
             #
-            jet_pt_eta    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:2])
-            fatjet_pt_eta = cls.build_dict_ak8(cfg.ana_vars['ak8lvec']['TLVarsLC'][:2])
+            jet_pt_eta_phi    = cls.build_dict(cfg.ana_vars['ak4lvec']['TLVarsLC'][:3])
+            fatjet_pt_eta_phi = cls.build_dict_ak8(cfg.ana_vars['ak8lvec']['TLVarsLC'][:3])
             nbottoms     = cls.tarray(cls.ana_vars['nBottoms_drLeptonCleaned'])
             met_pt       = cls.tarray(cls.ana_vars['MET_pt'])
             
             rtcd = cls.tarray(cls.ana_vars[cfg.ana_vars['valRCvars'][0]])
-            j_pt_key, j_eta_key   = cfg.ana_vars['ak4lvec']['TLVarsLC'][:2]
-            fj_pt_key, fj_eta_key = cfg.ana_vars['ak8lvec']['TLVarsLC'][:2]
+            j_pt_key, j_eta_key, j_phi_key   = cfg.ana_vars['ak4lvec']['TLVarsLC'][:3]
+            fj_pt_key, fj_eta_key, fj_phi_key = cfg.ana_vars['ak8lvec']['TLVarsLC'][:3]
             
             #
-            cls.ak4_mask  = ((jet_pt_eta[j_pt_key] >= 30) & (abs(jet_pt_eta[j_eta_key]) <= 2.4))
-            cls.ak8_mask  = (abs(fatjet_pt_eta[fj_eta_key]) <= 2.4)
+            cls.ak4_mask  = ((jet_pt_eta_phi[j_pt_key] >= 30) & (abs(jet_pt_eta_phi[j_eta_key]) <= 2.4))
+            cls.ak8_mask  = (abs(fatjet_pt_eta_phi[fj_eta_key]) <= 2.4)
+            # HEM object mask 
+            '''
+            float narrow_eta_low  =  -3.0;
+            1754     float narrow_eta_high =  -1.4;
+            1755     float narrow_phi_low  =  -1.57;
+            1756     float narrow_phi_high =  -0.87;
+            1757     float wide_eta_low    =  -3.2;
+            1758     float wide_eta_high   =  -1.2;
+            1759     float wide_phi_low    =  -1.77;
+            1760     float wide_phi_high   =  -0.67;
+            1761     float min_electron_pt =  20.0; // i think i should change to 30                                                                                                                                                                                  
+            1762     float min_photon_pt   = 220.0;
+            1763     float jet_pt_cut      =  30.0;
+            1764     // bool PassObjectVeto(std::vector<TLorentzVector> objects, float eta_low, float eta_high, float phi_low, float phi_high, float pt_low)                                                                                                          
+            1765     bool SAT_Pass_HEMVeto = true;
+            1766     SAT_Pass_HEMVeto = SAT_Pass_HEMVeto && PassObjectVeto(Electrons, narrow_eta_low, narrow_eta_high, narrow_phi_low, narrow_phi_high, min_electron_pt);
+            1767     //SAT_Pass_HEMVeto = SAT_Pass_HEMVeto && PassObjectVeto(Photons,   narrow_eta_low, narrow_eta_high, narrow_phi_low, narrow_phi_high, min_photon_pt);                                                                                             
+            1768     SAT_Pass_HEMVeto = SAT_Pass_HEMVeto && PassObjectVeto(Jets,      wide_eta_low,   wide_eta_high,   wide_phi_low,   wide_phi_high,   jet_pt_cut);
+            
+            '''
+            
+            #cls.ak4_mask = cls.ak4_mask & ~((jet_pt_eta_phi[j_eta_key] < -1.2) & (jet_pt_eta_phi[j_phi_key] > -1.77) & (jet_pt_eta_phi[j_phi_key] < -0.67))
+            #cls.ak8_mask = cls.ak8_mask & ~((fatjet_pt_eta_phi[fj_eta_key] < -1.2) & (fatjet_pt_eta_phi[fj_phi_key] > -1.77) & (fatjet_pt_eta_phi[fj_phi_key] < -0.67))
+            #
             cls.rtcd_mask = (rtcd >= 0.70) # trained with 75, might expand if I do re-train
             #
-            n_ak4jets , n_ak8jets = jet_pt_eta[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta[fj_pt_key][(fatjet_pt_eta[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
-            del jet_pt_eta, fatjet_pt_eta
+            n_ak4jets , n_ak8jets = jet_pt_eta_phi[j_pt_key][cls.ak4_mask].counts, fatjet_pt_eta_phi[fj_pt_key][(fatjet_pt_eta_phi[fj_pt_key] >= cfg.ZHptcut) & (cls.ak8_mask)].counts
+            del jet_pt_eta_phi, fatjet_pt_eta_phi
             #
             event_mask = ((n_ak4jets >= cls.minAk4Jets) & 
                           (n_ak4jets <= cls.maxAk4Jets) &
@@ -302,6 +339,8 @@ class getData :
             #
             mu_mask =cfg.lep_sel['muon'](mu_info)  
             el_mask =cfg.lep_sel['electron'][cls.year](el_info)
+            # HEM veto
+            #el_mask = el_mask & ~((el_info['Electron_eta'] > -3) & (el_info['Electron_eta'] < -1.4) & (el_info['Electron_phi'] > -1.57) & (el_info['Electron_phi'] < -0.87))
             #
             lep_event_mask = ((mu_mask[mu_mask].counts + el_mask[el_mask].counts) == 1)
             cls.event_mask = cls.event_mask & lep_event_mask
@@ -351,9 +390,11 @@ class getData :
             _dict = AnaDict({})
             for k in keys:
                 #print(k)
-                if cls.ana_vars[k] in cls.fj:
+                #if cls.ana_vars[k] in cls.fj:
+                try:
                     _dict[k] = cls.fj[cls.ana_vars[k]]
-                else: _dict[k] = cls.tarray(cls.ana_vars[k], executor=executor)
+                except: 
+                    _dict[k] = cls.tarray(cls.ana_vars[k], executor=executor)
             return _dict
 ##
 

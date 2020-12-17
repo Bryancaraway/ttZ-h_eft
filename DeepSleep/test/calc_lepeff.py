@@ -26,7 +26,7 @@ class Calc_LepEff():
     '''
     # coordinates to get data
     tag        = 'tight'
-    roodir     = cfg.file_path
+    roodir     = cfg.file_path+'lep_study_files/'
     treedir    = f'{cfg.tree_dir}_bb'
     data_tree = {'mu' :'MuData',
                  'ele':'EleData'}
@@ -92,8 +92,9 @@ class Calc_LepEff():
                     'muon':     self.t['ele']}
         tree = opt_dict[opt]
         #
+        getData.DF_Container.set_tree(tree)
         getData.DF_Container.set_attr(True, self.year, 3, 99, 1, None,None) # nominal, 3 jets with 1 bottom
-        getData.DF_Container.set_current_tree_mask(tree)
+        getData.DF_Container.set_current_tree_mask()
         event_mask = getData.DF_Container.event_mask 
         #
         mu, ele, hlt = self.get_tree_data(tree)
@@ -137,10 +138,11 @@ class Calc_LepEff():
         eff_eta_err = clop_pear_ci(num_eta,den_eta,return_error=True)
         eff_eta_down, eff_eta_up = clop_pear_ci(num_eta,den_eta)
         #
-        print(num_pt,'\n',den_pt,'\n')
-        print(num_eta,'\n',den_eta,'\n')
+        #print(num_pt,'\n',den_pt,'\n')
+        #print(num_eta,'\n',den_eta,'\n')
+        print(opt)
         print(self.pt_bins[opt])
-        print(eff_pt,'\n' ,eff_pt_err, '\n')
+        print(eff_pt,'\n' ,eff_pt_down, '\n',eff_pt_up, '\n')
         #self.plot_num_den(num_pt, num_pt_err, den_pt, den_pt_err, pt_edges, opt)
         #self.plot_eff(eff_pt, eff_pt_err, pt_edges, eff_eta, eff_eta_err, eta_edges, opt)
         self.eff_to_pickle(eff_pt, eff_pt_up, eff_pt_down, eff_eta, eff_eta_up, eff_eta_down, opt)
@@ -161,17 +163,18 @@ class Calc_LepEff():
         eff = AnaDict({'pt':{}, 'eta':{}})
         for i in range(len(eff_pt)):
             eff['pt'][f'{self.pt_bins[lep_type][i]},{self.pt_bins[lep_type][i+1]}'] = {
-                'values':eff_pt[i].round(3), 
-                'up':eff_pt_up[i].round(3), 
-                'down':eff_pt_down[i].round(3)}
+                'values':eff_pt[i].round(4), 
+                'up':eff_pt_up[i].round(4), 
+                'down':eff_pt_down[i].round(4)}
         #
         for i in range(len(eff_eta)):
             eff['eta'][f'{self.eta_bins[lep_type][i]},{self.eta_bins[lep_type][i+1]}'] = {
-                'values':eff_eta[i].round(3), 
-                'up':eff_eta_up[i].round(3), 
-                'down':eff_eta_down[i].round(3)}
+                'values':eff_eta[i].round(4), 
+                'up':eff_eta_up[i].round(4), 
+                'down':eff_eta_down[i].round(4)}
 
-        eff_dir  = f'files/{self.year}/eff_files/'
+        #eff_dir  = f'files/{self.year}/eff_files/'
+        eff_dir = 'data/lep_eff_files/'
         pkl_file = f'{lep_type}_eff_{self.year}_{self.tag}.pkl'
         eff.to_pickle(eff_dir+pkl_file)
         

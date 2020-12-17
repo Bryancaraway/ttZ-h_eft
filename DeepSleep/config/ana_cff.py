@@ -36,6 +36,10 @@ ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow',
 MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 Sig_MC            = [#'TTZH', 
                      'TTZ_bb','TTZ','TTH']
+## EFT ##
+Sig_EFT_MC        = ['TTZ_EFT','TTH_EFT']
+tt_eft_samples    = ['TTBB_EFT']
+#########
 Bkg_MC            = [#'QCD', 
     'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 All_MC            = ['TTZH', 'TTZ_bb', 'TTZ', 'TTH', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
@@ -63,6 +67,7 @@ Lumi              = {'2016': 35.917149,
                      '2018': 59.72444,
                      '2018preHEM' : 21.1,
                      '2018postHEM': 38.6,
+                     'run2': 137.166648,
                      'Total': 137.166648
                   } 
 ##
@@ -171,7 +176,7 @@ BC_btag_sf = {'2016': {'values': [1.0, 1.0, 0.94241418, 0.98314421, 1.05133896, 
     
 
 ana_vars = {
-    'ak4vars'    : ['Jet_btagDeepB'+LC, 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
+    'ak4vars'    : ['Jet_btagDeepB'+LC,],# 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
     'ak4lvec'    : {'TLV'         :['JetTLV'+LC],
                     'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
                     'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass'],
@@ -196,7 +201,9 @@ ana_vars = {
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother', # these are MC only
                     'genTtbarId'], # event level identifier for ttbar+bb
     'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
-    'valvars'    : ['nResolvedTops'+LC,'nMergedTops'+LC,'nBottoms'+LC,'nSoftBottoms'+LC,'nJets30'+LC,
+    'valvars'    : ['nJets30'+LC, 'nBottoms'+LC, 
+                    #'nSoftBottoms'+LC,
+                    #'nResolvedTops'+LC,'nMergedTops'+LC,
                     'passSingleLepElec', 'passSingleLepMu',
                     'MET_phi', 'MET_pt', #'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
@@ -235,7 +242,8 @@ dnn_ZH_vars = [
     'max_lb_dr','max_lb_invM', 'n_Zh_btag_sj', 'n_ak4jets', 'Zh_score', 'best_rt_score',
     'n_q_outZh', 'n_b_outZh', 'Zh_l_dr', 'n_Zh_sj', 'n_b_inZh', 'Zh_bestb_sj', 'Zh_worstb_sj',
     'Zh_eta','Zh_deepB','b1_outZh_score', 'best_Zh_b_invM_sd', 'Zh_b1_invM_sd', 'Zh_b2_invM_sd','Zh_l_invM_sd',
-    'Zh_Wscore', 'Zh_Tscore', 'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets', 'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
+    'Zh_Wscore', 'Zh_Tscore', 'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets',  # repeated?
+    'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
     'Zh_bbscore_sj', 
     'b1_over_Zhpt', 'bb_over_Zhpt',
     'spher','aplan','n_q_inZh']

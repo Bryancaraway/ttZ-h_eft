@@ -230,8 +230,8 @@ def clop_pear_ci(k,n,cl=0.68, return_error=False):
     lo = scipy.stats.beta.ppf(alpha/2, k, n-k+1)
     hi = scipy.stats.beta.ppf(1 - alpha/2, k+1, n-k)
     #lo, hi = map(np.nan_to_num,[lo, hi])
-    if return_error: return [np.nan_to_num(abs(lo-(k/n))), np.nan_to_num(abs(hi-(k/n)))]
-    return [np.nan_to_num(lo),np.nan_to_num(hi)]
+    if return_error: return [np.nan_to_num(abs(lo-(k/n))), np.nan_to_num(abs(hi-(k/n)), nan=1.)]
+    return [np.nan_to_num(lo),np.nan_to_num(hi, nan=1.)]
     
 
 def getLaLabel(str_):
@@ -273,6 +273,8 @@ def getLaLabel(str_):
                              'tab:cyan'],
         'other':            ['other',
                              'tab:pink'],
+        'rare':            ['Rare',
+                            'tab:pink'],
         #
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
                             'tab:blue'],
@@ -364,13 +366,17 @@ def t2Run(func):
 def save_pdf(pdf_name = 'dummy.pdf'):
     import matplotlib.backends.backend_pdf as matpdf 
     import matplotlib.pyplot as plt
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output(
+        'echo $(git rev-parse --show-cdup)',
+        shell=True).decode().strip('\n')+'DeepSleep/')
     def inner (func):
         def wrapper(*args,**kwargs):
-            pdf = matpdf.PdfPages(f"pdf/{pdf_name}")  
+            pdf = matpdf.PdfPages(f"{sys.path[1]}pdf/{pdf_name}")  
             func(*args, **kwargs) # doesnt return anything
             for fig_ in range(1, plt.gcf().number+1):
                 pdf.savefig( fig_ )
-            print(f"Saving figures to: pdf/{pdf_name}")
+            print(f"Saving figures to: {sys.path[1]}pdf/{pdf_name}")
             pdf.close()
             plt.close('all')
 
