@@ -262,7 +262,7 @@ class Plotter :
         self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
         #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )
         
-        plt.xlim(self.bin_range)
+        self.ax.set_xlim(self.bin_range)
         if self.doLog: self.ax.set_yscale('log')
         #plt.grid(True)
         #plt.setp(patches_, linewidth=0)
@@ -273,8 +273,9 @@ class Plotter :
         self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize='xx-small')
         self.ax.set_ylim(ymin=self.ax.get_ylim()[0],ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
-        if self.doShow: plt.show()
-        plt.close(self.fig)
+        if self.doShow: 
+            plt.show()
+            plt.close(self.fig)
         #plt.close('all') # for lpc
 
     @classmethod
