@@ -370,7 +370,7 @@ class MakeDataCard:
         #
         self.write2dc(100*'-'+'\n')
         self.write2dc('# Float tt_bb normalization\n') 
-        self.write2dc('CMS_ttbbnorm rateParam * tt_*b 1 [-10,10]\n')
+        self.write2dc('CMS_ttbbnorm rateParam * tt_*b 1 [0.0,5.0]\n')
         #Systematic('CMS_ttbbnorm', 'lnN', ['tt_bb','tt_2b'], 10)
         self.write2dc(100*'-'+'\n')
         self.write2dc('# MC Stats uncertainties\n') 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #                      #  
 ##                    ##
 ########################                               
@@ -53,16 +55,50 @@ doNNcuts = False
 if len(sys.argv) > 2: # means do nn cuts
     doNNcuts = True
     
-
+# only targets listed here may be used
 tbins_map = {
-    'Zh_M' :[50,80,105,145,200],
-    'Zh_pt':[200,300,450,np.inf],
-    'Zh_score':[0,.25,.50,1.0],
-    'nBottoms_drLeptonCleaned':[1.5,2.5,3.5,4.5,10],
-    'n_ak4jets':[3.5,4.5,5.5,6.5,7.5,14],
-    'n_b_inZh':[-0.5,0.5,1.5,2.5]}
+    #'Zh_M' :[50,80,105,145,200],
+    #'Zh_pt':[200,300,450,np.inf],
+    #'nBottoms_drLeptonCleaned':[1.5,2.5,3.5,4.5,10],
 
-
+    # NN variables onward
+    'max_lb_dr':[0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf], # NN
+    'max_lb_invM':[0,50,100,150,200,np.inf], # NN
+    'n_Zh_btag_sj':[-0.5,0.5,1.5,2.5], #NN
+    'n_ak4jets':[3.5,4.5,5.5,6.5,7.5,np.inf], # NN
+    'Zh_score':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0], # NN
+    'best_rt_score':[0,.70,.8,.9,1], # NN
+    'n_q_outZh':[-0.5,0.5,1.5,2.5,3.5,4.5,np.inf],# NN
+    'n_b_outZh':[-0.5,0.5,1.5,2.5,3.5,4.5,np.inf], 
+    'Zh_l_dr':[0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf],
+    'n_Zh_sj':[-0.5,0.5,1.5,np.inf],
+    'n_b_inZh':[-0.5,0.5,1.5,np.inf], # NN
+    'Zh_bestb_sj':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'Zh_worstb_sj':[0,.25,.5,.75,1.0],
+    'Zh_eta':[-2.4,-2.0,-1.6,-1.2,-0.8,-0.4,0.0,0.4,0.8,1.2,1.6,2.0,2.4],
+    'Zh_deepB':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'b1_outZh_score':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'best_Zh_b_invM_sd':[50,100,125,150,175,200,300,np.inf],
+    'Zh_b1_invM_sd':[50,100,125,150,175,200,300,np.inf],
+    'Zh_b2_invM_sd':[50,100,125,150,175,200,300,np.inf],
+    'Zh_l_invM_sd':[50,100,125,150,175,200,np.inf],
+    'Zh_Wscore':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'Zh_Tscore':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'n_ak8_Zhbb':[-0.5,0.5,1.5,np.inf],
+    'n_ak8jets':[-0.5,0.5,1.5,2.5,np.inf],
+    'nonZhbb_b1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf],
+    'nonZhbb_b2_dr':[0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf],
+    'Zh_bbscore_sj':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0,1.25,1.50,1.75,2.00],
+    'b1_over_Zhpt':[0.0,0.2,0.4,0.6,0.8,1.0],
+    'bb_over_Zhpt':[0.0,0.2,0.4,0.6,0.8,1.0],
+    'spher':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'aplan':[0,.025,.05,.075,.1,.15,.20,.25,.30,.35,np.inf],
+    'n_q_inZh':[-0.5,0.5,1.5,np.inf]
+    
+}
+if target not in tbins_map:
+    raise KeyError(f"{target} not in 'tbins_map'!!!\nOnly the following are available: {list(tbins_map.keys())}")
+    
 def get_sumw_sumw2(df, weights, year):
     #ret_target = (lambda df: (df['NN'].to_numpy(), df['Zh_M'].to_numpy()))
     #sumw = np.array([
@@ -93,7 +129,9 @@ class MakeQCDataCard(MakeDataCard):
     '''
     #file_dir = './files/'
     #
-    pt_bins = [0,200,300,450] # [200,300,400] # for gen Zhpt 
+    #pt_bins = [0,200,300,450] # [200,300,400] # for gen Zhpt 
+    pt_bins = [0,450] # [200,300,400] # for gen Zhpt 
+    accepted_sig = ['ttH','ttZ']
     #dc_dir = 'Higgs-Combine-Tool'
     tag = target+'_'+ ( 'NNcuts_' if doNNcuts else '' )
         
@@ -110,7 +148,7 @@ class MakeQCDataCard(MakeDataCard):
         self.years =  years
         #self.years = ['2018']
         self.isblind = isblind
-        self.dc_bins = 1#len(tbins_map[target])#len(pt_bins[1:])
+        self.dc_bins = 1 #len(tbins_map[target])#len(pt_bins[1:])
         self.bkg_v  = super().weights + super().weight_sys + ['process',target]
         self.sig_v  = self.bkg_v + ['genZHpt']
         self.data_v = ['process',target]
@@ -119,15 +157,15 @@ class MakeQCDataCard(MakeDataCard):
 
     def makeQCDC(self):
         super().getdatav2()
-        super().process_sig(self.data_dict)
+        #super().process_sig(self.data_dict)
         #print(self.data_dict.keys())
         super().initialize_hists() 
         super().initialize_roofile() # format in file : $CHANNEL_$PROCESS, $CHANNEL_$PROCESS_$SYSTEMATIC
         self.initialize_datacard()
         # add systematics to histos
         self.setup_Systematics()
-        #super().add_Systematics()
-        super().add_uncorrSystematics()
+        super().add_Systematics()
+        #super().add_uncorrSystematics()
         #print(self.histos.keys())
         if self.isblind:
             self.data_to_pdata()
@@ -135,7 +173,6 @@ class MakeQCDataCard(MakeDataCard):
         super().close_roofile()
         super().close_dc()
         
-
     def updatedict(self, p, v, y=''):
         if doNNcuts:
             v = v +['NN']
@@ -159,8 +196,8 @@ class MakeQCDataCard(MakeDataCard):
         if p in cfg.all_sys_samples: 
             sys =  '_'+p.split('_')[-1] # format [process_name]_[systype]
             if 'hdamp' in sys and 'TTbb' in p: sys = sys.replace('hdamp','hdamp_ttbb') 
-            #if 'JES' in sys or 'JER' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
-            if 'JES' in sys or 'JER' in sys or 'UE' in sys or 'hdamp' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
+            if 'JES' in sys or 'JER' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
+            #if 'JES' in sys or 'JER' in sys or 'UE' in sys or 'hdamp' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down') # only run this is running fully uncorrelated version
         data_dict = {f"{n.replace('Data','data_obs')}_{y}{sys}": g for n,g in group} # iterate over name and content
         return data_dict
 
@@ -168,7 +205,7 @@ class MakeQCDataCard(MakeDataCard):
     def setup_Systematics(self):
         process_line = np.array([self.accepted_sig + self.accepted_bkg for _ in range(self.dc_bins)]).flatten()
         Systematic.set_dc_processes(self.dc_dict, process_line)
-        ShapeSystematic.set_df_histos_histfuncs(self.data_dict, self.histos, get_sumw_sumw2)
+        ShapeSystematic.set_df_histos_histfuncs(self.data_dict, self.histos, self.get_sumw_sumw2)
         
 
     @t2Run
