@@ -38,7 +38,7 @@ Sig_MC            = [#'TTZH',
                      'TTZ_bb','TTZ','TTH']
 ## EFT ##
 Sig_EFT_MC        = ['TTZ_EFT','TTH_EFT']
-tt_eft_samples    = ['TTBB_EFT']
+tt_eft_samples    = ['TTJets_EFT','TTBB_EFT']
 #########
 Bkg_MC            = [#'QCD', 
     'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
