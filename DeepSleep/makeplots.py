@@ -14,14 +14,20 @@ import config.ana_cff as cfg
 #jjec = 'ak8'
 #jec_list = ['JESUp','JESDown','JERUp','JERDown']
 processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','ttX','Vjets','other']
-@save_pdf('nn_inputs_disc_score.pdf')
+@save_pdf('controlplots.pdf')
 def main():
     for y in cfg.Years: 
         #for jec in jec_list:
         #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
         Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
         ''' LOOK AT STACKED DATA VS MC '''
-        #StackedHist(processes,    'Zh_pt', xlabel=r'Z/H $p_{T}$ (GeV)', bin_range=[200,550],  bins=[200,300,450,550],  doCuts=True, addData=True)  
+        StackedHist(processes,    'Lep_pt', xlabel=r'lepton $p_{T}$ (GeV)', bin_range=[20,750],    n_bins=30,  doCuts=False, addData=True, doShow=False)  
+        StackedHist(processes,    'Lep_eta', xlabel=r'lepton $\eta$',        bin_range=[-2.6,2.6],  n_bins=26,  doCuts=False, addData=True, doShow=False)  
+        StackedHist(processes,    'MET_pt', xlabel=r'missing $e_{T}$ (GeV)', bin_range=[0,500],  n_bins=25,     doCuts=False, addData=True, doShow=False)  
+        StackedHist(processes,    'nBottoms_drLeptonCleaned', xlabel='# of ak4 b-jets', bin_range=[-0.5,8.5],  bins=[-.5,.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5],  doCuts=False, addData=True, doShow=False) 
+        StackedHist(processes,    'n_ak8jets', xlabel='# of ak8 jets', bin_range=[-0.5,4.5],  bins=[-.5,.5,1.5,2.5,3.5,4.5],  doCuts=False, addData=True, doShow=False) 
+        
+        
         #StackedHist(cfg.MC_pow,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=True, addData=True)  
             #
         #StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200],  doCuts=True, addData=True)  
@@ -44,15 +50,15 @@ def main():
         #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8', sepGenOpt='sepGenBkg;--', doCuts=True, addData=True)  
     
         #StackedHist(processes,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8',  doCuts=True, addData=True)  
-        StackedHist(processes,'b1_outZh_score', bin_range=[.4,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_deepB', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_score', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'best_rt_score', bin_range=[0,1],  n_bins=20,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_worstb_sj', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_bestb_sj', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_bbscore_sj', bin_range=[0,2],  n_bins=20,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_Tscore', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_Wscore', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'b1_outZh_score', bin_range=[.4,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_deepB', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_score', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'best_rt_score', bin_range=[0,1],  n_bins=20,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_worstb_sj', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_bestb_sj', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_bbscore_sj', bin_range=[0,2],  n_bins=20,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_Tscore', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_Wscore', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
     
         #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80;Zh_pt>=300;Zh_pt<450;Zh_M>=105;Zh_M<145', add_d_cuts='NN<=0.8', sepGenOpt='sepGenBkg;--', doCuts=True, addData=True)  
     
