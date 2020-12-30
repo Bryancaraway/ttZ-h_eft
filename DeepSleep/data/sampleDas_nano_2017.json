@@ -10,7 +10,7 @@
         "/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/NANOAODSIM",
         "/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_EXT_102X_mc2017_realistic_v8-v1/NANOAODSIM"
     ],
-    "ttHtobb_2017": [
+    "ttHTobb_2017": [
         "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_new_pmx_102X_mc2017_realistic_v8-v1/NANOAODSIM"
     ],
     "ttHToNonbb_2017": [
@@ -19,7 +19,7 @@
     "TTToSemiLeptonic_2017": [
         "/TTToSemiLeptonic_TuneCP5_PSweights_13TeV-powheg-pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/NANOAODSIM"
     ],
-    "TTToLLNuNu_2017": [
+    "TTTo2L2Nu_2017": [
         "/TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_new_pmx_102X_mc2017_realistic_v8-v1/NANOAODSIM"
     ],
     "TTToHadronic_2017": [
@@ -186,7 +186,7 @@
     "TTbb_SemiLeptonic_hdampDown_2017": [
         "/TTbb_4f_TTToSemiLeptonic_hdampDOWN_TuneCP5-Powheg-Openloops-Pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/NANOAODSIM"
     ],
-    "TTbb_SemiLemtonic_hdampUp_2017": [
+    "TTbb_SemiLeptonic_hdampUp_2017": [
         "/TTbb_4f_TTToSemiLeptonic_hdampUP_TuneCP5-Powheg-Openloops-Pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/NANOAODSIM"
     ],
     "TTbb_2L2Nu_hdampDown_2017": [
@@ -200,5 +200,35 @@
     ],
     "TTbb_Hadronic_hdampUp_2017": [
         "/TTbb_4f_TTToHadronic_hdampUP_TuneCP5-Powheg-Openloops-Pythia8/RunIIFall17NanoAODv7-PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/NANOAODSIM"
+    ],
+    "Data_SingleElectron_2017_PeriodB": [
+	"/SingleElectron/Run2017B-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleElectron_2017_PeriodC": [
+	"/SingleElectron/Run2017C-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleElectron_2017_PeriodD": [
+	"/SingleElectron/Run2017D-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleElectron_2017_PeriodE": [
+	"/SingleElectron/Run2017E-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleElectron_2017_PeriodF": [
+	"/SingleElectron/Run2017F-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2017_PeriodB": [
+	"/SingleMuon/Run2017B-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2017_PeriodC": [
+	"/SingleMuon/Run2017C-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2017_PeriodD": [
+	"/SingleMuon/Run2017D-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2017_PeriodE": [
+	"/SingleMuon/Run2017E-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2017_PeriodF": [
+	"/SingleMuon/Run2017F-02Apr2020-v1/NANOAOD"
     ]
 }

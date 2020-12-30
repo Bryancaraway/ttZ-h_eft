@@ -9,8 +9,9 @@
     "TTZToLLNuNu_2018": [
         "/TTZToLLNuNu_M-10_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM"
     ],
-    "ttHtobb_2018": [
-        "/TTZToBB_TuneCP5_13TeV-amcatnlo-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
+    "ttHTobb_2018": [
+        "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM",
+	"/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_EXT_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
     ],
     "ttHToNonbb_2018": [
         "/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
@@ -19,7 +20,7 @@
         "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM",
         "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext3-v1/NANOAODSIM"
     ],
-    "TTToLLNuNu_2018": [
+    "TTTo2L2Nu_2018": [
         "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
     ],
     "TTToHadronic_2018": [
@@ -80,7 +81,7 @@
     ],
     "DYJetsToLL_HT_400to600_2018": [
         "/DYJetsToLL_M-50_HT-400to600_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext1-v1/NANOAODSIM",
-        "/DYJetsToLL_M-50_HT-400to600_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext2-v1/NANOAODSIM",
+        "/DYJetsToLL_M-50_HT-400to600_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21_ext2-v1/NANOAODSIM"
     ],
     "DYJetsToLL_HT_200to400_2018": [
         "/DYJetsToLL_M-50_HT-200to400_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
@@ -188,7 +189,7 @@
     "TTbb_SemiLeptonic_hdampDown_2018": [
         "/TTbb_4f_TTToSemiLeptonic_hdampDOWN_TuneCP5-Powheg-Openloops-Pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
     ],
-    "TTbb_SemiLemtonic_hdampUp_2018": [
+    "TTbb_SemiLeptonic_hdampUp_2018": [
         "/TTbb_4f_TTToSemiLeptonic_hdampUP_TuneCP5-Powheg-Openloops-Pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
     ],
     "TTbb_2L2Nu_hdampDown_2018": [
@@ -202,5 +203,29 @@
     ],
     "TTbb_Hadronic_hdampUp_2018": [
         "/TTbb_4f_TTToHadronic_hdampUP_TuneCP5-Powheg-Openloops-Pythia8/RunIIAutumn18NanoAODv7-Nano02Apr2020_102X_upgrade2018_realistic_v21-v1/NANOAODSIM"
+    ],
+    "Data_EGamma_2018_PeriodA": [
+	"/EGamma/Run2018A-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_EGamma_2018_PeriodB": [
+	"/EGamma/Run2018B-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_EGamma_2018_PeriodC": [
+	"/EGamma/Run2018C-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_EGamma_2018_PeriodD": [
+	"/EGamma/Run2018D-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2018_PeriodA": [
+	"/SingleMuon/Run2018A-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2018_PeriodB": [
+	"/SingleMuon/Run2018B-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2018_PeriodC": [
+	"/SingleMuon/Run2018C-02Apr2020-v1/NANOAOD"
+    ],
+    "Data_SingleMuon_2018_PeriodD": [
+	"/SingleMuon/Run2018D-02Apr2020-v1/NANOAOD"
     ]
 }
