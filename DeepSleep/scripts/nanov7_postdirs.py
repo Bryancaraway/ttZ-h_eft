@@ -33,13 +33,14 @@ def find_and_transfer_files(year, json_file):
         for sf in samples[s]['files']:
             sfile = sf.split('/')[-1].replace('.root','')#.replace('.root','_Skim[_]+\d+.root')
             #found_job = re.findall(rf'\w*{sfile}',' '.join(finished_jobs))
-            found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}/\w*{sfile}\w*.root',' '.join(finished_jobs))
+            print(sf)
+            found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
             if not found_job:
                 print(f'Missing: {sf} !!!')
             else:
                 found_job = {os.stat(j).st_size:j for j in found_job}
                 initial_loc = found_job[max(found_job.keys())]
-                job_loc = re.search(rf'/\w*{year}/\w*{sfile}\w*.root', initial_loc).group()
+                job_loc = re.search(rf'/\w*{year}\w*/\w*{sfile}\w*.root', initial_loc).group()
                 final_loc = assembly_dir+year+job_loc
                 if os.path.exists(final_loc):
                     if os.stat(final_loc).st_size < os.stat(initial_loc).st_size:
