@@ -53,13 +53,13 @@ class PreSkim :
     min_nfatjets = 1
     min_nbjets   = 2
     
-    def __init__(self, sample, year, isttbar=False, isttbb=False):
+    def __init__(self, files, sample, year, isttbar=False, isttbb=False):
         self.sample = sample
         self.year   = year
         self.isttbar = isttbar
         self.isttbb  = isttbb
         self.metadata = {}
-        self.files    = glob(f'{self.nanoAODv7_dir}/{year}/{sample}_{year}/*.root')
+        self.files    = files#glob(f'{self.nanoAODv7_dir}/{year}/{sample}_{year}/*.root')
         self.pool     = multiprocessing.Pool()
         #
         if self.isttbar or self.isttbb:
@@ -93,7 +93,7 @@ class PreSkim :
         }
 
     def ttbar_ttbb_normalization(self): # 3,4
-        result_list = np.array(self.pool.map(self.event_worker, self.files))
+        result_list = np.array(self.pool.map(self.ttbb_worker, self.files))
         results =  [sum(result_list[:,i]) for i in range(41)]
         self.metadata = {
             'tot_events': results[0], 
@@ -148,10 +148,10 @@ class PreSkim :
             n_count= sum(gw<0.0)
             tot_count = p_count - n_count
             #
-            bt_nom = (t.array('BTagWeight') * np.sign(gw))/tot_count
-            bt_jes_up, bt_jes_down = (t.array('BTagWeight_jes_up') * np.sign(gw)), (t.array('BTagWeight_jes_down') * np.sign(gw))
-            bt_lf_up, bt_lf_down = (t.array('BTagWeight_lf_up') * np.sign(gw)), (t.array('BTagWeight_lf_down') * np.sign(gw))
-            bt_hf_up, bt_hf_down = (t.array('BTagWeight_hf_up') * np.sign(gw)), (t.array('BTagWeight_hf_down') * np.sign(gw))
+            bt_nom = sum(t.array('BTagWeight') * np.sign(gw))
+            bt_jes_up, bt_jes_down = sum(t.array('BTagWeight_jes_up') * np.sign(gw)), sum(t.array('BTagWeight_jes_down') * np.sign(gw))
+            bt_lf_up, bt_lf_down = sum(t.array('BTagWeight_lf_up') * np.sign(gw)),    sum(t.array('BTagWeight_lf_down') * np.sign(gw))
+            bt_hf_up, bt_hf_down = sum(t.array('BTagWeight_hf_up') * np.sign(gw)),    sum(t.array('BTagWeight_hf_down') * np.sign(gw))
             bt_lfstats1_up, bt_lfstats1_down = sum(t.array('BTagWeight_lfstats1_up') * np.sign(gw)), sum(t.array('BTagWeight_lfstats1_down') * np.sign(gw))
             bt_lfstats2_up, bt_lfstats2_down = sum(t.array('BTagWeight_lfstats2_up') * np.sign(gw)), sum(t.array('BTagWeight_lfstats2_down') * np.sign(gw))
             bt_hfstats1_up, bt_hfstats1_down = sum(t.array('BTagWeight_hfstats1_up') * np.sign(gw)), sum(t.array('BTagWeight_hfstats1_down') * np.sign(gw))
@@ -163,7 +163,7 @@ class PreSkim :
                     pdf_up_tot, pdf_down_tot, # 9-10
                     bt_nom, # 11
                     bt_jes_up, bt_jes_down, bt_lf_up, bt_lf_down, bt_hf_up, bt_hf_down, # 12-17
-                    bt_lfstats1_up, bt_lfstats1_dow, bt_lfstats2_up, bt_lfstats2_down,  # 18-21
+                    bt_lfstats1_up, bt_lfstats1_down, bt_lfstats2_up, bt_lfstats2_down,  # 18-21
                     bt_hfstats1_up, bt_hfstats1_down, bt_hfstats2_up, bt_hfstats2_down  # 22-25
                 ]
         
@@ -181,10 +181,10 @@ class PreSkim :
             pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
             tot_count= sum(gw>=0.0) - sum(gw<0.0)
             #
-            bt_nom = (t.array('BTagWeight') * np.sign(gw))/tot_count
-            bt_jes_up, bt_jes_down = (t.array('BTagWeight_jes_up') * np.sign(gw)), (t.array('BTagWeight_jes_down') * np.sign(gw))
-            bt_lf_up, bt_lf_down = (t.array('BTagWeight_lf_up') * np.sign(gw)), (t.array('BTagWeight_lf_down') * np.sign(gw))
-            bt_hf_up, bt_hf_down = (t.array('BTagWeight_hf_up') * np.sign(gw)), (t.array('BTagWeight_hf_down') * np.sign(gw))
+            bt_nom = sum(t.array('BTagWeight') * np.sign(gw))
+            bt_jes_up, bt_jes_down = sum(t.array('BTagWeight_jes_up') * np.sign(gw)), sum(t.array('BTagWeight_jes_down') * np.sign(gw))
+            bt_lf_up, bt_lf_down =   sum(t.array('BTagWeight_lf_up') * np.sign(gw)),  sum(t.array('BTagWeight_lf_down') * np.sign(gw))
+            bt_hf_up, bt_hf_down =   sum(t.array('BTagWeight_hf_up') * np.sign(gw)),  sum(t.array('BTagWeight_hf_down') * np.sign(gw))
             bt_lfstats1_up, bt_lfstats1_down = sum(t.array('BTagWeight_lfstats1_up') * np.sign(gw)), sum(t.array('BTagWeight_lfstats1_down') * np.sign(gw))
             bt_lfstats2_up, bt_lfstats2_down = sum(t.array('BTagWeight_lfstats2_up') * np.sign(gw)), sum(t.array('BTagWeight_lfstats2_down') * np.sign(gw))
             bt_hfstats1_up, bt_hfstats1_down = sum(t.array('BTagWeight_hfstats1_up') * np.sign(gw)), sum(t.array('BTagWeight_hfstats1_down') * np.sign(gw))
@@ -223,11 +223,11 @@ class PreSkim :
                     pdf_up_ttbb, pdf_down_ttbb, # 24-25
                     bt_nom, # 26
                     bt_jes_up, bt_jes_down, bt_lf_up, bt_lf_down, bt_hf_up, bt_hf_down, # 27-32
-                    bt_lfstats1_up, bt_lfstats1_dow, bt_lfstats2_up, bt_lfstats2_down,  # 33-36
+                    bt_lfstats1_up, bt_lfstats1_down, bt_lfstats2_up, bt_lfstats2_down,  # 33-36
                     bt_hfstats1_up, bt_hfstats1_down, bt_hfstats2_up, bt_hfstats2_down # 37-40
                 ]
 
 if __name__ == '__main__':
-    test = PreSkim('ttHToNonbb','2017') # sample, year, isttbar=False, isttbb=False
+    test = PreSkim('WWW','2016') # sample, year, isttbar=False, isttbb=False
     print(test.get_metadata())
     

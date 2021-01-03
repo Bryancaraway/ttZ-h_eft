@@ -8,6 +8,7 @@ import re
 import json
 from glob import glob
 import uproot
+import time
 import numpy as np
 import subprocess as sb
 from multiprocessing import Pool
@@ -38,7 +39,8 @@ def find_missing_files(json_file):
                             continue
                         else:
                             print(f'All bad in: {found_job}')
-                            job_incomplete = True # end of for loop
+                            if not attempt_transfer(found_job,year):
+                                job_incomplete = True # end of for loop
                     
             if not found_job or job_incomplete:
                 if not job_incomplete: print(f'Missing: {sf}!!!!!!!')
@@ -47,6 +49,43 @@ def find_missing_files(json_file):
     print(out_file)
     with open(out_file, 'w') as jf:
         json.dump(missing_files, jf, indent=4)
+    
+
+def attempt_transfer(potential_names,year):
+    ### only this type ###
+    #figure out target directory
+    destination='/cms/data/store/user/bcaraway/NanoAODv7/'
+    target = ''
+    if year == '2016' or year == '2018':
+        target = 'store/user/bcaraway/NanoAODv7/'
+    else:
+        target = 'store/user/hatake/NanoAODv7/'
+    for name in potential_names:
+        if target in name:
+            target = name.replace('/cms/data/','').replace('hatake','hcal_upgrade/noreplica/hatake')
+            destination += '/'.join(name.split('/')[-2:])
+    # see if file is remote
+    try:
+        with uproot.open(f'root://cmseos.fnal.gov//{target}') as _:
+            print(f'File found at: {target} ')
+            pass
+    except:
+        print(f'File not remote at: {target} ')
+        return False
+    #
+    #if 'TTbb_' not in target: return False
+    # make sure to wait before trying to transfer
+    num_jobs_running = lambda: int(sb.check_output('qstat -u $USER | grep transfer | wc -l', shell=True).decode())
+    print(num_jobs_running())
+    while num_jobs_running() >= 50:
+        time.sleep(120)
+
+    out_name = destination.split('/')[-1]
+    args = f'-v target={target},destination={destination}'
+    command = f'cp $X509_USER_PROXY /cms/data/$USER/.x509_user_proxy ;qsub -l nodes=1:ppn=1 -o {year}/{out_name}.out -e {year}/{out_name}.err {args} transfer.sh'
+    #
+    os.system(command)
+    return True
     
 
 if __name__ == '__main__':

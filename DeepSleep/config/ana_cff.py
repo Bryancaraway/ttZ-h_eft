@@ -128,16 +128,19 @@ hlt_path = {
 }
 ###################
 # Input Variables #
-LC = '_drLeptonCleaned'
+#LC = '_drLeptonCleaned'
+LC = ''
 #
 lep_sel_vars = {'muon'    : ['Muon_pt','Muon_eta','Muon_phi','Muon_mass',
-                             'Muon_miniPFRelIso_all','Muon_FlagId'],
+                             'Muon_miniPFRelIso_all','Muon_mediumId'],#'Muon_FlagId'],
                 'electron': ['Electron_pt','Electron_eta','Electron_phi','Electron_mass',
                              'Electron_miniPFRelIso_all', 'Electron_cutBasedNoIso']}
 
-lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30) & (abs(x['Muon_eta']) < 2.4) &
-                                    #(x['Muon_FlagId'] >= 0) & (x['Muon_miniPFRelIso_all'] < .4) )), # loose id, loose miniIso
-                                    (x['Muon_FlagId'] >= 1) & (x['Muon_miniPFRelIso_all'] < 0.2) )),
+lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30)        & 
+                                    (abs(x['Muon_eta']) < 2.4) &
+                                    #(x['Muon_FlagId'] >= 1)    & 
+                                    (x['Muon_mediumId'] >= 1)    & 
+                                    (x['Muon_miniPFRelIso_all'] < 0.2) )),
 
                 'electron': {'2016': (lambda x : ((x['Electron_pt'] > 30) & (abs(x['Electron_eta']) < 2.5) & 
                                                   (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
@@ -176,7 +179,8 @@ BC_btag_sf = {'2016': {'values': [1.0, 1.0, 0.94241418, 0.98314421, 1.05133896, 
     
 
 ana_vars = {
-    'ak4vars'    : ['Jet_btagDeepB'+LC,],# 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
+    'ak4vars'    : ['Jet_btagDeepB'+LC,'Jet_puId','Jet_jetId'],
+    # 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
     'ak4lvec'    : {'TLV'         :['JetTLV'+LC],
                     'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
                     'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass'],
@@ -186,11 +190,12 @@ ana_vars = {
                     'jerDown'     :['Jet_pt_jerDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerDown'],
                 },
 #
-    'ak8vars'    : [#'FatJet_tau1'+LC,'FatJet_tau2'+LC,'FatJet_tau3'+LC,'FatJet_tau4'+LC, # removed for now
-                    'FatJet_deepTag_WvsQCD'+LC,'FatJet_deepTag_TvsQCD'+LC,'FatJet_deepTag_ZvsQCD'+LC,
+    'ak8vars'    : ['FatJet_jetId',
+                    'FatJet_deepTagMD_WvsQCD','FatJet_deepTagMD_TvsQCD','FatJet_deepTagMD_bbvsLight',
+                    'FatJet_deepTagMD_ZHbbvsQCD',
+                    #'FatJet_deepTag_WvsQCD'+LC,'FatJet_deepTag_TvsQCD'+LC,'FatJet_deepTag_ZvsQCD'+LC,
                     #'FatJet_deepTagMD_H4qvsQCD'+LC, 'FatJet_deepTagMD_HbbvsQCD'+LC, 'FatJet_deepTagMD_TvsQCD'+LC, 
-                    #'FatJet_deepTagMD_WvsQCD'+LC, 'FatJet_deepTagMD_ZHbbvsQCD'+LC, 'FatJet_deepTagMD_ZHccvsQCD'+LC, 
-                    #'FatJet_deepTagMD_ZbbvsQCD'+LC, 'FatJet_deepTagMD_ZvsQCD'+LC, 'FatJet_deepTagMD_bbvsLight'+LC, 'FatJet_deepTagMD_ccvsLight'+LC, 
+                    #'FatJet_deepTagMD_ZbbvsQCD'+LC, 'FatJet_deepTagMD_ZvsQCD'+LC, 'FatJet_deepTagMD_bbvsLight'+LC, 'FatJet_deepTagMD_ccvsLight'+LC,     
                     'FatJet_msoftdrop'+LC,'FatJet_btagDeepB'+LC,'FatJet_btagHbb'+LC,
                     'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC],
     'ak8lvec'    : {'TLV'      :['FatJetTLV'+LC],
@@ -198,8 +203,8 @@ ana_vars = {
                     'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass']},
     'ak8sj'      : ['SubJet_pt', 'SubJet_btagDeepB'],
 #
-    'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother', # these are MC only
-                    'genTtbarId'], # event level identifier for ttbar+bb
+    'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 
+                    'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother','genTtbarId'], # event level identifier for ttbar+bb
     'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
     'valvars'    : ['nJets30'+LC, 'nBottoms'+LC, 
                     #'nSoftBottoms'+LC,
@@ -208,21 +213,27 @@ ana_vars = {
                     'MET_phi', 'MET_pt', #'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
+    'event'      : ['MET_phi', 'MET_pt','run'],
+    'filters'    : ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter',
+                    'Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter',
+                    'Flag_BadPFMuonFilter','Flag_eeBadScFilter','Flag_ecalBadCalibFilterV2'],
     'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
                          'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
-    'sysvars_mc'      : ['genWeight','weight','BTagWeight','BTagWeightLight','BTagWeightHeavy','puWeight','ISRWeight',# these are MC only
-                         'Stop0l_topptWeight','Stop0l_topMGPowWeight',#'Stop0l_topptOnly' #not for 2016
-
-                         #'LHEScaleWeight', 'PSWeight', # these are special and need to be computed during get data
-                         'BTagWeight_Up', 'BTagWeight_Down', 
-                         'BTagWeightLight_Up', 'BTagWeightLight_Down', 
-                         'BTagWeightHeavy_Up', 'BTagWeightHeavy_Down', 
-                         'puWeight_Up','puWeight_Down', 
-                         'pdfWeight_Up','pdfWeight_Down',
-                         'ISRWeight_Up','ISRWeight_Down'],
+    # these are MC only
+    'sysvars_mc'      : ['genWeight','puWeight','BTagWeight',
+                         'BTagWeight_jes_up','BTagWeight_jes_down',
+                         'BTagWeight_lf_up','BTagWeight_lf_down',
+                         'BTagWeight_hf_up','BTagWeight_hf_down',
+                         'BTagWeight_lfstats1_up','BTagWeight_lfstats1_down',
+                         'BTagWeight_lfstats2_up','BTagWeight_lfstats2_down',
+                         'BTagWeight_hfstats1_up','BTagWeight_hfstats1_down',
+                         'BTagWeight_hfstats2_up','BTagWeight_hfstats2_down',
+                         'puWeightUp','puWeightDown', 
+                         'pdfWeight_Up','pdfWeight_Down',],
     'sysvars_2016'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
     'sysvars_2017'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
     'sysvars_2018'    : [],
+    'lheWeights'      : ['PSWeight','LHEScaleWeight','LHEReweightingWeight'],
     'dataHLT_all'     : [ 'HLT_IsoMu24' , 'HLT_IsoMu27', 'HLT_Mu50','HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165',
                           'HLT_Ele27_WPTight_Gsf', 'HLT_Photon175','HLT_Ele115_CaloIdVT_GsfTrkIdT'],
     'dataHLT_2016'    : ['HLT_IsoTkMu24','HLT_TkMu50','HLT_Ele45_CaloIdVT_GsfTrkIdT_PFJet200_PFJet50'],
