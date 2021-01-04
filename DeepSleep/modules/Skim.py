@@ -56,13 +56,14 @@ class Skim :
         self.events    = self.build_dict(cfg.ana_vars['event']+(
             (cfg.ana_vars['sysvars_mc']+cfg.ana_vars[f'sysvars_{self.year}']) 
             if not self.isData else []))  
+        print(len(self.events['genWeight']))
         # other things like gen info
         self.geninfo    = self.build_dict(cfg.ana_vars['genpvars']) 
         self.hlt        = self.build_dict(cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}'])
         self.subjets    = self.build_dict(cfg.ana_vars['ak8sj'])
         # wont keep
         self.lheweights = self.build_dict(cfg.ana_vars['lheWeights'])
-        self.filters    = self.build_dict(cfg.ana_vars['filters']) 
+        self.filters    = self.build_dict(cfg.ana_vars['filters_all']+cfg.ana_vars['filters_year'][self.year]) 
         # ===================== #
         # define object criteria
         self.jet_mask     = self.is_a_jet()
@@ -85,6 +86,7 @@ class Skim :
         self.geninfo    = self.geninfo[   self.event_mask]
         self.lheweights = self.lheweights[self.event_mask]
         self.subjets    = self.subjets[   self.event_mask]
+        print(len(self.events['genWeight']))
         ''' 
         add interesting info to events: 
         (lepton pt, eta, phi , etc...) 
@@ -100,7 +102,8 @@ class Skim :
     def get_skim(self):
         __out_wrapper = {
             'ak4':self.jets,
-            'ak8':self.fatjets.update(self.subjets),
+            'ak8':{**self.fatjets,**self.subjets},
+            #'sj': self.subjets
             'gen':self.geninfo,
             'events':self.events,
         }
@@ -231,7 +234,10 @@ class Skim :
 if __name__ == '__main__':
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/ttHTobb_2018/839BA380-7826-9140-8C16-C5C0903EE949_Skim_12.root'
     #test_file  = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTToSemiLeptonic_2018/D6501B6C-8B76-BF42-B677-64680733A780_Skim_19.root'
-    test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/DEDD55D3-8B36-3342-8531-0F2F4C462084_Skim_134.root' 
-    _ = Skim(test_file, 'ttHTobb', '2018', isData=False, jec_sys=None, jec_type=None)
-    AnaDict(_.get_skim()).to_pickle('testoutput.pkl')
+    #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/DEDD55D3-8B36-3342-8531-0F2F4C462084_Skim_134.root' 
+    #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTToSemiLeptonic_2016/CA4521C3-F903-8E44-93A8-28F5D3B8C5E8_Skim_121.root'
+    test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
+    test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
+    _ = Skim(test_file, 'TTZToBB', '2016', isData=False, jec_sys=None, jec_type=None)
+    AnaDict(_.get_skim()).to_pickle('TTZToBB_2016.pkl')
     

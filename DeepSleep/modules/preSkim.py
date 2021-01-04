@@ -25,6 +25,7 @@ import functools
 from glob import glob
 #
 import config.ana_cff as cfg
+from config.sample_cff import sample_cfg
 from lib.fun_library import fillne, t2Run
 from modules.AnaDict import AnaDict
 from modules.AnaVars import AnaVars
@@ -58,7 +59,7 @@ class PreSkim :
         self.year   = year
         self.isttbar = isttbar
         self.isttbb  = isttbb
-        self.metadata = {}
+        self.metadata = {'sample':sample, 'year':year, 'xs': sample_cfg[sample]['xs'], 'kf': sample_cfg[sample]['kf']}
         self.files    = files#glob(f'{self.nanoAODv7_dir}/{year}/{sample}_{year}/*.root')
         self.pool     = multiprocessing.Pool()
         #
@@ -72,7 +73,7 @@ class PreSkim :
     def event_var_normalization(self): # 1,2,4
         result_list = np.array(self.pool.map(self.event_worker, self.files))
         results =  [sum(result_list[:,i]) for i in range(26)]
-        self.metadata = {
+        self.metadata.update({
             'p_events': results[0], 'n_events': results[1],
             'tot_events': results[2], 
             'mur_up_tot':results[3],'mur_down_tot':results[4],
@@ -90,12 +91,12 @@ class PreSkim :
             'r_hfstats2_up': results[24]/results[2],'r_hfstats2_down': results[25]/results[2],
 
             
-        }
+        })
 
     def ttbar_ttbb_normalization(self): # 3,4
         result_list = np.array(self.pool.map(self.ttbb_worker, self.files))
         results =  [sum(result_list[:,i]) for i in range(41)]
-        self.metadata = {
+        self.metadata.update({
             'tot_events': results[0], 
             'mur_up_tot':results[1],'mur_down_tot':results[2],
             'muf_up_tot':results[3],'muf_down_tot':results[4],
@@ -121,7 +122,7 @@ class PreSkim :
             'r_hfstats1_up': results[37]/results[0],'r_hfstats1_down': results[38]/results[0],
             'r_hfstats2_up': results[39]/results[0],'r_hfstats2_down': results[40]/results[0],
 
-        }
+        })
 
     def get_metadata(self):
         return self.metadata

@@ -17,6 +17,10 @@ _wdir, _cdir = cdir()
 master_file_path  = _wdir+'files/'
 dataDir           = _wdir+'data/'
 pdfDir            = _wdir+'pdf/'
+#### NanoAODv7 PostProcessed Sample Directory ####
+preproc_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PreProcessed/'
+postproc_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
+postSkim_dir = '/cms/data/store/user/ttxeft/NanoAODv7/Skim/'
 # Overhead #
 import os
 if   os.path.exists('/cms/data/store/user/ttxeft/') : # test to see if on kodiak
@@ -56,7 +60,13 @@ tt_bb_sys         = [  'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampDown',
                        'TTbbSemi_pow_hdampUp','TTbbSemi_pow_hdampDown',
                        'TTbbDi_pow_hdampUp','TTbbDi_pow_hdampDown']
 #
-jec_variations    = [jtype+jec for jec in ['JESUp','JESDown','JERUp','JERDown'] for jtype in ['ak4','ak8']]
+#jec_variations    = [jtype+jec for jec in ['JESUp','JESDown','JERUp','JERDown'] for jtype in ['ak4','ak8']]
+jecs              = [jec+y for jec in ['jesRelativeSample','jesHF' , 'jesAbsolute', 'jesEC2', 'jesBBEC1'] for y in Years] + \
+                    ['jesHF' , 'jesAbsolute', 'jesEC2', 'jesBBEC1', 'jesRelativeBal', 'jesFlavorQCD'
+                     'jesHEMIssue',  # 2018 only 
+                     'ak4jer','ak8jer', # jer
+                     'jms','jmr'] # puppi sdm corr
+jec_variations    = [jec for jec in jecs for ud in ['Up','Down']]
 sig_sys_samples   = [sig+'_'+jec for sig in Sig_MC for jec in jec_variations]
 bkg_sys_samples   = [bkg+'_'+jec for bkg in Bkg_MC for jec in jec_variations] + tt_sys_samples
 all_sys_samples   = sig_sys_samples + bkg_sys_samples
@@ -159,13 +169,6 @@ ak8_sys_vars = ['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+
                 #'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC
             ]
 
-ak8_softdropM_info = {'jms':{'value':0.999,
-                             'up'   :0.999+0.004,
-                             'down' :0.999-0.004},
-                      'jmr':{'value':1.079,
-                             'up'   :1.079+0.105,
-                             'down' :1.079-0.105}
-                  }
 #ana_sf_dir    = '/cms/data/store/user/ttxeft/Ana_sf_files'
 
 #why...
@@ -214,9 +217,10 @@ ana_vars = {
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
     'event'      : ['MET_phi', 'MET_pt','run'],
-    'filters'    : ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter',
-                    'Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter',
-                    'Flag_BadPFMuonFilter','Flag_eeBadScFilter','Flag_ecalBadCalibFilterV2'],
+    'filters_all'    : ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter',
+                        'Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter',
+                        'Flag_BadPFMuonFilter','Flag_eeBadScFilter'],
+    'filters_year' : {'2016': [], '2017':['Flag_ecalBadCalibFilterV2'], '2018':['Flag_ecalBadCalibFilterV2']},
     'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
                          'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
     # these are MC only
