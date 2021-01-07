@@ -52,7 +52,8 @@ class processAna :
     condor = False
     keep_all = False
     #
-    lc     = '_drLeptonCleaned'
+    #lc     = '_drLeptonCleaned'
+    lc = ''
     pt_cut = cfg.ZHptcut
     b_wp   = cfg.ZHbb_btagWP[year]
     #
@@ -60,7 +61,6 @@ class processAna :
     ak8_df = None
     gen_df = None
     val_df = None
-    rtc_df = None
     #
     ak4_dR = 0.4
     ak8_dR = 0.8
@@ -86,13 +86,13 @@ class processAna :
                 # Note: can be improved if ran after ZH is reconstructed and used to gen-reco match 
                 self.match_gen_sig() 
         #
-        self.applyDNN()
+        #self.applyDNN()
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
             self.addHLT_to_MC()
             self.getLepEff()
             self.getLepSF()
-            self.getBCbtagSF()
+            #self.getBCbtagSF()
 
         self.passHLT_by_year()
         self.categorize_process()
@@ -298,7 +298,7 @@ class processAna :
         b_pt, b_eta, b_phi, b_mass, b_btag = [ak4_k[ak4_btag >= self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         q_pt, q_eta, q_phi, q_mass, q_btag = [ak4_k[ak4_btag <  self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_bbtag, ak8_Zhbbtag, w_tag, t_tag, subj1, subj2 = self.ak8_df.loc(
-            [fj+str_+self.lc for str_ in ['pt','eta','phi','msoftdrop','btagDeepB','btagHbb','deepTag_WvsQCD','deepTag_TvsQCD','subJetIdx1','subJetIdx2']]
+            [fj+str_+self.lc for str_ in ['pt','eta','phi','msoftdrop','btagDeepB','deepTagMD_bbvsLight','deepTagMD_WvsQCD','deepTagMD_TvsQCD','subJetIdx1','subJetIdx2']]
         )[self.ak8_df[fj+'lep_mask']].values()
         subj_pt, subj_btag = self.ak8_df['SubJet_pt'], self.ak8_df['SubJet_btagDeepB']
         #
@@ -367,11 +367,6 @@ class processAna :
         best_Wb_invM_sd = np.where(((mtb2 > mtb1) & (mtb2 != np.nan)), Zh_b_invM_sd[:,1], Zh_b_invM_sd[:,0]) 
         # find best resolved top candidate from ak4 jets outside of Zh candidate
         ak4_outZh= np.where(Zh_ak4_dr>=.8,Zh_ak4_dr,np.nan)
-        rt_disc = fillne(self.rtc_df['ResolvedTopCandidate_discriminator'])
-        rt_id1, rt_id2, rt_id3   = self.rtc_df.loc(['ResolvedTopCandidate_j1Idx','ResolvedTopCandidate_j2Idx','ResolvedTopCandidate_j3Idx']).values()
-        clean_rtc_fromZh = self.clean_rtc_Zh(rt_disc, rt_id1, rt_id2, rt_id3, ak4_outZh, np.full(rt_disc.shape, 0.0))
-        best_rt_score = np.nanmax(clean_rtc_fromZh, axis=1)
-        del self.rtc_df
         #
         self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
         self.val_df['Zh_score']  = Zh_Zhbbtag[:,0]
@@ -419,7 +414,6 @@ class processAna :
         self.val_df['n_q_inZh']      = n_q_inZhbb
         self.val_df['Zh_l_dr']       = Zh_l_dr
         self.val_df['Zh_l_invM_sd']  = Zh_l_invM_sd
-        self.val_df['best_rt_score'] = best_rt_score
         self.val_df['l_b1_mtb']  = l_b_mtb_dRsort[:,0]
         self.val_df['l_b1_invM'] = l_b_invM_dRsort[:,0]
         self.val_df['l_b1_dr']   = l_b_dr_dRsort[:,0]
@@ -512,26 +506,26 @@ class processAna :
         lep_eff_down = digi.map(lambda k: eff[k]['down'])
         return (lep_eff.to_numpy(dtype=float),lep_eff_up.to_numpy(dtype=float),lep_eff_down.to_numpy(dtype=float))
      
-    @t2Run
-    def getBCbtagSF(self):
-        sf = cfg.BC_btag_sf[self.year]['values']
-        n_b = self.val_df['nBottoms_drLeptonCleaned'].clip(0,6)
-        BCbtagSF = n_b.map(lambda k: sf[int(k)])
-        self.val_df['BC_btagSF'] = BCbtagSF
+    #@t2Run
+    #def getBCbtagSF(self):
+    #    sf = cfg.BC_btag_sf[self.year]['values']
+    #    n_b = self.val_df['nBottoms_drLeptonCleaned'].clip(0,6)
+    #    BCbtagSF = n_b.map(lambda k: sf[int(k)])
+    #    self.val_df['BC_btagSF'] = BCbtagSF
         
 
-    @staticmethod
-    def calcMuonEff_2018(pt_dist):
-        b_update = pd.read_pickle('muonSF2018_beforeupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
-        a_update = pd.read_pickle('muonSF2018_afterupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
-        # weighting calculated from: 2018 muon runs 315257 -> 325172 which has 477 total runs
-        b_weight = 76/477  # 76  runs before run 316361
-        a_weight = 401/477 # 401 runs after  run 316361
-        bins=[2, 18, 22, 24, 26, 30, 40, 50, 60, 120, 200, 300, 500, 700, 1200] # from MUON POG for 2018 HLT_IsoMu24
-        digi_pt = pd.cut(pt_dist.clip(bins[0],bins[-1]), bins=bins, 
-                         labels= sorted(b_update.keys(), key= lambda z : float(z.split('[')[1].split(',')[0]))) # key has format 'pt:[low_edge,hi_edge]'
-        muon_eff = digi_pt.map(lambda k: a_update[k]['value']*a_weight + b_update[k]['value']*b_weight)
-        return muon_eff.to_numpy(dtype=float)
+    #@staticmethod
+    #def calcMuonEff_2018(pt_dist):
+    #    b_update = pd.read_pickle('muonSF2018_beforeupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
+    #    a_update = pd.read_pickle('muonSF2018_afterupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
+    #    # weighting calculated from: 2018 muon runs 315257 -> 325172 which has 477 total runs
+    #    b_weight = 76/477  # 76  runs before run 316361
+    #    a_weight = 401/477 # 401 runs after  run 316361
+    #    bins=[2, 18, 22, 24, 26, 30, 40, 50, 60, 120, 200, 300, 500, 700, 1200] # from MUON POG for 2018 HLT_IsoMu24
+    #    digi_pt = pd.cut(pt_dist.clip(bins[0],bins[-1]), bins=bins, 
+    #                     labels= sorted(b_update.keys(), key= lambda z : float(z.split('[')[1].split(',')[0]))) # key has format 'pt:[low_edge,hi_edge]'
+    #    muon_eff = digi_pt.map(lambda k: a_update[k]['value']*a_weight + b_update[k]['value']*b_weight)
+    #    return muon_eff.to_numpy(dtype=float)
 
     def passHLT_by_year(self):
         self.val_df['pbt_elec'] = cfg.hlt_path['electron'][self.year](self.val_df)
@@ -619,20 +613,20 @@ class processAna :
                             self.val_df[f"{prefix}_{w_or_scale}"] = v
                             print(self.val_df[f"{prefix}_{w_or_scale}"])
 
-    @staticmethod
-    @njit(parallel=True)
-    def clean_rtc_Zh(rtd, j1, j2, j3, ak4, out):
-        rows, cols = out.shape
-        for i in prange(rows):
-            for j in prange(cols):
-                if np.isnan(j1[i,j]) | np.isnan(j2[i,j]) | np.isnan(j3[i,j]):
-                    continue
-                if np.isnan(ak4[i,int(j1[i,j])]) | np.isnan(ak4[i,int(j2[i,j])]) | np.isnan(ak4[i,int(j3[i,j])]):
-                    continue
-                else:
-                    out[i,j] = rtd[i,j]
-        return out        
-        #
+    #@staticmethod
+    #@njit(parallel=True)
+    #def clean_rtc_Zh(rtd, j1, j2, j3, ak4, out):
+    #    rows, cols = out.shape
+    #    for i in prange(rows):
+    #        for j in prange(cols):
+    #            if np.isnan(j1[i,j]) | np.isnan(j2[i,j]) | np.isnan(j3[i,j]):
+    #                continue
+    #            if np.isnan(ak4[i,int(j1[i,j])]) | np.isnan(ak4[i,int(j2[i,j])]) | np.isnan(ak4[i,int(j3[i,j])]):
+    #                continue
+    #            else:
+    #                out[i,j] = rtd[i,j]
+    #    return out        
+    #    #
 
 if __name__ == '__main__':
 

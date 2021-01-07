@@ -1,4 +1,4 @@
-########################OA
+########################
 ### Skim data        ###
 ### for analysis     ###
 ########################
@@ -11,6 +11,7 @@ import uproot
 import os
 import re
 import sys
+import json
 if __name__ == '__main__':
     import subprocess as sb
     sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
@@ -30,7 +31,6 @@ np.random.seed(0)
 import pandas as pd
 ##
 
-
 class Skim :
     '''
     This code does two things:
@@ -39,14 +39,15 @@ class Skim :
     3. (for data) apply golden json file
     '''
     @t2Run
-    def __init__(self, roofile, sample, year, isData=False, jec_sys=None, jec_type=None):
+    def __init__(self, roofile, sample, year, isData=False, jec_sys=None, golden_json=None):
         self.roofile = roofile
         self.sample = sample
         self.year   = year
         self.isData = isData
         #
-        self.jec_sys  = jec_sys if jec_sys else ''
-        self.ana_vars = AnaVars(year,isData, jec_sys=jec_sys, jec_type=jec_type) 
+        self.golden_json = golden_json
+        #
+        self.ana_vars = AnaVars(year,isData, jec_sys=jec_sys) 
         self.tree     = self.set_tree_from_roofile(roofile)
         # define event information
         self.jets      = self.build_dict(cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars']) 
@@ -56,13 +57,14 @@ class Skim :
         self.events    = self.build_dict(cfg.ana_vars['event']+(
             (cfg.ana_vars['sysvars_mc']+cfg.ana_vars[f'sysvars_{self.year}']) 
             if not self.isData else []))  
-        print(len(self.events['genWeight']))
+        #print(len(self.events['genWeight']))
         # other things like gen info
-        self.geninfo    = self.build_dict(cfg.ana_vars['genpvars']) 
+        if not self.isData:
+            self.geninfo    = self.build_dict(cfg.ana_vars['genpvars']) 
+            self.lheweights = self.build_dict(cfg.ana_vars['lheWeights'])
         self.hlt        = self.build_dict(cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}'])
         self.subjets    = self.build_dict(cfg.ana_vars['ak8sj'])
         # wont keep
-        self.lheweights = self.build_dict(cfg.ana_vars['lheWeights'])
         self.filters    = self.build_dict(cfg.ana_vars['filters_all']+cfg.ana_vars['filters_year'][self.year]) 
         # ===================== #
         # define object criteria
@@ -83,10 +85,12 @@ class Skim :
         self.electrons  = self.electrons[ self.event_mask]
         self.muons      = self.muons[     self.event_mask]
         self.events     = self.events[    self.event_mask]
-        self.geninfo    = self.geninfo[   self.event_mask]
-        self.lheweights = self.lheweights[self.event_mask]
+        if not self.isData:
+            self.geninfo    = self.geninfo[   self.event_mask]
+            self.lheweights = self.lheweights[self.event_mask]
+        self.hlt        = self.hlt[       self.event_mask]
         self.subjets    = self.subjets[   self.event_mask]
-        print(len(self.events['genWeight']))
+        #print(len(self.events['genWeight']))
         ''' 
         add interesting info to events: 
         (lepton pt, eta, phi , etc...) 
@@ -94,20 +98,27 @@ class Skim :
         ps, sc, eft
         hem veto weight
         '''
-        self.handle_lheweights()
+        if not self.isData:
+            self.handle_lheweights()
         self.handle_lep_info()
         self.handle_multiplicity_info()
+        #print(len(self.events['run']))
         #
     #
     def get_skim(self):
-        __out_wrapper = {
+        __out_dict = {
             'ak4':self.jets,
             'ak8':{**self.fatjets,**self.subjets},
             #'sj': self.subjets
-            'gen':self.geninfo,
-            'events':self.events,
         }
-        return __out_wrapper
+        events = {**self.events,**self.hlt}
+        __out_dict['events'] = pd.DataFrame.from_dict({k:v for k,v in events.items()})
+        if not self.isData:
+            __out_dict['gen'] = self.geninfo
+        # close root file
+        self.f.close()
+        #
+        return __out_dict
             
 
     # === functions to add info to events === #
@@ -204,25 +215,52 @@ class Skim :
                   ( self.jets['Jet_pt'][jet_hem()].counts > 0 ) )
         
     #
+    def pass_goldenjson(self):
+        run , lumi = self.events['run'].flatten(), self.events['luminosityBlock'].flatten()
+        pass_runlumi = np.zeros_like(run)
+        unique_rl_pairs = np.unique(np.column_stack((run,lumi)),axis=0)
+        for r,l in unique_rl_pairs:
+            if str(r) in self.golden_json:
+                for start,finish in self.golden_json[str(r)]:
+                    if l in range(start,finish+1): # add one to make range effectively inclusive
+                        #print(r,self.events['run'] == r)
+                        #print(l,self.events['luminosityBlock'] == l)
+                        pass_runlumi = np.where(
+                            ((self.events['run'] == r) & (self.events['luminosityBlock'] == l)).flatten(),1,pass_runlumi)
+        return pass_runlumi
+        
+
     def get_event_selection(self): # after objects have been defined
         return ( (self.jets['Jet_pt'].counts >= 4) &
                  (self.fatjets['FatJet_pt'].counts >= 1) &
                  (self.jets['Jet_pt'][(self.jets['Jet_btagDeepB'] > cfg.ZHbb_btagWP[self.year])].counts >= 2) &
                  (self.events['MET_pt'] > 20) &
                  (self.electrons['Electron_pt'].counts + self.muons['Muon_pt'].counts == 1) &
-                 self.get_MET_filter() #&
+                 self.get_MET_filter() &
+                 (self.pass_goldenjson() == 1 if self.isData else True)
                  #(self.get_HEM_veto() if (self.year == '2018' and self.isData) else True)
              )
     # === helper functions === #
     def set_tree_from_roofile(self,roofile, estart=None, estop=None):
         ''' Set tree array method and tree pandas method '''
-        f = uproot.open(self.roofile)
+        self.f = uproot.open(self.roofile)
         #print(estart, estop)
-        tree         =  f.get('Events') # hardcoded
-        self.tarray  = functools.partial(tree.array,      entrystart=estart, entrystop=estop)
+        tree         =  self.f.get('Events') # hardcoded
+        self.tarray  = self.tarray_wrapper(functools.partial(tree.array,      entrystart=estart, entrystop=estop))
         self.tpandas = functools.partial(tree.pandas.df , entrystart=estart, entrystop=estop)
         return tree
 
+    @staticmethod
+    def tarray_wrapper(tarray):
+        def wrapper(key, **kwargs):
+            try:
+                out = tarray(key, **kwargs)
+            except KeyError:
+                print(f"{key} is not in root file!!! Returning zeros")
+                out = np.zeros_like(tarray('run',**kwargs).flatten())
+            return out
+        return wrapper
+        
     def build_dict(self, keys, with_interp=True):
         executor = concurrent.futures.ThreadPoolExecutor()
         if with_interp:
@@ -232,12 +270,16 @@ class Skim :
     # === ~ Skim class === #
                 
 if __name__ == '__main__':
+    year = '2017'
+    golden_json=json.load(open(cfg.goodLumis_file[year]))
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/ttHTobb_2018/839BA380-7826-9140-8C16-C5C0903EE949_Skim_12.root'
     #test_file  = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTToSemiLeptonic_2018/D6501B6C-8B76-BF42-B677-64680733A780_Skim_19.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/DEDD55D3-8B36-3342-8531-0F2F4C462084_Skim_134.root' 
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTToSemiLeptonic_2016/CA4521C3-F903-8E44-93A8-28F5D3B8C5E8_Skim_121.root'
-    test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
-    test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
-    _ = Skim(test_file, 'TTZToBB', '2016', isData=False, jec_sys=None, jec_type=None)
-    AnaDict(_.get_skim()).to_pickle('TTZToBB_2016.pkl')
+    #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
+    #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
+    #test_file   = '/eos/uscms/store/user/bcaraway/NanoAODv7/TTZToQQ_2018/39EEAA27-A490-D244-B846-A53B2478AFD5_Skim_2.root'
+    test_file    = '/eos/uscms/store/user/bcaraway/SingleE_test_2017.root'
+    _ = Skim(test_file, 'Data_SingleElectron', year, isData=True, jec_sys=None, golden_json=golden_json)
+    AnaDict(_.get_skim()).to_pickle('SingleE_2017.pkl')
     

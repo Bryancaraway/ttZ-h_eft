@@ -10,14 +10,20 @@ class AnaVars:
     year   = None
     isData = False
     jec_sys= None # this should be a choice of JES up/down or JER up/down or left empty
-    allowed_keys = ['ak4','ak8','event','gen','RC']
 
-    def __init__(self, year, isData, jec_sys=None, jec_type=None):
+    def __init__(self, year, isData, jec_sys=None):
 
         self.year     = year
         self.isData   = isData
         self.jec_sys  = ('' if jec_sys is None else jec_sys) # one of the values in jec_dict
-        self.jec_type = ('' if jec_type is None else jec_type) # ak4/8jer, both, ak8jms, ak8jmr
+        self.jec_type = ''  # ak4/8jer, both, ak8jms, ak8jmr
+        if   'jes' in self.jec_sys:
+            self.jec_type = 'both'
+        elif 'jer' in self.jec_sys:
+            self.jec_type = self.jec_sys
+        elif 'jms' in self.jec_sys or 'jmr' in self.jec_sys:
+            self.jec_type = self.jec_sys
+        #
         ud  = re.search(r'(Up|Down)', self.jec_sys)
         self.ud = ud.group() if ud else ''
         #
@@ -86,12 +92,12 @@ class AnaVars:
 
     # magic methods #
     def __getitem__(self,key):
-        if key in self.allowed_keys: return getattr(self,key)
-        else:
-            try:
-                return self.var_fact[self.jec_type].get(key,key)
-            except:
-                print(f"Can't get key: {key}, instead setting as dummy branch")
-                return 'weight'
+        #if key in self.allowed_keys: return getattr(self,key)
+        #else:
+        try:
+            return self.var_fact[self.jec_type].get(key,key)
+        except:
+            print(f"Can't get key: {key}, instead setting as dummy branch")
+            return 'weight'
     
  

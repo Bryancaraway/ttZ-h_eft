@@ -49,7 +49,6 @@ class PreSkim :
     outDir = '' # add later */*postSkim
     nanoAODv7_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
     sample  = None
-    jec_sys = None
     min_njets    = 4
     min_nfatjets = 1
     min_nbjets   = 2

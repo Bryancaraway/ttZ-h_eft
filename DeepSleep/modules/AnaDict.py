@@ -1,7 +1,7 @@
 # Main data container for analysis 
 # created by: Bryan Caraway
 from collections import UserDict
-import pickle
+import pickle5 as pickle
 
 
 class AnaDict (UserDict): # may want to move this to different file

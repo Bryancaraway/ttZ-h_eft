@@ -27,6 +27,9 @@ if   os.path.exists('/cms/data/store/user/ttxeft/') : # test to see if on kodiak
     file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/' # for kodiak
 elif os.path.exists('/eos/uscms/') or 'condor' in _cdir: # test to see if on lpc will need to fix for condor on kodiak i think
     file_path        = 'root://cmseos.fnal.gov//store/user/bcaraway/skimAnaSamples/'
+    preproc_dir  = preproc_dir.replace('/cms/data','/eos/uscms').replace('ttxeft','bcaraway')
+    postproc_dir = postproc_dir.replace('/cms/data','/eos/uscms').replace('ttxeft','bcaraway')
+    postSkim_dir = postSkim_dir.replace('/cms/data','/eos/uscms').replace('ttxeft','bcaraway')
 else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./config/ana_cff.py")
 
 tree_dir          = 'Training'
@@ -62,11 +65,11 @@ tt_bb_sys         = [  'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampDown',
 #
 #jec_variations    = [jtype+jec for jec in ['JESUp','JESDown','JERUp','JERDown'] for jtype in ['ak4','ak8']]
 jecs              = [jec+y for jec in ['jesRelativeSample','jesHF' , 'jesAbsolute', 'jesEC2', 'jesBBEC1'] for y in Years] + \
-                    ['jesHF' , 'jesAbsolute', 'jesEC2', 'jesBBEC1', 'jesRelativeBal', 'jesFlavorQCD'
+                    ['jesHF' , 'jesAbsolute', 'jesEC2', 'jesBBEC1', 'jesRelativeBal', 'jesFlavorQCD',
                      'jesHEMIssue',  # 2018 only 
                      'ak4jer','ak8jer', # jer
                      'jms','jmr'] # puppi sdm corr
-jec_variations    = [jec for jec in jecs for ud in ['Up','Down']]
+jec_variations    = [jec+ud for jec in jecs for ud in ['Up','Down']]
 sig_sys_samples   = [sig+'_'+jec for sig in Sig_MC for jec in jec_variations]
 bkg_sys_samples   = [bkg+'_'+jec for bkg in Bkg_MC for jec in jec_variations] + tt_sys_samples
 all_sys_samples   = sig_sys_samples + bkg_sys_samples
@@ -80,6 +83,10 @@ Lumi              = {'2016': 35.917149,
                      'run2': 137.166648,
                      'Total': 137.166648
                   } 
+goodLumis_file   = {'2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
+                    '2017':dataDir+'/good_lumis/'+'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
+                    '2018':dataDir+'/good_lumis/'+'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',
+                    }
 ##
 ##############
 ##### TTZ, Z to bb CONFIG #####
@@ -216,7 +223,7 @@ ana_vars = {
                     'MET_phi', 'MET_pt', #'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
                     'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
                     'Pass_trigger_muon', 'Pass_trigger_electron'],
-    'event'      : ['MET_phi', 'MET_pt','run'],
+    'event'      : ['MET_phi', 'MET_pt','run','luminosityBlock','event'],
     'filters_all'    : ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter',
                         'Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter',
                         'Flag_BadPFMuonFilter','Flag_eeBadScFilter'],
