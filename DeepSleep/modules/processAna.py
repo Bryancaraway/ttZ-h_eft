@@ -308,6 +308,7 @@ class processAna :
         Zh_reco_cut = ((ak8_pt >= self.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.0)) # in future, put kinem cut values in cfg file
         Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M,Zh_wtag,Zh_ttag,Zh_bbtag=lib.sortbyscore(
             [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M,w_tag,t_tag,ak8_bbtag],ak8_Zhbbtag,Zh_reco_cut)
+        # =============================== # 
         # compute subject info related to Zh candidate : have to sort out candidate with no subjet
         ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt, subj_btag] for id_ in [subj1, subj2]]
         ak8_sj1_sdM, ak8_sj2_sdM, ak8_sj1_Zhbb, ak8_sj2_Zhbb = [ak8_k[id_ != -1] for ak8_k in [sd_M, ak8_Zhbbtag] for id_ in [subj1, subj2]]
@@ -322,32 +323,61 @@ class processAna :
         Zh_sj_pt12 = np.nan_to_num(np.column_stack([Zh_sj1_pt[:,0], Zh_sj2_pt[:,0]]) )
         Zh_sjpt12_over_fjpt = (Zh_sj_pt12[:,0] +  Zh_sj_pt12[:,1])/Zh_pt[:,0]
         Zh_sjpt1_over_fjpt, Zh_sjpt2_over_fjpt  = [(Zh_sj_pt12[:,i])/Zh_pt[:,0] for i in range(2)]
+        # =============================== #
         # Calculate sphericity and aplanarity of the event
         spher, aplan = lib.calc_SandA(
             np.append(fillne(ak4_pt),  lep_pt .to_numpy()[:,np.newaxis], axis=1),
             np.append(fillne(ak4_eta), lep_eta.to_numpy()[:,np.newaxis], axis=1),
             np.append(fillne(ak4_phi), lep_phi.to_numpy()[:,np.newaxis], axis=1)
         )
+        # =============================== #
         # Caclulate combinatorix between Zh and ak4, b, q, l || l and b
         Zh_ak4_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(ak4_eta),fillne(ak4_phi))
         Zh_b_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(b_eta),fillne(b_phi))
+        ind_Zh_b = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
+        b_pt_dRsort, b_eta_dRsort, b_phi_dRsort, b_mass_dRsort, b_btag_dRsort  = [np.take_along_axis(fillne(b_k),ind_Zh_b,axis=1) for b_k in [b_pt,b_eta,b_phi,b_mass, b_btag]]
         Zh_q_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(q_eta),fillne(q_phi))
+        ind_Zh_q = np.argsort(np.where(Zh_q_dr > 0.8, Zh_q_dr, np.nan),axis=1)
+        q_pt_dRsort, q_eta_dRsort, q_phi_dRsort, q_mass_dRsort, q_btag_dRsort  = [np.take_along_axis(fillne(q_k),ind_Zh_b,axis=1) for q_k in [q_pt,q_eta,q_phi,q_mass, q_btag]]
         Zh_l_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lep_eta,lep_phi)
+        #
         Zh_l_invM_sd = lib.invM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],lep_pt,lep_eta,lep_phi,lep_M)
-        l_b_dr = deltaR(lep_eta.values,lep_phi.values,*map(fillne,[b_eta,b_phi]))
-        l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values,*map(fillne,[b_pt,b_eta,b_phi,b_mass]))
+        #l_b_dr = deltaR(lep_eta.values,lep_phi.values,*map(fillne,[b_eta,b_phi]))
+        l_b_dr = deltaR(lep_eta.values,lep_phi.values, b_eta_dRsort,b_phi_dRsort)
+        #l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values,*map(fillne,[b_pt,b_eta,b_phi,b_mass]))
+        l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values,*map(fillne,[b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort]))
+        #
         getTLV  = TLorentzVectorArray.from_ptetaphi
         getTLVm = TLorentzVectorArray.from_ptetaphim
-        b_tlv   = getTLVm( *map(lambda b : fillne(b).T, [b_pt,b_eta,b_phi,b_mass])) 
-        lep_tlv = getTLV( lep_pt,lep_eta,lep_phi,lep_M)
+        #
+        b_tlv   = getTLVm( *map(lambda b : fillne(b).T, [b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort])) 
+        q_tlv   = getTLVm( *map(lambda q : fillne(q).T, [q_pt_dRsort,q_eta_dRsort,q_phi_dRsort,q_mass_dRsort])) 
+        lep_tlv = getTLV( lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values)
         bl_tlv = lep_tlv + b_tlv
         self.val_df['max_lb_invM_alt'] = np.nanmax(bl_tlv.mass.T, axis=1)
         lb_mtb = lib.calc_mtb(bl_tlv.pt.T,bl_tlv.phi.T,met_pt.values,met_phi.values)            
         #
         ind_lb = np.argsort(l_b_dr,axis=1) 
         l_b_invM_dRsort, l_b_mtb_dRsort, l_b_dr_dRsort = [np.take_along_axis(lb_comb,ind_lb,axis=1) for lb_comb in [l_b_invM,lb_mtb,l_b_dr]]
+        nearl_b_pt_dRsort, nearl_b_eta_dRsort, nearl_b_phi_dRsort, nearl_b_mass_dRsort = [np.take_along_axis(lb_k,ind_lb,axis=1)[:,0] for lb_k in [b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort]]
         max_l_b_dr,  min_l_b_dr  = np.nanmax(l_b_dr_dRsort, axis=1),     np.nanmin(l_b_dr_dRsort, axis=1)
         max_lb_invM, min_lb_invM = np.nanmax(l_b_invM_dRsort, axis=1), np.nanmin(l_b_invM_dRsort, axis=1)
+        # farthest b to l
+        ind_lb_far = np.argsort(-l_b_dr,axis=1) 
+        farl_b_pt_dRsort, farl_b_eta_dRsort, farl_b_phi_dRsort, farl_b_mass_dRsort = [np.take_along_axis(lb_k,ind_lb_far,axis=1)[:,0] for lb_k in [b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort]]
+        far_l_b_q_dr = deltaR(farl_b_eta_dRsort,farl_b_phi_dRsort, q_eta_dRsort,q_phi_dRsort) # get 1st and 2nd closest quarks
+        max_far_l_b_q_dr = np.nanmax(far_l_b_q_dr, axis=1) # new
+        ind_farl_bq_dr = np.argsort(far_l_b_q_dr,axis=1)
+        far_l_b_q_pt_dRsort, far_l_b_q_eta_dRsort, far_l_b_q_phi_dRsort, far_l_b_q_mass_dRsort = [np.take_along_axis(q_,ind_farl_bq_dr,axis=1)[:,0] for q_ in [q_pt_dRsort,q_eta_dRsort,q_phi_dRsort,q_mass_dRsort]]
+        far_l_b_tlv = getTLVm(farl_b_pt_dRsort[:,0],farl_b_eta_dRsort[:,0],farl_b_phi_dRsort[:,0],farl_b_mass_dRsort[:,0])
+        near_l_b_tlv = getTLVm(nearl_b_pt_dRsort[:,0],nearl_b_eta_dRsort[:,0],nearl_b_phi_dRsort[:,0],nearl_b_mass_dRsort[:,0])
+        q1_tlv = getTLVm(far_l_b_q_pt_dRsort[:,0],far_l_b_q_eta_dRsort[:,0],far_l_b_q_phi_dRsort[:,0],far_l_b_q_mass_dRsort[:,0])
+        q2_tlv = getTLVm(far_l_b_q_pt_dRsort[:,1],far_l_b_q_eta_dRsort[:,1],far_l_b_q_phi_dRsort[:,1],far_l_b_q_mass_dRsort[:,1])
+        bqq_tlv = far_l_b_tlv + q1_tlv + q2_tlv
+        bqq_mass = bqq_tlv.mass # new
+        Zh_bqq_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],bqq_tlv.eta.values, bqq_tlv.phi.values) # new
+        lbbqq = bqq_tlv + lep_tlv + near_l_b_tlv
+        Zh_lbbqq_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lbbqq_tlv.eta.values, lbbqq_tlv.phi.values) # new
         #
         n_b_outZhbb = np.nansum(Zh_b_dr > .8, axis=1)
         n_q_outZhbb = np.nansum(Zh_q_dr > .8 , axis=1)
@@ -356,11 +386,15 @@ class processAna :
 
         #Zh_ak4_dr, Zh_b_dr, Zh_q_dr = fillne(Zh_ak4_dr), fillne(Zh_b_dr), fillne(Zh_q_dr)
 
-        ind_Zh_b = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
-        b_pt_dRsort, b_eta_dRsort, b_phi_dRsort, b_mass_dRsort, b_btag_dRsort  = [np.take_along_axis(fillne(b_k),ind_Zh_b,axis=1) for b_k in [b_pt,b_eta,b_phi,b_mass, b_btag]]
         b1_tlv_dRsort = getTLVm(b_pt_dRsort[:,0],b_eta_dRsort[:,0],b_phi_dRsort[:,0],b_mass_dRsort[:,0])
         b2_tlv_dRsort = getTLVm(b_pt_dRsort[:,1],b_eta_dRsort[:,1],b_phi_dRsort[:,1],b_mass_dRsort[:,1])
         b12_pt_dRsort =  (b1_tlv_dRsort+b2_tlv_dRsort).pt
+        b12_m_dRsort  =  (b1_tlv_dRsort+b2_tlv_dRsort).mass # new
+        b12_dr_dRsort =  b1.deltaR(b2) # new 
+        h_t_b         = np.nansum(b_pt_dRsort, axis=1) # new
+        #
+        sc_pt_outZh   = h_t_b + np.nansum(q_pt_dRsort, axis=1) + lep_pt # new
+        #
         Zh_b_invM_sd = lib.invM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0],Zh_M[:,0],b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort) 
         mtb1 = calc_mtb(b_pt_dRsort[:,0],b_phi_dRsort[:,0],met_pt,met_phi)
         mtb2 = calc_mtb(b_pt_dRsort[:,1],b_phi_dRsort[:,1],met_pt,met_phi)
