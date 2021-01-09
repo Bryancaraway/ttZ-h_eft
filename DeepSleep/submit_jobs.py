@@ -47,7 +47,7 @@ def submit_jobs():
         return
     #
     num_jobs_running = lambda: int(sb.check_output(
-        "qstat -u $USER | grep {args.samples}_{args.year}_ | wc -l", shell=True).decode())
+        f"qstat -u $USER -w -a | grep {args.samples}_{args.year}_ | wc -l", shell=True).decode())
     while num_jobs_running() > 0:
         time.sleep(30)
     #
@@ -82,7 +82,7 @@ def execute(samples, year, jec):
             ppn = 1
         pass_args = f'-v sample={sample},year={year}{add_args}'
         command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}{out_name}.out -e {log_dir}{out_name}.err '
-        command  += f'-n {args.samples}_{args.year}_{sample}{year}{jec} {pass_args} {job_script}'
+        command  += f'-N {args.samples}_{args.year}_{sample}{year}{jec} {pass_args} {job_script}'
         print(command)
         os.system(command)
 

@@ -37,7 +37,7 @@ def runAna ():
     isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
     tag      = (args.tag + args.jec if args.jec is not None else args.tag)
     #
-    input_file = args.inputfile if args.inputfile else cfg.postSkim_dir+f"{args.year}/{sample_cfg[args.sample]['out_name']}/{args.sample}{'.'+tag if tag is not None else ''}.pkl"
+    input_file = args.inputfile if args.inputfile else cfg.postSkim_dir+f"{args.year}/{sample_cfg[args.sample]['out_name']}/{args.sample}{'.'+tag if tag != '' else ''}.pkl"
     if isData and (args.jec is not None and args.jec != ''): exit()
     #####
 

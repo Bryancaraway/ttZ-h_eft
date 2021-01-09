@@ -1,4 +1,4 @@
-########################
+########################OA
 ### process code     ###
 ### for analysis     ###
 ########################
@@ -345,13 +345,13 @@ class processAna :
         #l_b_dr = deltaR(lep_eta.values,lep_phi.values,*map(fillne,[b_eta,b_phi]))
         l_b_dr = deltaR(lep_eta.values,lep_phi.values, b_eta_dRsort,b_phi_dRsort)
         #l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values,*map(fillne,[b_pt,b_eta,b_phi,b_mass]))
-        l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values,*map(fillne,[b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort]))
+        l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values, b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort)
         #
         getTLV  = TLorentzVectorArray.from_ptetaphi
         getTLVm = TLorentzVectorArray.from_ptetaphim
         #
-        b_tlv   = getTLVm( *map(lambda b : fillne(b).T, [b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort])) 
-        q_tlv   = getTLVm( *map(lambda q : fillne(q).T, [q_pt_dRsort,q_eta_dRsort,q_phi_dRsort,q_mass_dRsort])) 
+        b_tlv   = getTLVm(*map(lambda p: p.T,[b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort]) )
+        q_tlv   = getTLVm(*map(lambda p: p.T,[q_pt_dRsort,q_eta_dRsort,q_phi_dRsort,q_mass_dRsort]) )
         lep_tlv = getTLV( lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values)
         bl_tlv = lep_tlv + b_tlv
         self.val_df['max_lb_invM_alt'] = np.nanmax(bl_tlv.mass.T, axis=1)
@@ -365,19 +365,21 @@ class processAna :
         # farthest b to l
         ind_lb_far = np.argsort(-l_b_dr,axis=1) 
         farl_b_pt_dRsort, farl_b_eta_dRsort, farl_b_phi_dRsort, farl_b_mass_dRsort = [np.take_along_axis(lb_k,ind_lb_far,axis=1)[:,0] for lb_k in [b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort]]
+        print(l_b_dr)
+        print(ind_lb_far)
         far_l_b_q_dr = deltaR(farl_b_eta_dRsort,farl_b_phi_dRsort, q_eta_dRsort,q_phi_dRsort) # get 1st and 2nd closest quarks
         max_far_l_b_q_dr = np.nanmax(far_l_b_q_dr, axis=1) # new
         ind_farl_bq_dr = np.argsort(far_l_b_q_dr,axis=1)
-        far_l_b_q_pt_dRsort, far_l_b_q_eta_dRsort, far_l_b_q_phi_dRsort, far_l_b_q_mass_dRsort = [np.take_along_axis(q_,ind_farl_bq_dr,axis=1)[:,0] for q_ in [q_pt_dRsort,q_eta_dRsort,q_phi_dRsort,q_mass_dRsort]]
-        far_l_b_tlv = getTLVm(farl_b_pt_dRsort[:,0],farl_b_eta_dRsort[:,0],farl_b_phi_dRsort[:,0],farl_b_mass_dRsort[:,0])
-        near_l_b_tlv = getTLVm(nearl_b_pt_dRsort[:,0],nearl_b_eta_dRsort[:,0],nearl_b_phi_dRsort[:,0],nearl_b_mass_dRsort[:,0])
+        far_l_b_q_pt_dRsort, far_l_b_q_eta_dRsort, far_l_b_q_phi_dRsort, far_l_b_q_mass_dRsort = [np.take_along_axis(q_,ind_farl_bq_dr,axis=1) for q_ in [q_pt_dRsort,q_eta_dRsort,q_phi_dRsort,q_mass_dRsort]]
+        far_l_b_tlv = getTLVm(farl_b_pt_dRsort,farl_b_eta_dRsort,farl_b_phi_dRsort,farl_b_mass_dRsort)
+        near_l_b_tlv = getTLVm(nearl_b_pt_dRsort,nearl_b_eta_dRsort,nearl_b_phi_dRsort,nearl_b_mass_dRsort)
         q1_tlv = getTLVm(far_l_b_q_pt_dRsort[:,0],far_l_b_q_eta_dRsort[:,0],far_l_b_q_phi_dRsort[:,0],far_l_b_q_mass_dRsort[:,0])
         q2_tlv = getTLVm(far_l_b_q_pt_dRsort[:,1],far_l_b_q_eta_dRsort[:,1],far_l_b_q_phi_dRsort[:,1],far_l_b_q_mass_dRsort[:,1])
         bqq_tlv = far_l_b_tlv + q1_tlv + q2_tlv
         bqq_mass = bqq_tlv.mass # new
-        Zh_bqq_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],bqq_tlv.eta.values, bqq_tlv.phi.values) # new
-        lbbqq = bqq_tlv + lep_tlv + near_l_b_tlv
-        Zh_lbbqq_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lbbqq_tlv.eta.values, lbbqq_tlv.phi.values) # new
+        Zh_bqq_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],bqq_tlv.eta, bqq_tlv.phi) # new
+        lbbqq_tlv = bqq_tlv + lep_tlv + near_l_b_tlv
+        Zh_lbbqq_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lbbqq_tlv.eta, lbbqq_tlv.phi) # new
         #
         n_b_outZhbb = np.nansum(Zh_b_dr > .8, axis=1)
         n_q_outZhbb = np.nansum(Zh_q_dr > .8 , axis=1)
@@ -390,7 +392,7 @@ class processAna :
         b2_tlv_dRsort = getTLVm(b_pt_dRsort[:,1],b_eta_dRsort[:,1],b_phi_dRsort[:,1],b_mass_dRsort[:,1])
         b12_pt_dRsort =  (b1_tlv_dRsort+b2_tlv_dRsort).pt
         b12_m_dRsort  =  (b1_tlv_dRsort+b2_tlv_dRsort).mass # new
-        b12_dr_dRsort =  b1.deltaR(b2) # new 
+        b12_dr_dRsort =  b1_tlv_dRsort.delta_r(b2_tlv_dRsort) # new 
         h_t_b         = np.nansum(b_pt_dRsort, axis=1) # new
         #
         sc_pt_outZh   = h_t_b + np.nansum(q_pt_dRsort, axis=1) + lep_pt # new
@@ -403,13 +405,16 @@ class processAna :
         ak4_outZh= np.where(Zh_ak4_dr>=.8,Zh_ak4_dr,np.nan)
         #
         self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
-        self.val_df['Zh_score']  = Zh_Zhbbtag[:,0]
+        self.val_df['Zh_bbvLscore']  = Zh_Zhbbtag[:,0]
         self.val_df['Zh_pt']     = Zh_pt[:,0]
         self.val_df['Zh_eta']    = Zh_eta[:,0]
         self.val_df['Zh_phi']    = Zh_phi[:,0]
         self.val_df['Zh_M']      = Zh_M[:,0]
         self.val_df['Zh_Wscore'] = Zh_wtag[:,0]
         self.val_df['Zh_Tscore'] = Zh_ttag[:,0]
+        self.val_df['outZh_max_Wscore'] = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
+        self.val_df['outZh_max_Tscore'] = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
+        self.val_df['outZh_max_bbvLscore']  = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
         self.val_df['Zh_deepB']  = Zh_bbtag[:,0]
         self.val_df['n_Zh_btag_sj'] = np.sum(Zh_sj_b12 >= self.b_wp, axis=1)
         self.val_df['n_Zh_sj']       = np.sum(Zh_sj_b12 >= 0, axis=1)
@@ -433,6 +438,10 @@ class processAna :
         self.val_df['b1_over_Zhpt']       = b_pt_dRsort[:,0]/Zh_pt[:,0]
         self.val_df['b2_over_Zhpt']       = b_pt_dRsort[:,1]/Zh_pt[:,0]
         self.val_df['bb_over_Zhpt']       = b12_pt_dRsort/Zh_pt[:,0]
+        self.val_df['b12_outZh_m'] = b12_m_dRsort
+        self.val_df['b12_outZh_dr'] = b12_dr_dRsort
+        self.val_df['ht_b'] = h_t_b # new
+        self.val_df['ht_outZh'] = sc_pt_outZh # new
         self.val_df['best_Zh_b_invM_sd']  = best_Wb_invM_sd
         self.val_df['Zh_b1_invM_sd'] = Zh_b_invM_sd[:,0]
         self.val_df['Zh_b2_invM_sd'] = Zh_b_invM_sd[:,1]
@@ -454,6 +463,11 @@ class processAna :
         self.val_df['l_b2_mtb']  = l_b_mtb_dRsort[:,1]
         self.val_df['l_b2_invM'] = l_b_invM_dRsort[:,1]
         self.val_df['l_b2_dr']   = l_b_dr_dRsort[:,1]
+        #
+        self.val_df['max_farl_b_q_dr'] = max_far_l_b_q_dr # new
+        self.val_df['outZh_bqq_mass'] = bqq_mass # new
+        self.val_df['Zh_bqq_dr'] = Zh_bqq_dr # new
+        self.val_df['Zh_lbbqq_dr'] = Zh_lbbqq_dr # new
         #
     
     def applyDNN(self):

@@ -27,6 +27,7 @@ def get_finished_jobs(year):
 def find_and_transfer_files(year, json_file):
     samples = json.load(open(json_file))
     finished_jobs = get_finished_jobs(year)
+    pp_finished_jobs = glob('/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/*/*'+f'{year}*/*.root')
     missing_files = {}
     for s in samples:
         missing_files[s] = {'files':[]}
@@ -35,18 +36,30 @@ def find_and_transfer_files(year, json_file):
             #found_job = re.findall(rf'\w*{sfile}',' '.join(finished_jobs))
             #print(sf)
             found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
+            #found_job = re.findall(rf'/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/{year}/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
+            #if not found_job:
+            #    found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs)) # look in kens/ others area for files
             if not found_job:
                 print(f'Missing: {sf} !!!')
             else:
                 found_job = {os.stat(j).st_size:j for j in found_job}
                 initial_loc = found_job[max(found_job.keys())]
                 job_loc = re.search(rf'/\w*{year}\w*/\w*{sfile}\w*.root', initial_loc).group()
-                final_loc = assembly_dir+year+job_loc
-                if os.path.exists(final_loc):
+                final_loc = re.findall(rf'/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/{year}/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(pp_finished_jobs)) 
+                #if os.path.exists(final_loc):
+                if final_loc:
+                    final_loc = final_loc[0]
+                    try:
+                        with uproot.open(final_loc) as _ :
+                            continue
+                    except IndexError:
+                        print(f"Bad file at {final_loc}")
+                        pass
                     if os.stat(final_loc).st_size < os.stat(initial_loc).st_size:
                         print(f'New file better than existing one: {initial_loc}')
                         transfer_files(initial_loc, final_loc)
                 else:
+                    final_loc = assembly_dir+year+job_loc
                     print(f'Transferring: {initial_loc}')
                     transfer_files(initial_loc, final_loc)
                 

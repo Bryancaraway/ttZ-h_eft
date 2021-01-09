@@ -96,20 +96,20 @@ def parallel_skim(files, out_dir, tag):
     job_script = 'scripts/runSkim.sh'
     for i, sfile in enumerate(files):
         # rerun runSkim without pre/post skim using pbs
-        command = f"qsub -l nodes=1:ppn=1 -n {args.sample}_{args.year}{tag}_{i}  "
-        command += " -o {log_dir}{args.sample} -e {log_dir}{args.sample} "
+        command = f"qsub -l nodes=1:ppn=1 -N {args.sample}_{args.year}{tag}_{i}  "
+        command += f" -o {log_dir}{args.sample}.out -e {log_dir}{args.sample}.err "
         add_args  = ''
         if args.jec is not None:
             add_args = f',jec={args.jec}'
             #
         out_name  = f'{args.sample}_{i}{tag}.pkl'
-        pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},outfile={out_name}.pkl,noprepost=True,{add_args}'
+        pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},outfile={out_name},noprepost=True{add_args}'
         command += f'{pass_args} {job_script}'
         print(command)
         os.system(command)
     # make sure jobs are finished before exiting
     num_jobs_running = lambda: int(sb.check_output(
-            "qstat -u $USER | grep {args.sample}_{args.year}{tag} | wc -l", shell=True).decode())
+            f"qstat -u $USER -w -a | grep '{args.sample}_{args.year}{tag}' | wc -l", shell=True).decode())
     while num_jobs_running() > 0:
         time.sleep(30)
     # jobs are finished here
@@ -144,6 +144,7 @@ def postSkim(metaData, out_dir, tag):
     #
     final_pkl['metaData'] = metaData
     #add normalization, sample name, apply r factor to BtagWeights
+    print(final_pkl.keys())
     final_pkl['events']['weight'] = (metaData['xs']*metaData['kf']*cfg.Lumi[args.year]*1000)/metaData['tot_events']
     final_pkl['events']['sample'] = metaData['sample']
     # to do btagweight
