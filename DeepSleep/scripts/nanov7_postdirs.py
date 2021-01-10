@@ -18,7 +18,7 @@ assembly_dir    = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
 
 json_filelist   = {'2016': f'{sys.path[1]}/data/sampleDas_nano_2016_v2.json',
                    '2017': f'{sys.path[1]}/data/sampleDas_nano_2017_v2.json',
-                   '2018': f'{sys.path[1]}/data/sampleDas_nano_2018_v2.json'
+                   #'2018': f'{sys.path[1]}/data/sampleDas_nano_2018_v2.json'
                }
 
 def get_finished_jobs(year):
@@ -35,10 +35,14 @@ def find_and_transfer_files(year, json_file):
             sfile = sf.split('/')[-1].replace('.root','')#.replace('.root','_Skim[_]+\d+.root')
             #found_job = re.findall(rf'\w*{sfile}',' '.join(finished_jobs))
             #print(sf)
-            found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
-            #found_job = re.findall(rf'/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/{year}/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
-            #if not found_job:
-            #    found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs)) # look in kens/ others area for files
+            #found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
+            done_job = re.findall(rf'/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/{year}/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(pp_finished_jobs))
+            if done_job:
+                continue
+            else:
+                print('Not in PostProcessed area:',sf)
+                continue
+                found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs)) # look in kens/ others area for files
             if not found_job:
                 print(f'Missing: {sf} !!!')
             else:
