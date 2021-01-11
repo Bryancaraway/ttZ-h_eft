@@ -2,7 +2,7 @@ import time
 import argparse
 import re
 import config.ana_cff as cfg
-from config.sample_cff import sample_cfg
+from config.sample_cff import sample_cfg, process_cfg
 from lib.fun_library import t2Run
 #from modules.getdata import getData
 from modules.processAna import processAna
@@ -11,7 +11,7 @@ from modules.AnaDict    import AnaDict
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
 parser.add_argument('-s', dest='sample', type=str, 
                     #choices=cfg.All_MC+cfg.Data_samples+['test']+cfg.tt_sys_samples+cfg.Sig_EFT_MC+cfg.tt_eft_samples, 
-                    choices=sample_cfg.keys(),
+                    choices=list(sample_cfg.keys())+list(process_cfg.keys()),
                     required=True, help='sample to analyze')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
                     required=True, help='year')
@@ -28,16 +28,28 @@ if args.jec is not None and re.search(r'201\d', str(args.jec)) and args.year not
     raise ValueError(f"{args.jec} is not compatible with year choice: {args.year}")
     exit()
 
+def runAna():
+    if   args.sample in sample_cfg.keys():
+        analyzer(args.sample)
+    elif args.sample in process_cfg.keys():
+        for sample in process_cfg[args.sample]:
+            analyzer(sample)
+        # run post job
+        post_job(process_cfg[args.sample])
+
 @t2Run
-def runAna ():
+def analyzer(sample):
     #####
-    sample   = args.sample
-    isData   = 'Data' in args.sample
-    isSignal = re.search(r'TT[Z,H]*\w*', sample) is not None #'TTZH' in sample or 'TTZ_bb' in sample
-    isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
+    sample   = sample
+    isData   = 'Data' in sample
+    #isSignal = re.search(r'TT[Z,H]*\w*', sample) is not None #'TTZH' in sample or 'TTZ_bb' in sample
+    isSignal = re.search(r'[TT,tt][Z,H]', sample) is not None
+    isttbar  = re.search(r'TT[bar,bb]', sample) is not None
+    print(isSignal, isttbar)
+    #isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
     tag      = (args.tag + args.jec if args.jec is not None else args.tag)
     #
-    input_file = args.inputfile if args.inputfile else cfg.postSkim_dir+f"{args.year}/{sample_cfg[args.sample]['out_name']}/{args.sample}{'.'+tag if tag != '' else ''}.pkl"
+    input_file = args.inputfile if args.inputfile else cfg.postSkim_dir+f"{args.year}/{sample_cfg[sample]['out_name']}/{sample}{'.'+tag if tag != '' else ''}.pkl"
     if isData and (args.jec is not None and args.jec != ''): exit()
     #####
 
@@ -65,6 +77,18 @@ def runAna ():
 
     #####
 
+def post_job(samples):
+    import pandas as pd
+    out_df = pd.DataFrame()
+    #out_name = sample_cfg[samples[0]]['out_name']
+    wDir   = f"{cfg.master_file_path}/{year}/{'mc_files' if 'Data' not in args.sample else 'data_files'}/"
+    outTag = '_'+args.jec if args.jec is not None else ''
+    for sample in samples:
+        target_sample = f'{wDir}/{sample}{outTag}_val.pkl'
+        target_df = pd.read_pickle(target_sample)
+        out_df = pd.concat([out_df, target_df], axis='rows', ignore_index=True)
+        os.system(f'rm {target_sample}')
+    out_df.to_pickle(f'{wDir}/{args.sample}{outTag}_val.pkl')
 
 if __name__ == '__main__':
     

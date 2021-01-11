@@ -28,24 +28,24 @@ class AnaVars:
         self.ud = ud.group() if ud else ''
         #
         self.jec_dict = {
-            f'jesRelativeSample{self.ud}'     :f'_jesRelativeSample_{self.year}{self.ud}',
-            f'jesHF{self.year}{self.ud}'      :f'_jesHF_{self.year}{self.ud}',
-            f'jesAbsolute{self.year}{self.ud}':f'_jesAbsolute_{self.year}{self.ud}',
-            f'jesEC2{self.year}{self.ud}'     :f'_jesEC2_{self.year}{self.ud}',
-            f'jesBBEC1{self.year}{self.ud}'   :f'_jesBBEC1_{self.year}{self.ud}',
-            f'jesAbsolute{self.year}{self.ud}':f'_jesAbsolute{self.ud}',
-            f'jesEC2{self.ud}'                :f'_jesEC2{self.ud}',
-            f'jesBBEC1{self.ud}'              :f'_jesBBEC1{self.ud}',
-            f'jesHF{self.ud}'                 :f'_jesHF{self.ud}',
-            f'jesRelativeBal{self.ud}'        :f'_jesRelativeBal{self.ud}',
-            f'jesFlavorQCD{self.ud}'          :f'_jesFlavorQCD{self.ud}',
-            f'jesHEMIssue{self.ud}'           :f'_jesHEMIssue{self.ud}', # only for 2018
+            f'jesRelativeSample{self.year}{self.ud}' :f'_jesRelativeSample_{self.year}{self.ud}',
+            f'jesHF{self.year}{self.ud}'             :f'_jesHF_{self.year}{self.ud}',
+            f'jesAbsolute{self.year}{self.ud}'       :f'_jesAbsolute_{self.year}{self.ud}',
+            f'jesEC2{self.year}{self.ud}'            :f'_jesEC2_{self.year}{self.ud}',
+            f'jesBBEC1{self.year}{self.ud}'          :f'_jesBBEC1_{self.year}{self.ud}',
+            f'jesAbsolute{self.year}{self.ud}'       :f'_jesAbsolute{self.ud}',
+            f'jesEC2{self.ud}'                       :f'_jesEC2{self.ud}',
+            f'jesBBEC1{self.ud}'                     :f'_jesBBEC1{self.ud}',
+            f'jesHF{self.ud}'                        :f'_jesHF{self.ud}',
+            f'jesRelativeBal{self.ud}'               :f'_jesRelativeBal{self.ud}',
+            f'jesFlavorQCD{self.ud}'                 :f'_jesFlavorQCD{self.ud}',
+            f'jesHEMIssue{self.ud}'                  :f'_jesHEMIssue{self.ud}', # only for 2018
             #
-            f'ak4jer{self.ud}'                   :f'_jer{self.ud}',
-            f'ak8jer{self.ud}'                   :f'_jer{self.ud}',
+            f'ak4jer{self.ud}'                    :f'_jer{self.ud}',
+            f'ak8jer{self.ud}'                    :f'_jer{self.ud}',
             #
-            f'jms{self.ud}'                   :f'_jms{self.ud}',
-            f'jmr{self.ud}'                   :f'_jmr{self.ud}',
+            f'jms{self.ud}'                       :f'_jms{self.ud}',
+            f'jmr{self.ud}'                       :f'_jmr{self.ud}',
             #
             '':'',
         }

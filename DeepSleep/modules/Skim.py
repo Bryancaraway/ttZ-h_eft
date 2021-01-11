@@ -124,7 +124,11 @@ class Skim :
     # === functions to add info to events === #
     def handle_lheweights(self):
         ps_w  = self.lheweights['PSWeight'].pad(4).fillna(1)
-        sc_w  = self.lheweights['LHEScaleWeight'].pad(9).fillna(1)
+        try:
+            sc_w  = self.lheweights['LHEScaleWeight'].pad(9).fillna(1)
+        except:
+            sc_w = np.ones(shape=(len(ps_w),9))
+
         self.events['ISR_Up']   = ps_w[:,2]
         self.events['ISR_Down'] = ps_w[:,0]
         self.events['FSR_Up']   = ps_w[:,3]

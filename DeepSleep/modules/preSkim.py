@@ -133,7 +133,10 @@ class PreSkim :
         with uproot.open(roo) as f:
             t = f['Events']
             gw = t.array('genWeight')#, executor=executor, blocking=True)
-            scale = t.array('LHEScaleWeight').pad(9).fillna(1) * np.sign(gw)
+            try:
+                scale = t.array('LHEScaleWeight').pad(9).fillna(1) * np.sign(gw)
+            except:
+                scale = np.ones(shape=(len(gw),9))
             pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
             pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
             #

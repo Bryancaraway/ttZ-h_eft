@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import re
 import subprocess as sb
+import time
 from config.sample_cff import process_cfg, sample_cfg
 import config.ana_cff as cfg
 #
@@ -23,15 +24,15 @@ parser.add_argument('--script', type=str, required=False, help='Run Analysis or 
 #parser.add_argument('-t', dest='tag',     type=str, required=False, help='Optional tag to add to output file', default='')
 args = parser.parse_args()
 
-def submit_jobs():
+sample_dict = {'all' :process_cfg.keys(),
+               'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
+               'data': [k for k in process_cfg.keys() if 'Data' in k],
+               'tt'   : process_cfg['TTBar'],
+               'ttsys': process_cfg['TTBar_sys'],
+               'ttbb' : process_cfg['ttbb'],
+               'ttbbsys': process_cfg['ttbb_sys']}
 
-    sample_dict = {'all' :process_cfg.keys(),
-                   'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
-                   'data': [k for k in process_cfg.keys() if 'Data' in k],
-                   'tt'   : process_cfg['TTBar'],
-                   'ttsys': process_cfg['TTBar_sys'],
-                   'ttbb' : process_cfg['ttbb'],
-                   'ttbbsys': process_cfg['ttbb_sys']}
+def submit_jobs():
     
     # submit a job for each background / signal / data sample
     if args.samples in process_cfg:
@@ -43,24 +44,32 @@ def submit_jobs():
     jecs    = cfg.jec_variations if args.jec == 'all' else [args.jec]
     #
     iterate_args(execute, samples, years, jecs)
-    if 'Skim' in args.script: # no need to go further
-        return
-    #
-    num_jobs_running = lambda: int(sb.check_output(
-        f"qstat -u $USER -w -a | grep {args.samples}_{args.year}_ | wc -l", shell=True).decode())
-    while num_jobs_running() > 0:
-        time.sleep(30)
-    #
-    iterate_args(postjob, samples, years, jecs)
+    #if 'Skim' in args.script: # no need to go further
+    #    return
+    ##
+    #num_jobs_running = lambda: int(sb.check_output(
+    #    f"qstat -u $USER -w -f | grep 'Job_Name = {args.samples}_{args.year}_' | wc -l", shell=True).decode())
+    #while num_jobs_running() > 0:
+    #    time.sleep(30)
+    ##
+    #iterate_args(postjob, samples, years, jecs)
 
 
 def iterate_args(func, samples, years, jecs):
     for year in years:
+        if 'Data' in args.samples:
+            samples_ = samples[year]
+        else:
+            samples_ = samples
         #os.system(f'rm {log_dir}*{year}*')
         for jec in jecs:
             if jec is not None and re.search(f'201\d', jec) and year not in jec:
                 continue
-            func(samples, year, jec)
+            #if args.samples in sample_dict: # hacky
+            #    for s in samples_:
+            #        func(process_cfg[s] if 'Data' not in s else process_cfg[s][year], year, jec)
+            #else:
+            func(samples_, year, jec)
                 
 
 def execute(samples, year, jec):
@@ -69,10 +78,13 @@ def execute(samples, year, jec):
     for sample in samples:
         add_args  = ''
         add_out_name = ''
-        if jec is not None:
+        if jec is not None :
             add_args = f',jec={jec}'
             add_out_name = '_'+jec
-            #
+            tag = jec
+        else:
+            tag = ''
+        #
         if 'Skim' in args.script:
             add_args +=',qsub=True'
         out_name  = sample+'_'+year+add_out_name
@@ -82,21 +94,25 @@ def execute(samples, year, jec):
             ppn = 1
         pass_args = f'-v sample={sample},year={year}{add_args}'
         command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}{out_name}.out -e {log_dir}{out_name}.err '
-        command  += f'-N {args.samples}_{args.year}_{sample}{year}{jec} {pass_args} {job_script}'
+        command  += f'-N {args.samples}_{args.year}_{sample}{year}{tag} '
+        command += f' {pass_args} {job_script}'
         print(command)
         os.system(command)
 
-def postjob(samples, year, jec, out_df=None, wDir=None):
-    out_df = pd.DataFrame(), 
-    wDir   = f"{cfg.master_file_path}/{year}/{'mc_files' if 'Data' not in args.samples else 'data_files'}/"
-    outTag = '_'+jec if jec is not None else ''
-    for sample in samples:
-        target_sample = f'{wDir}/{sample}{outTag}_val.pkl'
-        if len(out_df) == 0:
-            out_df = pd.read_pickle(target_sample)
-        else:
-            out_df = pd.concat([out_df,pd.read_pickle(target_sample)], axis='rows', ignore_axis=True)
-    out_df.to_pickle(f'{wDir}/{args.samples}{outTag}_val.pkl')
+#def postjob(samples, year, jec, out_df=None, wDir=None):
+#    out_df = pd.DataFrame()
+#    out_name = sample_cfg[samples[0]]['out_name']
+#    wDir   = f"{cfg.master_file_path}/{year}/{'mc_files' if 'Data' not in args.samples else 'data_files'}/"
+#    outTag = '_'+jec if jec is not None else ''
+#    for sample in samples:
+#        target_sample = f'{wDir}/{sample}{outTag}_val.pkl'
+#        target_df = pd.read_pickle(target_sample)
+#        #if len(out_df) == 0:
+#        #    out_df = target_df
+#        #else:
+#        out_df = pd.concat([out_df, target_df], axis='rows', ignore_index=True)
+#        os.system(f'rm {target_sample}')
+#    out_df.to_pickle(f'{wDir}/{args.samples}{outTag}_val.pkl')
     
 
 if __name__ == '__main__':

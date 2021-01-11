@@ -10,7 +10,7 @@ import subprocess as sb
 #
 import config.ana_cff as cfg
 from config.sample_cff import sample_cfg
-from lib.fun_library import fillne, t2Run
+from lib.fun_library import t2Run
 #  module classes
 from modules.AnaDict import AnaDict
 from modules.preSkim import PreSkim
@@ -30,29 +30,20 @@ parser.add_argument('-t', dest='tag', type=str, required=False, help='Optional t
 parser.add_argument('--qsub', dest='qsub',  action='store_true', required=False, help='Run jobs on pbs', default=False)
 parser.add_argument('--nopre', dest='nopre',  action='store_true', required=False, help='Run preSkim', default=False)
 parser.add_argument('--nopost', dest='nopost',  action='store_true', required=False, help='Run postSkim', default=False)
-#parser.add_argument('--estart', dest='estart', type=int, required=False, help='parse event to start from', default=None)
-#parser.add_argument('--estop',  dest='estop',  type=int, required=False, help='parse event to stop at', default=None)
-#parser.add_argument('--condor', action='store_true', required=False, help='Flag is running on Condor', default=False)
-#parser.add_argument('--keep_all', action='store_true', required=False, help='Flag to keep ak4,ak8,gen,rtc arrays', default=False)
 args = parser.parse_args()
 
-isData = 'Data' in args.sample
 if args.jec is not None and re.search(r'201\d', str(args.jec)) and args.year not in args.jec:
-        raise ValueError(f"{args.jec} is not compatible with year choice: {args.year}")
-        exit()
+    raise ValueError(f"{args.jec} is not compatible with year choice: {args.year}")
+#
+isData = 'Data' in args.sample
+sample_dir = cfg.postproc_dir
+log_dir = f'log/{args.year}/'
+#
 
 @t2Run
 def runSkim():
-
-    sample_dir = cfg.postproc_dir
-    ####
-    if args.roofile:
-        files = [args.roofile]
-    else:
-        if not isData: # is MC
-            files = glob(f"{sample_dir}/{args.year}/{args.sample}_{args.year}/*.root")
-        else : # is data
-            files = glob(f"{sample_dir}/{args.year}/{args.sample}_{args.year}_Period*/*.root")
+    #
+    files, pre_skim_files = get_jobfiles()
     #
     print(f"{sample_dir}/{args.year}/{args.sample}_{args.year}/*.root")
     isttbar = 'TTTo' in args.sample or 'TTJets' in args.sample
@@ -64,9 +55,9 @@ def runSkim():
     #### Pre Skim ######
     print('Running PreSkim')
     metaData = {}
-    if not args.nopre:
+    if not (args.nopre or isData):
         #
-        run_preSkim = PreSkim(files, args.sample, args.year, isttbar=isttbar, isttbb=isttbb)
+        run_preSkim = PreSkim(pre_skim_files, args.sample, args.year, isttbar=isttbar, isttbb=isttbb)
         metaData    = run_preSkim.get_metadata()
         #
     #### Skim #######
@@ -92,11 +83,10 @@ def sequential_skim(files, out_dir, tag):
         del run_Skim, Skim_data
 
 def parallel_skim(files, out_dir, tag):
-    log_dir = f'log/{args.year}/'
     job_script = 'scripts/runSkim.sh'
     for i, sfile in enumerate(files):
         # rerun runSkim without pre/post skim using pbs
-        command = f"qsub -l nodes=1:ppn=1 -N {args.sample}_{args.year}{tag}_{i}  "
+        command = f"qsub -l nodes=1:ppn=1 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
         command += f" -o {log_dir}{args.sample}.out -e {log_dir}{args.sample}.err "
         add_args  = ''
         if args.jec is not None:
@@ -109,10 +99,13 @@ def parallel_skim(files, out_dir, tag):
         os.system(command)
     # make sure jobs are finished before exiting
     num_jobs_running = lambda: int(sb.check_output(
-            f"qstat -u $USER -w -a | grep '{args.sample}_{args.year}{tag}' | wc -l", shell=True).decode())
+            f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_{args.sample}_{args.year}{tag}_' | wc -l", shell=True).decode())
+    # allow qsub to catch up?
+    time.sleep(5)
+    print(f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_{args.sample}_{args.year}{tag}_' | wc -l", num_jobs_running())
     while num_jobs_running() > 0:
-        time.sleep(30)
-    # jobs are finished here
+        time.sleep(30) 
+        # jobs are finished here
 
 
 def postSkim(metaData, out_dir, tag):
@@ -129,30 +122,72 @@ def postSkim(metaData, out_dir, tag):
         for k in pkl_dict:
             #print(pkl_dict[k])
             if k == 'events' :
-                print(len(final_pkl[k]))
                 final_pkl[k] = pd.concat([final_pkl[k],pkl_dict[k]], axis='rows', ignore_index=True)
-                print(len(final_pkl[k]))
                 continue
             for var in pkl_dict[k]:
                 try:
+                    if var == 'FatJet_pt':
+                        print(len(final_pkl['ak8']['FatJet_pt']))
+                        print(pkl_dict[k][var])
+                        print(final_pkl['ak8']['FatJet_pt'])
                     final_pkl[k][var] = concatenate([final_pkl[k][var],pkl_dict[k][var]]) # jagged
+                    if var == 'FatJet_pt':
+                        print(final_pkl['ak8']['FatJet_pt'])
                 except AttributeError:
                     final_pkl[k][var] = np.concatenate([final_pkl[k][var],pkl_dict[k][var]]) # might not work with pandas dataframe
-            #
+                #
         os.system(f'rm {pkl}')
         #
     #
     final_pkl['metaData'] = metaData
     #add normalization, sample name, apply r factor to BtagWeights
     print(final_pkl.keys())
-    final_pkl['events']['weight'] = (metaData['xs']*metaData['kf']*cfg.Lumi[args.year]*1000)/metaData['tot_events']
-    final_pkl['events']['sample'] = metaData['sample']
-    # to do btagweight
-    final_pkl['events'].loc[:,'BTagWeight'] = final_pkl['events']['BTagWeight']*metaData['r_nom']
-    for btagw in final_pkl['events'].filter(like='BTagWeight_', axis='columns').keys():
-        final_pkl['events'].loc[:,btagw] = final_pkl['events'][btagw]*metaData['r_'+btagw.replace('BTagWeight_','')]
-    #
+
+    if isData:
+        final_pkl['events']['weight'] = 1
+        final_pkl['events']['sample'] = args.sample
+    else:
+        final_pkl['events']['sample'] = metaData['sample']
+        final_pkl['events']['weight'] = (metaData['xs']*metaData['kf']*cfg.Lumi[args.year]*1000)/metaData['tot_events']
+        # to do btagweight
+        final_pkl['events'].loc[:,'BTagWeight'] = final_pkl['events']['BTagWeight']*metaData['r_nom']
+        for btagw in final_pkl['events'].filter(like='BTagWeight_', axis='columns').keys():
+            final_pkl['events'].loc[:,btagw] = final_pkl['events'][btagw]*metaData['r_'+btagw.replace('BTagWeight_','')]
+        #
     AnaDict(final_pkl).to_pickle(f'{out_dir}/{args.sample}{tag}.pkl')
+
+
+def get_jobfiles():
+    files = []
+    pre_skim_files = []
+    if not isData: # is MC
+        pre_skim_files = glob(f"{sample_dir}/{args.year}/{args.sample}_{args.year}/*.root")
+    else : # is data
+        pre_skim_files = glob(f"{sample_dir}/{args.year}/{args.sample}_{args.year}_Period*/*.root")
+    #
+    if args.roofile:
+        if '.list' in args.roofile:
+            with open(args.roofile, 'r') as lf:
+                files = [l.strip('\n') for l in lf.readlines()]
+            os.system(f'rm {args.roofile}') # clear up directory
+        else:
+            files = [args.roofile]
+    else:
+        files = pre_skim_files
+    #
+    if len(files) > 10 and args.qsub: # create filelist of size 5 for less strain on kodiak
+        new_files = []
+        size = 5
+        for i in range(0,len(files),size):
+            new_file = log_dir+f'{args.sample}_{i//size}.list'
+            new_files.append(new_file)
+            with open(new_file, 'w') as lf:
+                try:
+                    lf.writelines([f+'\n' for f in files[i:i+size]])
+                except:
+                    lf.writelines([f+'\n' for f in files[i:]])
+        files = new_files
+    return files, pre_skim_files
 
 def concatenate(jaggedarrays):
     import awkward

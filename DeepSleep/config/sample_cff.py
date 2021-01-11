@@ -71,12 +71,12 @@ process_cfg = {
                     'WZG',
                     'WWG'],
     #
-    'Data_SingleElctron' : {'2016':'Data_SingleElectron',
-                            '2017':'Data_SingleElectron',
-                            '2018':'Data_EGamma'},
-    'Data_SingleMuon'    : {'2016':'Data_SingleMuon',
-                            '2017':'Data_SingleMuon',
-                            '2018':'Data_SingleMuon'},
+    'Data_SingleElctron' : {'2016':['Data_SingleElectron'],
+                            '2017':['Data_SingleElectron'],
+                            '2018':['Data_EGamma']},
+    'Data_SingleMuon'    : {'2016':['Data_SingleMuon'],
+                            '2017':['Data_SingleMuon'],
+                            '2018':['Data_SingleMuon']},
 }
 
 

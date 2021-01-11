@@ -155,7 +155,7 @@ lep_sel_vars = {'muon'    : ['Muon_pt','Muon_eta','Muon_phi','Muon_mass',
 
 lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30)        & 
                                     (abs(x['Muon_eta']) < 2.4) &
-                                    #(x['Muon_FlagId'] >= 1)    & 
+                                    #(x['Muon_FlagId'] >= 1)    &  # not in NanoAODv7 files
                                     (x['Muon_mediumId'] >= 1)    & 
                                     (x['Muon_miniPFRelIso_all'] < 0.2) )),
 
@@ -261,14 +261,17 @@ ana_vars = {
 dnn_ZH_dir  = dataDir+'/NN_files/'
 # only event level variables
 dnn_ZH_vars = [
-    'max_lb_dr','max_lb_invM', 'n_Zh_btag_sj', 'n_ak4jets', 'Zh_score', 'best_rt_score',
-    'n_q_outZh', 'n_b_outZh', 'Zh_l_dr', 'n_Zh_sj', 'n_b_inZh', 'Zh_bestb_sj', 'Zh_worstb_sj',
+    'max_lb_dr','max_lb_invM', 'n_Zh_btag_sj', 'Zh_bbvLscore', 'outZh_max_bbvLscore',#'best_rt_score',
+    'n_q_outZh', 'n_b_outZh', 'Zh_l_dr', 'n_Zh_sj',  'Zh_bestb_sj', #'Zh_worstb_sj',
     'Zh_eta','Zh_deepB','b1_outZh_score', 'best_Zh_b_invM_sd', 'Zh_b1_invM_sd', 'Zh_b2_invM_sd','Zh_l_invM_sd',
-    'Zh_Wscore', 'Zh_Tscore', 'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets',  # repeated?
+    'Zh_Wscore', 'Zh_Tscore', 'outZh_max_Wscore', 'outZh_max_Tscore', 
+    'ht_b', 'ht_outZh', 'max_farl_b_q_dr', 'outZh_bqq_mass', 
+    'Zh_bqq_dr', 'Zh_lbbqq_dr',
+    'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets',  
     'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
-    'Zh_bbscore_sj', 
+    #'Zh_bbscore_sj', 
     'b1_over_Zhpt', 'bb_over_Zhpt',
-    'spher','aplan','n_q_inZh']
+    'spher','aplan','n_b_inZh', 'n_q_inZh']
     #'H_M',
     #'H_pt',
     #'min_lb_invm', 'MET_pt', 'b2oHZpt' 

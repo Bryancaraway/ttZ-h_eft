@@ -17,7 +17,7 @@ job_output_dirs = '/cms/data/store/user/*/NanoAODv7/*'
 assembly_dir    = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
 
 json_filelist   = {'2016': f'{sys.path[1]}/data/sampleDas_nano_2016_v2.json',
-                   '2017': f'{sys.path[1]}/data/sampleDas_nano_2017_v2.json',
+                   #'2017': f'{sys.path[1]}/data/sampleDas_nano_2017_v2.json',
                    #'2018': f'{sys.path[1]}/data/sampleDas_nano_2018_v2.json'
                }
 
@@ -37,8 +37,14 @@ def find_and_transfer_files(year, json_file):
             #print(sf)
             #found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
             done_job = re.findall(rf'/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/{year}/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(pp_finished_jobs))
+            found_job = []
             if done_job:
-                continue
+                try:
+                    with uproot.open(done_job[0]) as _:
+                        continue
+                except:
+                    found_job = re.findall(rf'/cms/data/store/user/\w*/NanoAODv7/\w*{year}\w*/\w*{sfile}\w*.root',' '.join(finished_jobs))
+                    pass
             else:
                 print('Not in PostProcessed area:',sf)
                 continue

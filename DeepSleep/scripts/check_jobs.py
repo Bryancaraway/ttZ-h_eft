@@ -68,8 +68,8 @@ def attempt_transfer(potential_names,year,sfile):
     #else:
     #target = 'store/user/hatake/NanoAODv7/'
     
-    #with open('bryans_nanoaod_files.txt') as target_file:
-    with open('kens_nanoaod_files.txt') as target_file:
+    with open('bryans_nanoaod_files.txt') as target_file:
+    #with open('kens_nanoaod_files.txt') as target_file:
         for line in target_file.readlines():
             if sfile in line:
                 print(f'File found at: {line} ') 
@@ -97,7 +97,7 @@ def attempt_transfer(potential_names,year,sfile):
     num_jobs_running = lambda: int(sb.check_output('qstat -u $USER | grep transfer | wc -l', shell=True).decode())
     #num_jobs_running = lambda: int(sb.check_output('jobs | wc -l', shell=True).decode())
     print(num_jobs_running())
-    while num_jobs_running() >= 30:
+    while num_jobs_running() >= 15:
         time.sleep(30)
 
     out_name = destination.split('/')[-1]

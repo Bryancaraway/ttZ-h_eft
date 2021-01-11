@@ -166,7 +166,7 @@ class processAna :
         self.val_df['ttbb_genbb_pt'] = (b1+b2).pt
         #
         # calculate toppt weight for powheg only
-        if 'pow' in self.sample:
+        if True:#'pow' in self.sample:
             tt_pt = gen_pt[(abs(gen_ids) == 6)]
             ##wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800))) # old data driven re-weighting
 
@@ -403,6 +403,17 @@ class processAna :
         best_Wb_invM_sd = np.where(((mtb2 > mtb1) & (mtb2 != np.nan)), Zh_b_invM_sd[:,1], Zh_b_invM_sd[:,0]) 
         # find best resolved top candidate from ak4 jets outside of Zh candidate
         ak4_outZh= np.where(Zh_ak4_dr>=.8,Zh_ak4_dr,np.nan)
+        #
+        self.val_df['jetpt_1']  = ak4_pt.pad(2)[:,0]
+        self.val_df['jetpt_2']  = ak4_pt.pad(2)[:,1]
+        self.val_df['jeteta_1'] = ak4_eta.pad(2)[:,0]
+        self.val_df['jeteta_2'] = ak4_eta.pad(2)[:,1]
+        self.val_df['bjetpt_1']  = b_pt.pad(2)[:,0]
+        self.val_df['bjetpt_2']  = b_pt.pad(2)[:,1]
+        self.val_df['bjeteta_1'] = b_eta.pad(2)[:,0]
+        self.val_df['bjeteta_2'] = b_eta.pad(2)[:,1]
+        self.val_df['fjetpt_1']  = ak8_pt.pad(1)[:,0]
+        self.val_df['fjeteta_1'] = ak8_eta.pad(1)[:,0]
         #
         self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
         self.val_df['Zh_bbvLscore']  = Zh_Zhbbtag[:,0]
@@ -643,7 +654,7 @@ class processAna :
 
     def add_weights_to_ttbb(self):
         tt_bb_norms_scales = AnaDict.read_pickle(self.dataDir + '/tt_bb_nom.pkl')
-        for w_or_scale,_dict in tt_bb_norms_scales.items():
+        for w_or_scale, _dict in tt_bb_norms_scales.items():
             for key, v in _dict.items():
                 if self.year in key:
                     if self.sample.split('_')[0].replace('TTbb','') in key: # check which type this is Di, Semi, Had
