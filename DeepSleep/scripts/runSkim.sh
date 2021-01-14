@@ -19,8 +19,8 @@ fi
 if [ ! -z "$qsub" ]; then
     args="$args --qsub"
 fi
-if [ ! -z "$noprepost" ]; then 
-    args="$args --nopre --nopost"
+if [ ! -z "$nopost" ]; then 
+    args="$args --nopost"
 fi
 echo "$args"
 eval 'python runSkim.py $args'

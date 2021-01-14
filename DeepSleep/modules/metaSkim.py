@@ -1,0 +1,163 @@
+########################
+### Skim metadata    ###
+### for analysis     ###
+########################
+### written by:      ###
+### Bryan Caraway    ###
+########################
+##
+#
+
+import uproot
+import os
+import re
+import sys
+if __name__ == '__main__':
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
+from config.sample_cff import sample_cfg
+#
+import numpy as np
+np.random.seed(0)
+import pandas as pd
+
+
+class SkimMeta :
+    '''
+    only run full code on MC
+    get 4 main items from sample
+    1) event normalization  (all) 
+    2) varied normalization (all)
+    3) varied normalization w/resp tt+bb (only ttbar and ttbb)
+    4) btagSFweight yield per np, and per jet multi
+    '''
+    #outDir = '' # add later */*postSkim
+    #nanoAODv7_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
+    #sample  = None
+
+    def __init__(self, sample, year, isData, tree):
+        self.sample = sample
+        self.year   = year
+        self.isData = isData
+        self.tree   = tree
+        #
+        self.isttbar = 'TTTo' in self.sample or 'TTJets' in self.sample
+        self.isttbb  = 'TTbb' in self.sample
+        self.metadata = {'sample': self.sample, 'year': self.year, 
+                         'xs': sample_cfg[self.sample]['xs'], 'kf': sample_cfg[self.sample]['kf']}
+        #
+        if not self.isData:
+            if self.isttbar or self.isttbb:
+                self.ttbar_ttbb_normalization()
+            else:
+                self.event_var_normalization()
+
+    ## main functions    
+    
+    def get_metadata(self):
+        return self.metadata
+
+    def event_var_normalization(self): # 1,2,4
+        results = np.array(self.event_worker(self.tree))
+        self.metadata.update({
+            'tot_events' :results[0], 
+            'mur_up_tot' :results[1], 'mur_down_tot' :results[2],
+            'muf_up_tot' :results[3], 'muf_down_tot' :results[4],
+            'murf_up_tot':results[5], 'murf_down_tot':results[6],
+            'pdf_up_tot' :results[7], 'pdf_down_tot' :results[8],
+        })
+
+    def ttbar_ttbb_normalization(self): # 3,4
+        results = np.array(self.ttbb_worker(self.tree))
+        self.metadata.update({
+            'tot_events' :results[0], 
+            'mur_up_tot' :results[1], 'mur_down_tot'  :results[2],
+            'muf_up_tot' :results[3], 'muf_down_tot'  :results[4],
+            'murf_up_tot':results[5], 'murf_down_tot' :results[6],
+            'isr_up_tot' :results[7], 'isr_down_tot'  :results[8],
+            'fsr_up_tot' :results[9], 'fsr_down_tot'  :results[10],
+            'pdf_up_tot' :results[11],'pdf_down_tot'  :results[12],
+            #
+            'ttbb_events' : results[13], 
+            'mur_up_ttbb' :results[14],'mur_down_ttbb' :results[15],
+            'muf_up_ttbb' :results[16],'muf_down_ttbb' :results[17],
+            'murf_up_ttbb':results[18],'murf_down_ttbb':results[19],
+            'isr_up_ttbb' :results[20],'isr_down_ttbb' :results[21],
+            'fsr_up_ttbb' :results[22],'fsr_down_ttbb' :results[23],
+            'pdf_up_ttbb' :results[24],'pdf_down_ttbb' :results[25],
+        })
+    
+
+    ## worker functions 
+    @staticmethod
+    def event_worker(t):
+        gw = t.array('genWeight')#, executor=executor, blocking=True)
+        try:
+            scale = t.array('LHEScaleWeight').pad(9).fillna(1) * np.sign(gw)
+        except:
+            scale = np.ones(shape=(len(gw),9))
+        pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
+        pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
+        #
+        sc_tot = [ sum( scale[:,i] ) for i in range(9)]
+        mur_up_tot, mur_down_tot   = sc_tot[7], sc_tot[1]
+        muf_up_tot, muf_down_tot   = sc_tot[5], sc_tot[3]
+        murf_up_tot, murf_down_tot = sc_tot[8], sc_tot[0]
+        #
+        pdf_up_tot, pdf_down_tot = sum(pdf_up), sum(pdf_down)
+        #
+        tot_count= sum(gw>=0.0) - sum(gw<0.0)
+        #
+        return [tot_count,        # 0
+                mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 1-6
+                pdf_up_tot, pdf_down_tot, # 7-8
+        ]
+        
+    @staticmethod
+    def ttbb_worker(t):
+        gw    = t.array('genWeight'  )
+        ttbb  = t.array('genTtbarId')
+        ttbb  = ttbb % 100
+        scale = t.array('LHEScaleWeight').pad(9).fillna(1)
+        ps    = t.array('PSWeight'      ).pad(4).fillna(1)
+        # need pdf as well
+        pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
+        pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
+        tot_count= sum(gw>=0.0) - sum(gw<0.0)
+        #
+        ttbb_count = sum((gw>=0.0) & (ttbb>=51)) - sum((gw<0.0) & (ttbb>=51))
+        #
+        scale = np.sign(gw) * scale
+        sc_tot = [ sum( scale[:,i] ) for i in range(9)]
+        mur_up_tot, mur_down_tot   = sc_tot[7], sc_tot[1]
+        muf_up_tot, muf_down_tot   = sc_tot[5], sc_tot[3]
+        murf_up_tot, murf_down_tot = sc_tot[8], sc_tot[0]
+        sc_ttbb = [ sum( scale[(ttbb>=51)][:,i] ) for i in range(9)]
+        mur_up_ttbb, mur_down_ttbb   = sc_ttbb[7], sc_ttbb[1]
+        muf_up_ttbb, muf_down_ttbb   = sc_ttbb[5], sc_ttbb[3]
+        murf_up_ttbb, murf_down_ttbb = sc_ttbb[8], sc_ttbb[0]
+        #
+        ps = np.sign(gw) * ps
+        ps_tot = [ sum( ps[:,i] ) for i in range(4) ]
+        isr_up_tot, isr_down_tot = ps_tot[2], ps_tot[0]
+        fsr_up_tot, fsr_down_tot = ps_tot[3], ps_tot[1]
+        ps_ttbb = [ sum( ps[(ttbb>=51)][:,i] ) for i in range(4) ]
+        isr_up_ttbb, isr_down_ttbb = ps_ttbb[2], ps_ttbb[0]
+        fsr_up_ttbb, fsr_down_ttbb = ps_ttbb[3], ps_ttbb[1]
+        #
+        pdf_up_tot, pdf_down_tot = sum(pdf_up), sum(pdf_down)
+        pdf_up_ttbb, pdf_down_ttbb = sum(pdf_up[(ttbb>=51)]), sum(pdf_down[(ttbb>=51)])
+        #
+        return [tot_count,  # 0
+                mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 1-6
+                isr_up_tot, isr_down_tot, fsr_up_tot, fsr_down_tot, # 7-10
+                pdf_up_tot, pdf_down_tot, # 11-12
+                ttbb_count,  # 13
+                mur_up_ttbb, mur_down_ttbb, muf_up_ttbb, muf_down_ttbb, murf_up_ttbb, murf_down_ttbb, # 14-19
+                isr_up_ttbb, isr_down_ttbb, fsr_up_ttbb, fsr_down_ttbb,# 20-23
+                pdf_up_ttbb, pdf_down_ttbb, # 24-25
+        ]
+
+if __name__ == '__main__':
+    test = PreSkim('WWW','2016') # sample, year, isttbar=False, isttbb=False
+    print(test.get_metadata())

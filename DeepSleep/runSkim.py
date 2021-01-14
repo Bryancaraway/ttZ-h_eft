@@ -13,7 +13,6 @@ from config.sample_cff import sample_cfg
 from lib.fun_library import t2Run
 #  module classes
 from modules.AnaDict import AnaDict
-from modules.preSkim import PreSkim
 from modules.Skim    import Skim
 
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
@@ -28,7 +27,6 @@ parser.add_argument('-o', dest='outfile', type=str, required=False, help="Option
 parser.add_argument('-j','--jec', dest='jec', type=str, required=False, help='Run with specified jec variation', choices=cfg.jec_variations+[''], default=None)
 parser.add_argument('-t', dest='tag', type=str, required=False, help='Optional tag to add to output file', default='')
 parser.add_argument('--qsub', dest='qsub',  action='store_true', required=False, help='Run jobs on pbs', default=False)
-parser.add_argument('--nopre', dest='nopre',  action='store_true', required=False, help='Run preSkim', default=False)
 parser.add_argument('--nopost', dest='nopost',  action='store_true', required=False, help='Run postSkim', default=False)
 args = parser.parse_args()
 
@@ -43,7 +41,7 @@ log_dir = f'log/{args.year}/'
 @t2Run
 def runSkim():
     #
-    files, pre_skim_files = get_jobfiles()
+    files = get_jobfiles()
     #
     print(f"{sample_dir}/{args.year}/{args.sample}_{args.year}/*.root")
     isttbar = 'TTTo' in args.sample or 'TTJets' in args.sample
@@ -52,14 +50,6 @@ def runSkim():
     tag     = ('.'+(f'{args.tag}_' if args.tag != '' else '')+f'{args.jec}' if args.jec is not None else args.tag)
     if not os.path.exists(out_dir):
         os.system(f'mkdir {out_dir}')
-    #### Pre Skim ######
-    print('Running PreSkim')
-    metaData = {}
-    if not (args.nopre or isData):
-        #
-        run_preSkim = PreSkim(pre_skim_files, args.sample, args.year, isttbar=isttbar, isttbb=isttbb)
-        metaData    = run_preSkim.get_metadata()
-        #
     #### Skim #######
     print('Running Skim')
     if args.qsub:
@@ -68,13 +58,13 @@ def runSkim():
         sequential_skim(files, out_dir, tag)
     #### Post Skim ####
     if not args.nopost:
-        postSkim(metaData, out_dir, tag)
+        postSkim(out_dir, tag)
         
 def sequential_skim(files, out_dir, tag):
     golden_json=json.load(open(cfg.goodLumis_file[args.year]))
     for i, sfile in enumerate(files):
         print(sfile)
-        out_file = f'{out_dir}/'+(args.outfile if args.outfile else f'{args.sample}_{i}{tag}.pkl')
+        out_file = f'{out_dir}/'+(args.outfile.replace('.pkl',f'_{i}.pkl') if args.outfile else f'{args.sample}_{i}{tag}.pkl')
         #
         run_Skim = Skim(sfile, args.sample, args.year, isData, jec_sys=args.jec,  golden_json=golden_json)
         Skim_data = run_Skim.get_skim()
@@ -93,7 +83,7 @@ def parallel_skim(files, out_dir, tag):
             add_args = f',jec={args.jec}'
             #
         out_name  = f'{args.sample}_{i}{tag}.pkl'
-        pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},outfile={out_name},noprepost=True{add_args}'
+        pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},outfile={out_name},nopost=True{add_args}'
         command += f'{pass_args} {job_script}'
         print(command)
         os.system(command)
@@ -108,10 +98,12 @@ def parallel_skim(files, out_dir, tag):
         # jobs are finished here
 
 
-def postSkim(metaData, out_dir, tag):
+def postSkim(out_dir, tag):
     # todo : add weight, update btag weight with metadata, sample name to events
     pkl_files = glob(f'{out_dir}/{args.sample}_*{tag}.pkl')
+    print(pkl_files,args.sample,f'{out_dir}/{args.sample}_*{tag}.pkl')
     final_pkl = {}
+    metaData = {}
     for i, pkl in enumerate(pkl_files):
         pkl_dict = AnaDict.read_pickle(pkl)
         if i == 0:
@@ -154,12 +146,12 @@ def postSkim(metaData, out_dir, tag):
         for btagw in final_pkl['events'].filter(like='BTagWeight_', axis='columns').keys():
             final_pkl['events'].loc[:,btagw] = final_pkl['events'][btagw]*metaData['r_'+btagw.replace('BTagWeight_','')]
         #
-    AnaDict(final_pkl).to_pickle(f'{out_dir}/{args.sample}{tag}.pkl')
+    out_name = args.sample if not isData else sample_cfg[args.sample]['out_name']
+    AnaDict(final_pkl).to_pickle(f'{out_dir}/{out_name}{tag}.pkl')
 
 
 def get_jobfiles():
     files = []
-    pre_skim_files = []
     if not isData: # is MC
         pre_skim_files = glob(f"{sample_dir}/{args.year}/{args.sample}_{args.year}/*.root")
     else : # is data
@@ -173,11 +165,11 @@ def get_jobfiles():
         else:
             files = [args.roofile]
     else:
-        files = pre_skim_files
+        files = glob(f"{sample_dir}/{args.year}/{args.sample}_{args.year}"+("_Period*" if isData else "")+"/*.root")
     #
     if len(files) > 10 and args.qsub: # create filelist of size 5 for less strain on kodiak
         new_files = []
-        size = 5
+        size = 20 if len(files) > 300 else 10
         for i in range(0,len(files),size):
             new_file = log_dir+f'{args.sample}_{i//size}.list'
             new_files.append(new_file)
@@ -187,7 +179,7 @@ def get_jobfiles():
                 except:
                     lf.writelines([f+'\n' for f in files[i:]])
         files = new_files
-    return files, pre_skim_files
+    return files
 
 def concatenate(jaggedarrays):
     import awkward

@@ -22,11 +22,13 @@ import concurrent.futures
 import functools
 #
 import config.ana_cff as cfg
-from lib.fun_library import fillne, t2Run
+from lib.fun_library import fillne, t2Run, deltaR, ak_crosscleaned
 from modules.AnaDict import AnaDict
 from modules.AnaVars import AnaVars
+from modules.metaSkim import SkimMeta
 #
 import numpy as np
+from awkward import JaggedArray as aj
 np.random.seed(0)
 import pandas as pd
 ##
@@ -49,8 +51,10 @@ class Skim :
         #
         self.ana_vars = AnaVars(year,isData, jec_sys=jec_sys) 
         self.tree     = self.set_tree_from_roofile(roofile)
+        # prepMeta metadata factory
+        Meta = SkimMeta(self.sample, self.year, self.isData, self.tree)
         # define event information
-        self.jets      = self.build_dict(cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars']) 
+        self.jets      = self.build_dict(cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars'])
         self.fatjets   = self.build_dict(cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8lvec']['TLVars'])
         self.electrons = self.build_dict(cfg.lep_sel_vars['electron']) 
         self.muons     = self.build_dict(cfg.lep_sel_vars['muon']) 
@@ -73,10 +77,10 @@ class Skim :
         self.elec_mask    = self.is_a_electron()
         self.muon_mask    = self.is_a_muon()
         # apply object criteria
-        self.jets      = self.jets[     self.jet_mask]
-        self.fatjets   = self.fatjets[  self.fatjet_mask]
         self.electrons = self.electrons[self.elec_mask]
         self.muons     = self.muons[    self.muon_mask]
+        self.jets      = self.jets[     self.jet_mask] # still need to lepton clean
+        self.fatjets   = self.fatjets[  self.fatjet_mask]
         # define event selection
         self.event_mask   = self.get_event_selection()
         # apply event selection
@@ -101,7 +105,7 @@ class Skim :
         if not self.isData:
             self.handle_lheweights()
         self.handle_lep_info()
-        self.handle_multiplicity_info()
+        self.handle_multiplicity_HEM_info()
         #print(len(self.events['run']))
         #
     #
@@ -113,6 +117,7 @@ class Skim :
         }
         events = {**self.events,**self.hlt}
         __out_dict['events'] = pd.DataFrame.from_dict({k:v for k,v in events.items()})
+        print(len(__out_dict['events']))
         if not self.isData:
             __out_dict['gen'] = self.geninfo
         # close root file
@@ -149,7 +154,6 @@ class Skim :
         
     #
     def handle_lep_info(self): # assumes event filter already applied (1 lepton per event)
-        from awkward import JaggedArray as aj
         get_lep_info = (lambda k : aj.concatenate(
             [self.muons[f'Muon_{k}'], self.electrons[f'Electron_{k}']], axis=1).flatten()
         )
@@ -164,25 +168,53 @@ class Skim :
             'passSingleLepElec' : single_el
         })
     #
-    def handle_multiplicity_info(self):
+    def handle_multiplicity_HEM_info(self):
         self.events.update({
             'n_ak4jets': self.jets['Jet_pt'].counts,
             'n_ak8jets': self.fatjets['FatJet_pt'].counts,
             'nBottoms' : self.jets['Jet_pt'][(self.jets['Jet_btagDeepB'] > cfg.ZHbb_btagWP[self.year])].counts
         })
+        if self.year == '2018':
+            if not self.isData:
+                self.events.update({
+                    'HEM_weight': np.where(self.get_HEM_veto(), 1, 0.3518) # fraction of lumi with no HEM issue
+                })
+            else : # isData
+                self.events.update({
+                    'PassHEM_veto' : np.where(self.events['run']> 319077, self.get_HEM_veto(), True)
+                })
+        
+
     # === object criteria functions === #
+    @staticmethod
+    def is_lep_cleaned(lep, l_k, jets, j_k, cut=0.4): # cut should be 0.4, 0.8 
+        # cleans any jets matched with analysis lepton
+        lep_eta, lep_phi = lep[f'{l_k}_eta'], lep[f'{l_k}_phi']
+        jets_eta, jets_phi = jets[f'{j_k}_eta'], jets[f'{j_k}_phi']
+        jet_mask = ak_crosscleaned(lep_eta,lep_phi,jets_eta,jets_phi,cut)
+        return jet_mask
+        
+
     def is_a_jet(self):
-        return  ((self.jets['Jet_pt']       > 30) & 
-                 (abs(self.jets['Jet_eta']) < 2.4) & 
-                 ((self.jets['Jet_pt'] > 50) | (self.jets['Jet_puId'] >= 4) ) &
-                 ( self.jets['Jet_jetId'] >= 2))
+        return  (
+            (self.jets['Jet_pt']       > 30) & 
+            (abs(self.jets['Jet_eta']) < 2.4) & 
+            ((self.jets['Jet_pt'] > 50) | (self.jets['Jet_puId'] >= 4) ) &
+            ( self.jets['Jet_jetId'] >= 2) & 
+            ( self.is_lep_cleaned(self.electrons,'Electron',self.jets,'Jet',0.4) ) &  
+            ( self.is_lep_cleaned(self.muons,'Muon',self.jets,'Jet',0.4) ) 
+        )
     #
     def is_a_fatjet(self):
-        return ((self.fatjets['FatJet_pt'] >  200) &
-                (abs(self.fatjets['FatJet_eta']) < 2.4) &   
-                (self.fatjets['FatJet_msoftdrop'] >= 50) & 
-                (self.fatjets['FatJet_msoftdrop'] <= 200) & 
-                ( self.fatjets['FatJet_jetId'] >= 2))
+        return (
+            (self.fatjets['FatJet_pt'] >  200) &
+            (abs(self.fatjets['FatJet_eta']) < 2.4) &   
+            (self.fatjets['FatJet_msoftdrop'] >= 50) & 
+            (self.fatjets['FatJet_msoftdrop'] <= 200) & 
+            ( self.fatjets['FatJet_jetId'] >= 2) &
+            ( self.is_lep_cleaned(self.electrons,'Electron',self.fatjets,'FatJet',0.8) ) & 
+            ( self.is_lep_cleaned(self.muons,'Muon',self.fatjets,'FatJet',0.8) ) 
+        )
                         
     #
     def is_a_electron(self):
@@ -205,18 +237,12 @@ class Skim :
     #
     def get_HEM_veto(self) : 
         elec_hem = lambda : ((self.electrons['Electron_pt'] > 20 )    &
-                             (self.electrons['Electron_eta'] < -3.0)  &
-                             (self.electrons['Electron_eta'] > -1.4)  &
+                             (self.electrons['Electron_eta'] > -3.0)  &
+                             (self.electrons['Electron_eta'] < -1.4)  &
                              (self.electrons['Electron_phi'] < -0.87) &
                              (self.electrons['Electron_phi'] > -1.57))
-        jet_hem  = lambda : ((self.jets['Jet_pt']  > 30 )    &
-                             (self.jets['Jet_eta'] < -3.0)  &
-                             (self.jets['Jet_eta'] > -1.3)  &
-                             (self.jets['Jet_phi'] < -0.87) &
-                             (self.jets['Jet_phi'] > -1.57))
-        #return True # think about how to do this (add hem weight helper function)
-        return ~( ( self.electrons['Electron_pt'][elec_hem()].counts > 0 ) | 
-                  ( self.jets['Jet_pt'][jet_hem()].counts > 0 ) )
+        #returns True if not in problematic region
+        return  (self.electrons['Electron_pt'][elec_hem()].counts > 0) == False 
         
     #
     def pass_goldenjson(self):
@@ -237,12 +263,15 @@ class Skim :
     def get_event_selection(self): # after objects have been defined
         return ( (self.jets['Jet_pt'].counts >= 4) &
                  (self.fatjets['FatJet_pt'].counts >= 1) &
-                 (self.jets['Jet_pt'][(self.jets['Jet_btagDeepB'] > cfg.ZHbb_btagWP[self.year])].counts >= 2) &
+                 #(self.jets['Jet_pt'][(self.jets['Jet_btagDeepB'] > cfg.ZHbb_btagWP[self.year])].counts >= 2) &
                  (self.events['MET_pt'] > 20) &
                  (self.electrons['Electron_pt'].counts + self.muons['Muon_pt'].counts == 1) &
                  self.get_MET_filter() &
-                 (self.pass_goldenjson() == 1 if self.isData else True)
-                 #(self.get_HEM_veto() if (self.year == '2018' and self.isData) else True)
+                 (self.pass_goldenjson() == 1 if self.isData else True) &
+                 (
+                     np.where(self.events['run'] >= 319077, self.get_HEM_veto(), True) if 
+                     (self.year == '2018' and self.isData) else True
+                 )
              )
     # === helper functions === #
     def set_tree_from_roofile(self,roofile, estart=None, estop=None):

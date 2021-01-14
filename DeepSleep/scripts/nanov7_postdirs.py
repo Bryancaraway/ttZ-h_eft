@@ -17,7 +17,7 @@ job_output_dirs = '/cms/data/store/user/*/NanoAODv7/*'
 assembly_dir    = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
 
 json_filelist   = {'2016': f'{sys.path[1]}/data/sampleDas_nano_2016_v2.json',
-                   #'2017': f'{sys.path[1]}/data/sampleDas_nano_2017_v2.json',
+                   '2017': f'{sys.path[1]}/data/sampleDas_nano_2017_v2.json',
                    #'2018': f'{sys.path[1]}/data/sampleDas_nano_2018_v2.json'
                }
 

@@ -29,7 +29,7 @@ class Plotter :
     fontsize = 12
     saveDir  = cfg.pdfDir
     pklDir   = cfg.master_file_path
-    data_samples = ['MuData','EleData']
+    data_samples = ['Data_SingleMuon','Data_SingleElectron']
     mc_samples = None
     year      = None
     data_dict = None
@@ -79,14 +79,14 @@ class Plotter :
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
                        * (np.where(v['weight']>300,0,1))
                        #* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
-                       * (v['BC_btagSF'] if self.addBSF else 1.0)
+                       #* (v['BC_btagSF'] if self.addBSF else 1.0)
                        #* (self.lumi/cfg.Lumi[self.year])
-                       * v['Stop0l_topptWeight']
-                       * (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
+                       * v['topptWeight']
+                       #* (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
                        * v['lep_trig_eff_tight_pt']
                        ####* v['lep_trig_eff_tight_eta']
                        * v['lep_sf']
-                       #* v['BTagWeight'] 
+                       * v['BTagWeight'] 
                        * v['puWeight']  
                        * (v['PrefireWeight'] if self.year != '2018' else 1.0)
                        #* v['ISRWeight']  
@@ -101,16 +101,15 @@ class Plotter :
     def apply_data_cuts(self, leptype, df):
         temp_add_cuts = self.add_cuts
         if self.byprocess:
-            add_by_lep = {'EleData':"process==Data", 
-                          'MuData' :"process==Data"} 
-            print(add_by_lep)
+            add_by_lep = {'Data_SingleElectron':"process==Data", 
+                          'Data_SingleMuon' :"process==Data"} 
         else:
-            add_by_lep = {'EleData':'passSingleLepElec==1;pbt_elec==1', 
-                          'MuData' :'passSingleLepMu==1;pbt_muon==1'} 
-        add_by_HEM = {'preHEM' :';run<319077',
-                      'postHEM':';run>=319077',
-                      '':''}
-        data_cuts = add_by_lep[leptype]+add_by_HEM[self.HEM_opt]
+            add_by_lep = {'Data_SingleElectron':'passSingleLepElec==1;pbt_elec==1', 
+                          'Data_SingleMuon' :'passSingleLepMu==1;pbt_muon==1'} 
+        #add_by_HEM = {'preHEM' :';run<319077',
+        #              'postHEM':';run>=319077',
+        #              '':''}
+        data_cuts = add_by_lep[leptype]#+add_by_HEM[self.HEM_opt]
         if self.add_d_cuts != '':
             data_cuts = data_cuts+';'+self.add_d_cuts
         if self.add_cuts == '':
@@ -302,7 +301,7 @@ class Plotter :
         for result in results:
             if result is None: continue
             for k,v in result.items():
-                #print(k)
+                print(k)
                 if k in cls.data_dict:
                     cls.data_dict[k] = pd.concat([cls.data_dict[k],v], axis='rows', ignore_index=True)
                 else:
@@ -430,10 +429,10 @@ class StackedHist(Plotter) :
         self.ax2.axhline(1, color='k', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
         self.ax2.xaxis.set_minor_locator(AutoMinorLocator())
         self.ax2.yaxis.set_major_formatter(FormatStrFormatter('%g'))
-        self.ax2.yaxis.set_major_locator(FixedLocator([.75,1,1.25]))
+        self.ax2.yaxis.set_major_locator(FixedLocator([.50,1,1.50]))
         self.ax2.yaxis.set_minor_locator(AutoMinorLocator())
         self.ax2.tick_params(which='both', direction='in', top=True, right=True)
-        self.ax2.set_ylim(0.5,1.5)
+        self.ax2.set_ylim(0.3,1.7)
         self.ax2.set_ylabel('data/MC')
         self.ax2.grid(True)
 

@@ -29,10 +29,14 @@ if args.jec is not None and re.search(r'201\d', str(args.jec)) and args.year not
     exit()
 
 def runAna():
-    if   args.sample in sample_cfg.keys():
+    #if 'Data' in args.sample:
+    #    for sample in process_cfg[args.sample][args.year]:
+    #        analyzer(sample)
+    if  args.sample in sample_cfg.keys() or 'Data' in args.sample:
         analyzer(args.sample)
     elif args.sample in process_cfg.keys():
         for sample in process_cfg[args.sample]:
+            print(sample)
             analyzer(sample)
         # run post job
         post_job(process_cfg[args.sample])
@@ -43,8 +47,9 @@ def analyzer(sample):
     sample   = sample
     isData   = 'Data' in sample
     #isSignal = re.search(r'TT[Z,H]*\w*', sample) is not None #'TTZH' in sample or 'TTZ_bb' in sample
-    isSignal = re.search(r'[TT,tt][Z,H]', sample) is not None
-    isttbar  = re.search(r'TT[bar,bb]', sample) is not None
+    isSignal = re.search(r'(tt(Z|H))', sample_cfg[sample]['out_name']) is not None
+    isttbar  = re.search(r'(TT|tt)(Bar)|(bb)', sample_cfg[sample]['out_name']) is not None
+    #isttbar  = re.search(r'TT[To,bb]', sample) is not None
     print(isSignal, isttbar)
     #isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
     tag      = (args.tag + args.jec if args.jec is not None else args.tag)
@@ -61,7 +66,7 @@ def analyzer(sample):
     #gD_out = getData(getData_cfg).getdata()
     gD_out = AnaDict.read_pickle(f'{input_file}')
     if isData: 
-        ak4_df, ak8_df = [ gD_out[k] for k in ['ak4','ak8'] ]
+        ak4_df, ak8_df = [ AnaDict(gD_out[k]) for k in ['ak4','ak8'] ]
         val_df = gD_out['events']
         gen_df = None
     else:
@@ -79,9 +84,10 @@ def analyzer(sample):
 
 def post_job(samples):
     import pandas as pd
+    import os
     out_df = pd.DataFrame()
     #out_name = sample_cfg[samples[0]]['out_name']
-    wDir   = f"{cfg.master_file_path}/{year}/{'mc_files' if 'Data' not in args.sample else 'data_files'}/"
+    wDir   = f"{cfg.master_file_path}/{args.year}/{'mc_files' if 'Data' not in args.sample else 'data_files'}/"
     outTag = '_'+args.jec if args.jec is not None else ''
     for sample in samples:
         target_sample = f'{wDir}/{sample}{outTag}_val.pkl'

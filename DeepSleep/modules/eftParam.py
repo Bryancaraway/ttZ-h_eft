@@ -46,7 +46,7 @@ class EFTFitParams():
     file_dir = './files/'   # format files/year/mc_files/TT[Z,H]_EFT_val.pkl
     years = cfg.Years
     mc_dir   = 'mc_files/'
-    aux_dir = './data/EFT/'
+    aux_dir = f'{sys.path[1]}/data/EFT/'
     #
     sig     = ['ttZ','ttH']
     pt_bins = [0,200,300,450,500] # clip at 500
@@ -108,16 +108,19 @@ class TestEFTFitParams(EFTFitParams):
     }
 
 
-    def __init__(self, sample):
+    def __init__(self, sample, kinem=None):
         self.sample = sample
         self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}/{self.aux_dict[s]}') for s in self.sample}
+        self.kinem = kinem
         self.__worker()
 
     def __worker(self, kinem=['weight','Zh_M','Zh_pt','ttbb_genbb_pt','ttbb_genbb_invm','process'], k_bins=[-np.inf,np.inf]):
         # assemble eft_df dictionary here by year, signal process, and genZHpt bin
         #self.eft_df = {y:{s:{} for s in self.bkg} for y in self.years} 
+        kinem = [self.kinem] if self.kinem else kinem
         self.eft_df = {y: {s:{} for s in self.sample}  for y in self.years} 
         cut_for_fit = (lambda x: ((x['NN']>=0.0)) )
+        #cut_for_fit = (lambda x: x )
         for y in self.years:
             for s in self.sample:
                 #s = self.sample
@@ -145,7 +148,7 @@ class EFTParam():
     
     Must specify ttH or ttZ
     '''
-    aux_dir = 'data/EFT'
+    aux_dir = f'{sys.path[1]}/data/EFT'
     out_dict = {}
     wc_range = {'cQei' :[-200,200],
                 'cQl3i':[-200,200],

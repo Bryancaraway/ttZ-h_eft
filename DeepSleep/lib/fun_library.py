@@ -52,6 +52,39 @@ def sortbyscore(vars_, score_, cut_):
         ret_vars_.append(np.take_along_axis(fillne(temp_),ind_, axis=1))
     return ret_vars_
     #
+
+def ak_crosscleaned(eta1,phi1,eta2,phi2, cut) : # cross cleaned for arbitrary length array inputs
+    # input 4 awkward arrays
+    from awkward import JaggedArray as aj
+    import math
+    c1_ = np.array(eta1.counts)
+    c2_ = np.array(eta2.counts)
+    out_ = np.ones(len(eta2.flatten()))
+    args_ = eta1.flatten(), phi1.flatten(), c1_, eta2.flatten(), phi2.flatten(), c2_, cut, math.pi, out_
+    @njit(parallel=True)
+    def njit_cc(e1,p1,c1,e2,p2,c2,cut,pi,o):
+        iter1 = 0
+        iter2 = 0
+        a = c1.size
+        for i in prange(a): 
+            for ij in prange(c2[i]):
+                for ii in prange(c1[i]):
+                    deta = e1[ii+iter1] - e2[ij+iter2]
+                    dphi = p1[ii+iter1] - p2[ij+iter2]
+                    if (dphi > pi):
+                        dphi - 2*pi
+                    elif (dphi <= -pi):
+                        dphi + 2*pi
+                    dr = (deta**2 + dphi**2)**(1/2)
+                    if dr <= cut:
+                        o[ij+iter2] = 0
+                        break
+            iter1 += c1[i]
+            iter2 += c2[i]
+        return o
+    return aj.fromoffsets(eta2.offsets, njit_cc(*args_)).astype(bool)
+                                                
+
 def deltaR(eta1,phi1,eta2,phi2):
     try:
         deta = np.subtract(eta1,eta2.T).T
@@ -170,15 +203,15 @@ def getZhbbWeight(df_, year):
                   #####* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
                   #####* (df_['BC_btagSF'] if self.addBSF else 1.0)
                   ###* (cfg.Lumi['Total']/cfg.Lumi[year])
-                  * df_['Stop0l_topptWeight']
-                  * (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
+                  * df_['topptWeight']
+                  #* (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
                   #####* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
                   * df_['lep_trig_eff_tight_pt']
                   ####* v['lep_trig_eff_tight_eta']
                   * df_['lep_sf']
-                  ####* df_['BTagWeight'] 
-                  * df_['BTagWeightLight'] 
-                  * df_['BTagWeightHeavy'] 
+                  * df_['BTagWeight'] 
+                  #* df_['BTagWeightLight'] 
+                  #* df_['BTagWeightHeavy'] 
                   * df_['puWeight']  
                   * (df_['PrefireWeight'] if year != '2018' else 1.0))
     return tot_weight
@@ -263,6 +296,8 @@ def getLaLabel(str_):
                              'gold'],
         'ttX':              [r't($\mathregular{\bar{t}}$)X',
                              'tab:red'],
+        'single_t':         [r'single-t',
+                             'darkgreen'],
         'TTBar':            [r't$\mathregular{\bar{t}}$',
                              'tab:orange'],
         'tt_bb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',

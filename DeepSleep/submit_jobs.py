@@ -15,7 +15,7 @@ import config.ana_cff as cfg
 # add parsargs at some point for year, rundata, minibatch
 parser = argparse.ArgumentParser(description='Run analysis over many samples and years using batch system')
 parser.add_argument('-s', dest='samples', type=str, 
-                    choices=list(process_cfg.keys())+['all','data','mc', 'tt','ttsys','ttbb','ttbbsys'],
+                    choices=list(process_cfg.keys())+['all','data','mc', 'tt','ttsys'],
                     required=True, help='analyze all, mc only, or data only')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years+['all'],
                     required=True, help='year or all years')
@@ -24,57 +24,46 @@ parser.add_argument('--script', type=str, required=False, help='Run Analysis or 
 #parser.add_argument('-t', dest='tag',     type=str, required=False, help='Optional tag to add to output file', default='')
 args = parser.parse_args()
 
+log_dir = f'log/{args.year}/'
+job_script = f'scripts/{args.script}.sh'
+
 sample_dict = {'all' :process_cfg.keys(),
                'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
                'data': [k for k in process_cfg.keys() if 'Data' in k],
                'tt'   : process_cfg['TTBar'],
                'ttsys': process_cfg['TTBar_sys'],
-               'ttbb' : process_cfg['ttbb'],
-               'ttbbsys': process_cfg['ttbb_sys']}
+               #'tt_bb' : process_cfg['ttbb'],
+               #'ttbbsys': process_cfg['ttbb_sys']}
+               }
 
 def submit_jobs():
     
     # submit a job for each background / signal / data sample
-    if args.samples in process_cfg:
-        samples = process_cfg[args.samples]
+    if args.samples in sample_dict:
+        samples = sample_dict[args.samples]
     else:
-        samples = sample_dict.get(args.samples,[args.samples])
+        samples = [args.samples]
     years = [args.year] if args.year != 'all' else cfg.Years
     #jecs  = [args.jec]  if args.jec != 'all' else ['JESUp','JESDown','JERUp','JERDown']
     jecs    = cfg.jec_variations if args.jec == 'all' else [args.jec]
+    func = submit_runAna if args.script == 'runAna' else submit_runSkim
     #
-    iterate_args(execute, samples, years, jecs)
-    #if 'Skim' in args.script: # no need to go further
-    #    return
-    ##
-    #num_jobs_running = lambda: int(sb.check_output(
-    #    f"qstat -u $USER -w -f | grep 'Job_Name = {args.samples}_{args.year}_' | wc -l", shell=True).decode())
-    #while num_jobs_running() > 0:
-    #    time.sleep(30)
-    ##
-    #iterate_args(postjob, samples, years, jecs)
-
-
-def iterate_args(func, samples, years, jecs):
     for year in years:
-        if 'Data' in args.samples:
-            samples_ = samples[year]
-        else:
-            samples_ = samples
-        #os.system(f'rm {log_dir}*{year}*')
         for jec in jecs:
-            if jec is not None and re.search(f'201\d', jec) and year not in jec:
-                continue
-            #if args.samples in sample_dict: # hacky
-            #    for s in samples_:
-            #        func(process_cfg[s] if 'Data' not in s else process_cfg[s][year], year, jec)
-            #else:
-            func(samples_, year, jec)
-                
+            if jec is not None and re.search(f'201\d', jec) and year not in jec: continue
+            func(samples,year,jec)
+
+def submit_runAna(samples, year, jec):
+    execute(samples,year,jec)
+
+def submit_runSkim(samples, year, jec):
+    for s in samples:
+        if 'Data' in s:
+            execute(process_cfg[s][year],year,jec)
+        else:
+            execute(process_cfg[s],year,jec)
 
 def execute(samples, year, jec):
-    log_dir = f'log/{year}/'
-    job_script = f'scripts/{args.script}.sh'
     for sample in samples:
         add_args  = ''
         add_out_name = ''
@@ -88,7 +77,7 @@ def execute(samples, year, jec):
         if 'Skim' in args.script:
             add_args +=',qsub=True'
         out_name  = sample+'_'+year+add_out_name
-        if sample == 'TTBar' and year == '2018':
+        if sample == 'TTBar':
             ppn = 4
         else:
             ppn = 1
@@ -98,22 +87,6 @@ def execute(samples, year, jec):
         command += f' {pass_args} {job_script}'
         print(command)
         os.system(command)
-
-#def postjob(samples, year, jec, out_df=None, wDir=None):
-#    out_df = pd.DataFrame()
-#    out_name = sample_cfg[samples[0]]['out_name']
-#    wDir   = f"{cfg.master_file_path}/{year}/{'mc_files' if 'Data' not in args.samples else 'data_files'}/"
-#    outTag = '_'+jec if jec is not None else ''
-#    for sample in samples:
-#        target_sample = f'{wDir}/{sample}{outTag}_val.pkl'
-#        target_df = pd.read_pickle(target_sample)
-#        #if len(out_df) == 0:
-#        #    out_df = target_df
-#        #else:
-#        out_df = pd.concat([out_df, target_df], axis='rows', ignore_index=True)
-#        os.system(f'rm {target_sample}')
-#    out_df.to_pickle(f'{wDir}/{args.samples}{outTag}_val.pkl')
-    
 
 if __name__ == '__main__':
     submit_jobs()

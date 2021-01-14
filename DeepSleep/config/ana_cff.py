@@ -41,14 +41,13 @@ Years             = ['2016','2017','2018']
 ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 #['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow', 'TTBarHad', 'TTBarLep']
 MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-Sig_MC            = [#'TTZH', 
-                     'TTZ_bb','TTZ','TTH']
+Sig_MC            = ['ttH','ttZ']#['TTZ_bb','TTZ','TTH']
 ## EFT ##
 Sig_EFT_MC        = ['TTZ_EFT','TTH_EFT']
 tt_eft_samples    = ['TTJets_EFT','TTBB_EFT']
 #########
-Bkg_MC            = [#'QCD', 
-    'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
+Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VV','VVV','VJets']
+#['TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 All_MC            = ['TTZH', 'TTZ_bb', 'TTZ', 'TTH', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
 #['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep','TTBarLep_pow', 'TT_bb_pow']
 # Handle systematic sample docs
@@ -231,14 +230,15 @@ ana_vars = {
     'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
                          'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
     # these are MC only
-    'sysvars_mc'      : ['genWeight','puWeight','BTagWeight',
-                         'BTagWeight_jes_up','BTagWeight_jes_down',
-                         'BTagWeight_lf_up','BTagWeight_lf_down',
-                         'BTagWeight_hf_up','BTagWeight_hf_down',
-                         'BTagWeight_lfstats1_up','BTagWeight_lfstats1_down',
-                         'BTagWeight_lfstats2_up','BTagWeight_lfstats2_down',
-                         'BTagWeight_hfstats1_up','BTagWeight_hfstats1_down',
-                         'BTagWeight_hfstats2_up','BTagWeight_hfstats2_down',
+    'sysvars_mc'      : ['genWeight','puWeight',
+                         #'BTagWeight',
+                         #'BTagWeight_jes_up','BTagWeight_jes_down',
+                         #'BTagWeight_lf_up','BTagWeight_lf_down',
+                         #'BTagWeight_hf_up','BTagWeight_hf_down',
+                         #'BTagWeight_lfstats1_up','BTagWeight_lfstats1_down',
+                         #'BTagWeight_lfstats2_up','BTagWeight_lfstats2_down',
+                         #'BTagWeight_hfstats1_up','BTagWeight_hfstats1_down',
+                         #'BTagWeight_hfstats2_up','BTagWeight_hfstats2_down',
                          'puWeightUp','puWeightDown', 
                          'pdfWeight_Up','pdfWeight_Down',],
     'sysvars_2016'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],

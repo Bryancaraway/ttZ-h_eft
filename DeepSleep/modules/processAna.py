@@ -77,6 +77,10 @@ class processAna :
         self.lepCleaned_v2()
         #
         self.recoZh()
+        # dum fix for files w/o this variable
+        self.val_df['topptWeight']      = 1.
+        self.val_df['topptWeight_Up']   = 1.
+        self.val_df['topptWeight_Down'] = 1.
         #
         if self.isSignal or self.isttbar:
             self.match_gen_lep() 
@@ -179,9 +183,10 @@ class processAna :
             toppt_rwgt = np.sqrt(sf(tt_pt[:,0]) * sf(tt_pt[:,1])) 
             toppt_rwgt_up = np.where(toppt_rwgt > 1.0, toppt_rwgt**2,  1.0)
             toppt_rwgt_dn = np.where(toppt_rwgt < 1.0, toppt_rwgt**2,  1.0)
-            self.val_df['Stop0l_topptWeight']      = toppt_rwgt
-            self.val_df['Stop0l_topptWeight_Up']   = toppt_rwgt_up
-            self.val_df['Stop0l_topptWeight_Down'] = toppt_rwgt_dn
+            self.val_df['topptWeight']      = toppt_rwgt
+            self.val_df['topptWeight_Up']   = toppt_rwgt_up
+            self.val_df['topptWeight_Down'] = toppt_rwgt_dn
+            
 
             # old data-driven approach
 
@@ -293,7 +298,7 @@ class processAna :
             [j+str_+self.lc for str_ in ['pt','eta','phi','mass','btagDeepB']]
         )[self.ak4_df[j+'lep_mask']].values()
         ht= ak4_pt.sum()
-        print(ht)
+        #print(ht)
         self.val_df['HT'] = ht
         b_pt, b_eta, b_phi, b_mass, b_btag = [ak4_k[ak4_btag >= self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         q_pt, q_eta, q_phi, q_mass, q_btag = [ak4_k[ak4_btag <  self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
@@ -306,6 +311,7 @@ class processAna :
         met_pt, met_phi = self.val_df['MET_pt'], self.val_df['MET_phi']
         # reconstruct z, h -> bb candidate
         Zh_reco_cut = ((ak8_pt >= self.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.0)) # in future, put kinem cut values in cfg file
+        #print(Zh_reco_cut)
         Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M,Zh_wtag,Zh_ttag,Zh_bbtag=lib.sortbyscore(
             [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M,w_tag,t_tag,ak8_bbtag],ak8_Zhbbtag,Zh_reco_cut)
         # =============================== # 
@@ -365,8 +371,8 @@ class processAna :
         # farthest b to l
         ind_lb_far = np.argsort(-l_b_dr,axis=1) 
         farl_b_pt_dRsort, farl_b_eta_dRsort, farl_b_phi_dRsort, farl_b_mass_dRsort = [np.take_along_axis(lb_k,ind_lb_far,axis=1)[:,0] for lb_k in [b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort]]
-        print(l_b_dr)
-        print(ind_lb_far)
+        #print(l_b_dr)
+        #print(ind_lb_far)
         far_l_b_q_dr = deltaR(farl_b_eta_dRsort,farl_b_phi_dRsort, q_eta_dRsort,q_phi_dRsort) # get 1st and 2nd closest quarks
         max_far_l_b_q_dr = np.nanmax(far_l_b_q_dr, axis=1) # new
         ind_farl_bq_dr = np.argsort(far_l_b_q_dr,axis=1)
@@ -404,16 +410,27 @@ class processAna :
         # find best resolved top candidate from ak4 jets outside of Zh candidate
         ak4_outZh= np.where(Zh_ak4_dr>=.8,Zh_ak4_dr,np.nan)
         #
+        self.val_df['nBottoms']  = b_pt.counts
+        self.val_df['n_ak4jets'] = ak4_pt.counts
+        self.val_df['n_ak8jets'] = ak8_pt.counts
+        #
         self.val_df['jetpt_1']  = ak4_pt.pad(2)[:,0]
         self.val_df['jetpt_2']  = ak4_pt.pad(2)[:,1]
-        self.val_df['jeteta_1'] = ak4_eta.pad(2)[:,0]
-        self.val_df['jeteta_2'] = ak4_eta.pad(2)[:,1]
         self.val_df['bjetpt_1']  = b_pt.pad(2)[:,0]
         self.val_df['bjetpt_2']  = b_pt.pad(2)[:,1]
+        self.val_df['jeteta_1'] = ak4_eta.pad(2)[:,0]
+        self.val_df['jeteta_2'] = ak4_eta.pad(2)[:,1]
         self.val_df['bjeteta_1'] = b_eta.pad(2)[:,0]
         self.val_df['bjeteta_2'] = b_eta.pad(2)[:,1]
+        self.val_df['jetbtag_1'] = ak4_btag.pad(2)[:,0]
+        self.val_df['jetbtag_2'] = ak4_btag.pad(2)[:,1]
+        self.val_df['bjetbtag_1'] = b_btag.pad(2)[:,0]
+        self.val_df['bjetbtag_2'] = b_btag.pad(2)[:,1]
+        #
         self.val_df['fjetpt_1']  = ak8_pt.pad(1)[:,0]
         self.val_df['fjeteta_1'] = ak8_eta.pad(1)[:,0]
+        self.val_df['fjetsdm_1'] = sd_M.pad(1)[:,0]
+        self.val_df['fjetbbvl_1']= ak8_Zhbbtag.pad(1)[:,0]
         #
         self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
         self.val_df['Zh_bbvLscore']  = Zh_Zhbbtag[:,0]
@@ -597,21 +614,23 @@ class processAna :
         # special rules for handling TTZH, TTZ_bb
         # TTBar, tt_bb, and Data
         self.val_df['process'] = ''
-        def handleTTZH():
-            self.val_df.loc[(self.val_df['Hbb']== True),'process'] = 'ttHbb'
-            #if self.year == '2018':
-            #    self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'old_ttZbb' # will change to old
-            #else:
-            self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'ttZbb' # will change to old
-            self.val_df.loc[(self.val_df['Zqq']== True),'process'] = 'ttX'
+        #def handleTTZH():
+        #    self.val_df.loc[(self.val_df['Hbb']== True),'process'] = 'ttHbb'
+        #    #if self.year == '2018':
+        #    #    self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'old_ttZbb' # will change to old
+        #    #else:
+        #    self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'ttZbb' # will change to old
+        #    self.val_df.loc[(self.val_df['Zqq']== True),'process'] = 'ttX'
         def handleTTZ():
             self.val_df['process'] = 'ttZ'
+            if self.sample == 'TTZToQQ':
+                self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'old_ttZbb'
         def handleTTH():
             self.val_df['process'] = 'ttH'
-        def handleTTZ_bb():
-            #if self.year == '2018':
-            self.val_df['process'] = 'new_ttZbb' # think of this as just extra statistics for ttz, z->bb # thinking about this more, its not --> have to just replace
-            self.val_df['weight']  = 0.001421 # mistake with calculating cross-section
+        #def handleTTZ_bb():
+        #    #if self.year == '2018':
+        #    self.val_df['process'] = 'new_ttZbb' # think of this as just extra statistics for ttz, z->bb # thinking about this more, its not --> have to just replace
+        #    self.val_df['weight']  = 0.001421 # mistake with calculating cross-section
         def handleTTBar():
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'TTBar'
             self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_bb'
@@ -620,6 +639,8 @@ class processAna :
             self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'tt_bb' 
             self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'tt_2b' # this is a subset of tt_B 
             self.add_weights_to_ttbb()
+        def handleST():
+            self.val_df['process'] = 'single_t'
         def handleTTX():
             self.val_df['process'] = 'ttX'
         def handleVjets():
@@ -635,22 +656,25 @@ class processAna :
                              (self.val_df['passSingleLepMu'] == True)),'process'] =   'Data'
             self.val_df.loc[(self.val_df['process'] != 'Data'), 'process'] = 'non_Data'
 
-        sample_to_process = {'TTZH'                                 : handleTTZH,
-                             'TTZ'                                  : handleTTZ,
-                             'TTH'                                  : handleTTH,
-                             'TTZ_bb'                               : handleTTZ_bb,
-                             'TTBar'+self.sample.replace('TTBar',''): handleTTBar,
+        sample_to_process = {'ttZ'                                  : handleTTZ,
+                             'ttH'                                  : handleTTH,
+                             'TTBar'                                : handleTTBar,
                              'TTJets_EFT'                           : handleTTBar,
-                             'TTbb'+self.sample.replace('TTbb','')  : handleTT_bb,
+                             'ttbb'                                 : handleTT_bb,
                              'TTBB_EFT'                             : handleTT_bb,
-                             'TTX'                                  : handleTTX,
-                             'WJets'                                : handleVjets,
-                             'DY'                                   : handleVjets,
-                             'EleData'                              : handleEleData,
-                             'MuData'                               : handleMuData
+                             'single_t'                             : handleST,
+                             'ttX'                                  : handleTTX,
+                             'VJets'                                : handleVjets,
+                             'VV'                                   : handleOther,
+                             'VVV'                                  : handleOther,
+                             'Data_SingleElectron'                  : handleEleData,
+                             'Data_SingleMuon'                      : handleMuData
         }
-        sample_to_process.get(self.sample, handleOther)()
-        #print(self.val_df['process'])
+        #sample_to_process.get(self.sample, handleOther)()
+        from config.sample_cff import sample_cfg
+        process = sample_cfg[self.sample]['out_name']
+        sample_to_process.get(process, handleOther)()
+        print(np.unique(self.val_df['process']))
 
     def add_weights_to_ttbb(self):
         tt_bb_norms_scales = AnaDict.read_pickle(self.dataDir + '/tt_bb_nom.pkl')

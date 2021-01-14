@@ -53,11 +53,11 @@ class PreSkim :
     min_nfatjets = 1
     min_nbjets   = 2
     
-    def __init__(self, files, sample, year, isttbar=False, isttbb=False):
+    def __init__(self, files, sample, year):
         self.sample = sample
         self.year   = year
-        self.isttbar = isttbar
-        self.isttbb  = isttbb
+        self.isttbar = 'TTTo' in sample or 'TTJets' in sample
+        self.isttbb  = 'TTbb' in sample
         self.metadata = {'sample':sample, 'year':year, 'xs': sample_cfg[sample]['xs'], 'kf': sample_cfg[sample]['kf']}
         self.files    = files#glob(f'{self.nanoAODv7_dir}/{year}/{sample}_{year}/*.root')
         self.pool     = multiprocessing.Pool()
