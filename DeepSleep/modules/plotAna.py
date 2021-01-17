@@ -1,4 +1,4 @@
-##### Plotter code forA analysis ######
+##### Plotter code for analysis ######
 import pandas as pd
 import numpy as np
 import re
@@ -83,6 +83,7 @@ class Plotter :
                        #* (self.lumi/cfg.Lumi[self.year])
                        * v['topptWeight']
                        #* (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
+                       * (v['HEM_weight'] if self.year+self.HEM_opt == '2018' else 1.0)
                        * v['lep_trig_eff_tight_pt']
                        ####* v['lep_trig_eff_tight_eta']
                        * v['lep_sf']
@@ -292,8 +293,8 @@ class Plotter :
         #
         if byprocess:
             pro_worker = partial(cls.pro_worker, pklDir=cls.pklDir, year=cls.year, tag=cls.tag)
-            results = pool.map(pro_worker, cls.mc_samples)
-            #results = map(pro_worker, cls.mc_samples)
+            #results = pool.map(pro_worker, cls.mc_samples)
+            results = map(pro_worker, cls.mc_samples)
         else:
             nom_worker = partial(cls.nom_worker, pklDir=cls.pklDir, year=cls.year, tag=cls.tag)
             results = pool.map(nom_worker, cls.mc_samples)
@@ -301,7 +302,7 @@ class Plotter :
         for result in results:
             if result is None: continue
             for k,v in result.items():
-                print(k)
+                #print(k)
                 if k in cls.data_dict:
                     cls.data_dict[k] = pd.concat([cls.data_dict[k],v], axis='rows', ignore_index=True)
                 else:

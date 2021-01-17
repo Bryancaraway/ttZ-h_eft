@@ -57,10 +57,11 @@ class processAna :
     pt_cut = cfg.ZHptcut
     b_wp   = cfg.ZHbb_btagWP[year]
     #
-    ak4_df = None
-    ak8_df = None
-    gen_df = None
-    val_df = None
+    ak4_df  = None
+    ak8_df  = None
+    gen_df  = None
+    meta_df = None
+    val_df  = None
     #
     ak4_dR = 0.4
     ak8_dR = 0.8
@@ -74,7 +75,7 @@ class processAna :
     def process_data(self):
         # to contain lepCleaned_v2, match_gen, and ZHbbAna
         start = time.perf_counter()
-        self.lepCleaned_v2()
+        #self.lepCleaned_v2()
         #
         self.recoZh()
         # dum fix for files w/o this variable
@@ -93,7 +94,8 @@ class processAna :
         #self.applyDNN()
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
-            self.addHLT_to_MC()
+            #self.alter_btag_w()
+            #self.addHLT_to_MC()
             self.getLepEff()
             self.getLepSF()
             #self.getBCbtagSF()
@@ -116,6 +118,18 @@ class processAna :
             #self.rtc_df.to_pickle(out_path+"rtc.pkl")
         finish = time.perf_counter()
         print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
+
+    def alter_btag_w(self):
+        btw = self.val_df['BTagWeight']
+        nj  = self.val_df['n_ak4jets'].clip(0,12)
+        opp = np.where(self.meta_df == 0 , 0.,
+                       self.meta_df['btw_yield']/self.meta_df['nj_yield'])
+        rr = nj.apply((lambda i : opp[i]))
+        print(rr)
+        old_btw = btw*rr
+        print(btw)
+        self.val_df['BTagWeight'] = old_btw * sum(self.meta_df['nj_yield'])/sum(self.meta_df['btw_yield'])
+        print(self.val_df['BTagWeight'])
 
     def lepCleaned_v2(self):
         # Clean ak4 and ak8 jets within dR of 0.4 and 0.8 of Lepton
@@ -294,17 +308,23 @@ class processAna :
         l = 'Lep_'
         j = 'Jet_'
         fj= 'FatJet_'
+        #ak4_pt, ak4_eta, ak4_phi, ak4_mass, ak4_btag = self.ak4_df.loc(
+        #    [j+str_+self.lc for str_ in ['pt','eta','phi','mass','btagDeepB']]
+        #)[self.ak4_df[j+'lep_mask']].values()
         ak4_pt, ak4_eta, ak4_phi, ak4_mass, ak4_btag = self.ak4_df.loc(
             [j+str_+self.lc for str_ in ['pt','eta','phi','mass','btagDeepB']]
-        )[self.ak4_df[j+'lep_mask']].values()
+        ).values()
         ht= ak4_pt.sum()
         #print(ht)
         self.val_df['HT'] = ht
         b_pt, b_eta, b_phi, b_mass, b_btag = [ak4_k[ak4_btag >= self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
         q_pt, q_eta, q_phi, q_mass, q_btag = [ak4_k[ak4_btag <  self.b_wp] for ak4_k in [ak4_pt,ak4_eta,ak4_phi,ak4_mass,ak4_btag]]
+        #ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_bbtag, ak8_Zhbbtag, w_tag, t_tag, subj1, subj2 = self.ak8_df.loc(
+        #    [fj+str_+self.lc for str_ in ['pt','eta','phi','msoftdrop','btagDeepB','deepTagMD_bbvsLight','deepTagMD_WvsQCD','deepTagMD_TvsQCD','subJetIdx1','subJetIdx2']]
+        #)[self.ak8_df[fj+'lep_mask']].values()
         ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_bbtag, ak8_Zhbbtag, w_tag, t_tag, subj1, subj2 = self.ak8_df.loc(
             [fj+str_+self.lc for str_ in ['pt','eta','phi','msoftdrop','btagDeepB','deepTagMD_bbvsLight','deepTagMD_WvsQCD','deepTagMD_TvsQCD','subJetIdx1','subJetIdx2']]
-        )[self.ak8_df[fj+'lep_mask']].values()
+        ).values()
         subj_pt, subj_btag = self.ak8_df['SubJet_pt'], self.ak8_df['SubJet_btagDeepB']
         #
         lep_pt, lep_eta, lep_phi, lep_M = [self.val_df[key] for key in [l+'pt',l+'eta',l+'phi',l+'mass']]
@@ -431,6 +451,8 @@ class processAna :
         self.val_df['fjeteta_1'] = ak8_eta.pad(1)[:,0]
         self.val_df['fjetsdm_1'] = sd_M.pad(1)[:,0]
         self.val_df['fjetbbvl_1']= ak8_Zhbbtag.pad(1)[:,0]
+        self.val_df['fjetwscore_1']= w_tag.pad(1)[:,0]
+        self.val_df['fjettscore_1']= t_tag.pad(1)[:,0]
         #
         self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
         self.val_df['Zh_bbvLscore']  = Zh_Zhbbtag[:,0]
@@ -606,6 +628,8 @@ class processAna :
     def passHLT_by_year(self):
         self.val_df['pbt_elec'] = cfg.hlt_path['electron'][self.year](self.val_df)
         self.val_df['pbt_muon'] = cfg.hlt_path['muon'][self.year](self.val_df)
+        self.val_df['isEleE']  = (self.val_df['pbt_elec'] & self.val_df['passSingleLepElec'])
+        self.val_df['isMuonE'] = (self.val_df['pbt_muon'] & self.val_df['passSingleLepMu'])
     
     def categorize_process(self):
         # categorize_processes in sample

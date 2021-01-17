@@ -59,9 +59,9 @@ def submit_runAna(samples, year, jec):
 def submit_runSkim(samples, year, jec):
     for s in samples:
         if 'Data' in s:
-            execute(process_cfg[s][year],year,jec)
+            execute_runSkim(process_cfg[s][year],year,jec)
         else:
-            execute(process_cfg[s],year,jec)
+            execute_runSkim(process_cfg[s],year,jec)
 
 def execute(samples, year, jec):
     for sample in samples:
@@ -78,16 +78,32 @@ def execute(samples, year, jec):
             add_args +=',qsub=True'
         out_name  = sample+'_'+year+add_out_name
         if sample == 'TTBar':
-            ppn = 4
+            ppn = 8
         else:
-            ppn = 1
+            ppn = 8
         pass_args = f'-v sample={sample},year={year}{add_args}'
-        command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}{out_name}.out -e {log_dir}{out_name}.err '
+        command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}Ana_{out_name}std.out -e {log_dir}Ana_{out_name}.stderr '
         command  += f'-N {args.samples}_{args.year}_{sample}{year}{tag} '
         command += f' {pass_args} {job_script}'
         print(command)
         os.system(command)
 
+def execute_runSkim(samples,year,jec):
+    popens = []
+    for sample in samples:
+        args = ['python','runSkim.py','-s',sample,'-y',year,'--qsub','--nopost']
+        if jec is not None :
+            tag = jec
+            args += ['-j',jec]
+        else:
+            tag = ''
+        args += ['-t',tag]
+        #popens.append(sb.Popen(args, stdout=sb.PIPE))
+        print(args)
+        popens.append(sb.Popen(args, stdout=sb.PIPE, stderr=sb.PIPE))
+        #popens.append(sb.Popen(args))
+
 if __name__ == '__main__':
     submit_jobs()
+
 

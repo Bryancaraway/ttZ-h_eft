@@ -1,7 +1,10 @@
 ## temp file to store dnn model
 import pandas as pd
 import os
-
+import sys
+if __name__ == '__main__':
+    import subprocess as sb
+    sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -126,10 +129,6 @@ def train_model(m_info):
 
 
 if __name__ == "__main__":
-    import subprocess as sb
-    sys.path.insert(1, sb.check_output(
-        'echo $(git rev-parse --show-cdup)', 
-        shell=True).decode().strip('\n')+'DeepSleep/')
     import json
     import sys
     json_dir = f'sys.path[1]/log/nn/'

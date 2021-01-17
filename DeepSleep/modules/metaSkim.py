@@ -43,8 +43,9 @@ class SkimMeta :
         #
         self.isttbar = 'TTTo' in self.sample or 'TTJets' in self.sample
         self.isttbb  = 'TTbb' in self.sample
-        self.metadata = {'sample': self.sample, 'year': self.year, 
-                         'xs': sample_cfg[self.sample]['xs'], 'kf': sample_cfg[self.sample]['kf']}
+        #self.metadata = {'sample': self.sample, 'year': self.year, 
+        #                 'xs': sample_cfg[self.sample]['xs'], 'kf': sample_cfg[self.sample]['kf']}
+        self.metadata = {}
         #
         if not self.isData:
             if self.isttbar or self.isttbb:
@@ -157,6 +158,23 @@ class SkimMeta :
                 isr_up_ttbb, isr_down_ttbb, fsr_up_ttbb, fsr_down_ttbb,# 20-23
                 pdf_up_ttbb, pdf_down_ttbb, # 24-25
         ]
+
+    def add_btagweightsf_counts(self, jets, events):
+        n_ak4jets = np.clip(0,12,events['n_ak4jets'])
+        n,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), weights=events['genWeight'])
+        self.metadata['nj_yield'] = n
+        jetshape_sf_names = re.findall(r'Jet_btagSF_deepcsv_shape\w*' ,' '.join(jets.keys()))
+        btag_w_names = []
+        for sf_n in jetshape_sf_names:
+            btag_w_name = re.search(r'shape\w*', sf_n).group().replace('shape','BTagWeight')
+            btag_w_names.append(btag_w_name)
+            events[btag_w_name] = jets[sf_n].prod() # add weight to events
+            #for btag_w_name in btag_w_names: # get yields and add to metadata
+            n,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), weights=events[btag_w_name]*events['genWeight'])
+            self.metadata['btw_yield'+btag_w_name.replace('BTagWeight','')] = n
+            # no longer need shape sf
+            del jets[sf_n]
+        
 
 if __name__ == '__main__':
     test = PreSkim('WWW','2016') # sample, year, isttbar=False, isttbb=False

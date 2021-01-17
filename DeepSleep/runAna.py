@@ -28,6 +28,7 @@ if args.jec is not None and re.search(r'201\d', str(args.jec)) and args.year not
     raise ValueError(f"{args.jec} is not compatible with year choice: {args.year}")
     exit()
 
+@t2Run
 def runAna():
     #if 'Data' in args.sample:
     #    for sample in process_cfg[args.sample][args.year]:
@@ -35,13 +36,17 @@ def runAna():
     if  args.sample in sample_cfg.keys() or 'Data' in args.sample:
         analyzer(args.sample)
     elif args.sample in process_cfg.keys():
-        for sample in process_cfg[args.sample]:
-            print(sample)
-            analyzer(sample)
+        #for sample in process_cfg[args.sample]:
+        #    print(sample)
+        #    analyzer(sample)
+        import multiprocessing
+        pool = multiprocessing.Pool(8)
+        _ = pool.map(analyzer, process_cfg[args.sample])
+        pool.close()
         # run post job
         post_job(process_cfg[args.sample])
 
-@t2Run
+#@t2Run
 def analyzer(sample):
     #####
     sample   = sample
@@ -68,15 +73,15 @@ def analyzer(sample):
     if isData: 
         ak4_df, ak8_df = [ AnaDict(gD_out[k]) for k in ['ak4','ak8'] ]
         val_df = gD_out['events']
-        gen_df = None
+        gen_df = meta_df = None
     else:
-        ak4_df, ak8_df, gen_df = [ AnaDict(gD_out[k]) for k in ['ak4','ak8','gen'] ]
+        ak4_df, ak8_df, gen_df, meta_df = [ AnaDict(gD_out[k]) for k in ['ak4','ak8','gen','metaData'] ]
         val_df = gD_out['events']
 
     #####
     print('Running processAna...')
     processAna_cfg = {'outDir': 'files/', 'outTag':tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
-                      'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df,
+                      'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'meta_df':meta_df,
                       'sample':sample, 'condor':args.condor, 'keep_all': args.keep_all}
     processAna(processAna_cfg)
 

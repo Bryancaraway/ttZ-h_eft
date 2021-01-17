@@ -204,7 +204,8 @@ def getZhbbWeight(df_, year):
                   #####* (df_['BC_btagSF'] if self.addBSF else 1.0)
                   ###* (cfg.Lumi['Total']/cfg.Lumi[year])
                   * df_['topptWeight']
-                  #* (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
+                  ######* (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
+                  * (df_['HEM_weight']  if year == '2018' else 1.0 )
                   #####* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
                   * df_['lep_trig_eff_tight_pt']
                   ####* v['lep_trig_eff_tight_eta']

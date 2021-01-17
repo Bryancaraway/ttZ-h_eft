@@ -188,7 +188,15 @@ BC_btag_sf = {'2016': {'values': [1.0, 1.0, 0.94241418, 0.98314421, 1.05133896, 
     
 
 ana_vars = {
-    'ak4vars'    : ['Jet_btagDeepB'+LC,'Jet_puId','Jet_jetId'],
+    'ak4vars'    : ['Jet_btagDeepB','Jet_puId','Jet_jetId',],
+    'ak4mcvars'  : ['Jet_btagSF_deepcsv_shape',
+                    'Jet_btagSF_deepcsv_shape_up_jes','Jet_btagSF_deepcsv_shape_down_jes',
+                    'Jet_btagSF_deepcsv_shape_up_hf','Jet_btagSF_deepcsv_shape_down_hf',
+                    'Jet_btagSF_deepcsv_shape_up_lf','Jet_btagSF_deepcsv_shape_down_lf',
+                    'Jet_btagSF_deepcsv_shape_up_hfstats1','Jet_btagSF_deepcsv_shape_down_hfstats1',
+                    'Jet_btagSF_deepcsv_shape_up_lfstats1','Jet_btagSF_deepcsv_shape_down_lfstats1',
+                    'Jet_btagSF_deepcsv_shape_up_hfstats2','Jet_btagSF_deepcsv_shape_down_hfstats2',
+                    'Jet_btagSF_deepcsv_shape_up_lfstats2','Jet_btagSF_deepcsv_shape_down_lfstats2',],
     # 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
     'ak4lvec'    : {'TLV'         :['JetTLV'+LC],
                     'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],

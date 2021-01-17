@@ -52,9 +52,12 @@ class Skim :
         self.ana_vars = AnaVars(year,isData, jec_sys=jec_sys) 
         self.tree     = self.set_tree_from_roofile(roofile)
         # prepMeta metadata factory
-        Meta = SkimMeta(self.sample, self.year, self.isData, self.tree)
+        self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree)
         # define event information
-        self.jets      = self.build_dict(cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars'])
+        self.jets      = self.build_dict(
+            cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars']+(
+                [] if self.isData else cfg.ana_vars['ak4mcvars']
+            ))
         self.fatjets   = self.build_dict(cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8lvec']['TLVars'])
         self.electrons = self.build_dict(cfg.lep_sel_vars['electron']) 
         self.muons     = self.build_dict(cfg.lep_sel_vars['muon']) 
@@ -102,11 +105,20 @@ class Skim :
         ps, sc, eft
         hem veto weight
         '''
+        self.handle_multiplicity_HEM_info()
         if not self.isData:
             self.handle_lheweights()
+            self.Meta.add_btagweightsf_counts(self.jets, self.events)
         self.handle_lep_info()
-        self.handle_multiplicity_HEM_info()
-        #print(len(self.events['run']))
+        #
+        self.btag_event_mask = self.get_b_tag_eventmask()
+        self.jets       = self.jets[      self.btag_event_mask]
+        self.fatjets    = self.fatjets[   self.btag_event_mask]
+        self.subjets    = self.subjets[   self.btag_event_mask]
+        self.hlt        = self.hlt[       self.btag_event_mask]
+        self.events     = self.events [   self.btag_event_mask]
+        if not self.isData:
+            self.geninfo = self.geninfo[  self.btag_event_mask]
         #
     #
     def get_skim(self):
@@ -120,6 +132,7 @@ class Skim :
         print(len(__out_dict['events']))
         if not self.isData:
             __out_dict['gen'] = self.geninfo
+            __out_dict['metaData'] = self.Meta.get_metadata()
         # close root file
         self.f.close()
         #
@@ -263,7 +276,6 @@ class Skim :
     def get_event_selection(self): # after objects have been defined
         return ( (self.jets['Jet_pt'].counts >= 4) &
                  (self.fatjets['FatJet_pt'].counts >= 1) &
-                 #(self.jets['Jet_pt'][(self.jets['Jet_btagDeepB'] > cfg.ZHbb_btagWP[self.year])].counts >= 2) &
                  (self.events['MET_pt'] > 20) &
                  (self.electrons['Electron_pt'].counts + self.muons['Muon_pt'].counts == 1) &
                  self.get_MET_filter() &
@@ -273,6 +285,8 @@ class Skim :
                      (self.year == '2018' and self.isData) else True
                  )
              )
+    def get_b_tag_eventmask(self):
+        return (self.events['nBottoms'] >= 2)
     # === helper functions === #
     def set_tree_from_roofile(self,roofile, estart=None, estop=None):
         ''' Set tree array method and tree pandas method '''
