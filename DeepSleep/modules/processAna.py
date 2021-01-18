@@ -279,7 +279,7 @@ class processAna :
         self.val_df['matchedGenZH']    = (zh_match).sum() > 0 
         self.val_df['matchedGen_Zbb']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZbb.sum() >  0))
         self.val_df['matchedGen_Hbb']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isHbb.sum() >  0))
-        self.val_df['matchedGen_ZHbb'] = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZqq.sum() == 0))
+        self.val_df['matchedGen_ZHbb'] = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & ((isZbb.sum() + isHbb.sum()) > 0))
         self.val_df['matchedGen_Zqq']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZqq.sum() >  0))
 
     def match_gen_lep(self):
@@ -514,10 +514,10 @@ class processAna :
         self.val_df['l_b2_invM'] = l_b_invM_dRsort[:,1]
         self.val_df['l_b2_dr']   = l_b_dr_dRsort[:,1]
         #
-        self.val_df['max_farl_b_q_dr'] = max_far_l_b_q_dr # new
-        self.val_df['outZh_bqq_mass'] = bqq_mass # new
-        self.val_df['Zh_bqq_dr'] = Zh_bqq_dr # new
-        self.val_df['Zh_lbbqq_dr'] = Zh_lbbqq_dr # new
+        self.val_df['max_farl_b_q_dr'] = np.nan_to_num(max_far_l_b_q_dr) # new
+        self.val_df['outZh_bqq_mass'] = np.nan_to_num(bqq_mass) # new
+        self.val_df['Zh_bqq_dr'] = np.nan_to_num(Zh_bqq_dr) # new
+        self.val_df['Zh_lbbqq_dr'] = np.nan_to_num(Zh_lbbqq_dr) # new
         #
     
     def applyDNN(self):
