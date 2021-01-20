@@ -32,35 +32,23 @@ elif os.path.exists('/eos/uscms/') or 'condor' in _cdir: # test to see if on lpc
     postSkim_dir = postSkim_dir.replace('/cms/data','/eos/uscms').replace('ttxeft','bcaraway')
 else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./config/ana_cff.py")
 
-tree_dir          = 'Training'
 ##
 ZHptcut           = 200
 Years             = ['2016','2017','2018']
-#MC_samples        = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'DiBoson', 'TriBoson', 'TTBarLep']#,'ZJets']
-
-ttbar_samples     = ['TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-#['TTBarHad_pow', 'TTBarLep_pow','TT_bb_pow', 'TTBarHad', 'TTBarLep']
-MC_pow            = ['TTZH', 'QCD', 'TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-Sig_MC            = ['ttH','ttZ']#['TTZ_bb','TTZ','TTH']
 ## EFT ##
 Sig_EFT_MC        = ['TTZ_EFT','TTH_EFT']
 tt_eft_samples    = ['TTJets_EFT','TTBB_EFT']
 #########
+Sig_MC            = ['ttH','ttZ']
 Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VV','VVV','VJets']
-#['TTX', 'DY', 'WJets', 'DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-All_MC            = ['TTZH', 'TTZ_bb', 'TTZ', 'TTH', 'QCD', 'TTX', 'DY', 'WJets','DiBoson', 'TriBoson', 'TTBarHad_pow','TTBarSemi_pow','TTBarDi_pow','TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-#['TTZH', 'TTZ_bb', 'QCD', 'TTX', 'DY', 'WJets', 'TTBarHad', 'TTBarHad_pow', 'DiBoson', 'TriBoson', 'TTBarLep','TTBarLep_pow', 'TT_bb_pow']
+All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VV','VVV','VJets']
+
 # Handle systematic sample docs
-tt_sys_samples    = ['TTBarHad_pow_erdOn','TTBarHad_pow_UEUp','TTBarHad_pow_UEDown','TTBarHad_pow_hdampUp','TTBarHad_pow_hdampDown',
-                     'TTBarSemi_pow_erdOn','TTBarSemi_pow_UEUp','TTBarSemi_pow_UEDown','TTBarSemi_pow_hdampUp','TTBarSemi_pow_hdampDown',
-                     'TTBarDi_pow_erdOn','TTBarDi_pow_UEUp','TTBarDi_pow_UEDown','TTBarDi_pow_hdampUp','TTBarDi_pow_hdampDown',
-                     'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampDown',
-                     'TTbbSemi_pow_hdampUp','TTbbSemi_pow_hdampDown',
-                     'TTbbDi_pow_hdampUp','TTbbDi_pow_hdampDown']
-tt_bb             = ['TTbbHad_pow','TTbbSemi_pow','TTbbDi_pow']
-tt_bb_sys         = [  'TTbbHad_pow_hdampUp','TTbbHad_pow_hdampDown',
-                       'TTbbSemi_pow_hdampUp','TTbbSemi_pow_hdampDown',
-                       'TTbbDi_pow_hdampUp','TTbbDi_pow_hdampDown']
+tt_sys_samples    = ['TTBar_UEUp','TTBar_UEDown','TTBar_hdampUp','TTBar_hdampDown',
+                     'ttbb_hdampUp','ttbb_hdampDown']
+tt_bb             = ['ttbb',]
+tt_bb_sys         = [ 'ttbb_hdampUp','ttbb_hdampDown', ]
+
 #
 #jec_variations    = [jtype+jec for jec in ['JESUp','JESDown','JERUp','JERDown'] for jtype in ['ak4','ak8']]
 jecs              = [jec+y for jec in ['jesRelativeSample','jesHF' , 'jesAbsolute', 'jesEC2', 'jesBBEC1'] for y in Years] + \
@@ -73,7 +61,7 @@ sig_sys_samples   = [sig+'_'+jec for sig in Sig_MC for jec in jec_variations]
 bkg_sys_samples   = [bkg+'_'+jec for bkg in Bkg_MC for jec in jec_variations] + tt_sys_samples
 all_sys_samples   = sig_sys_samples + bkg_sys_samples
 #
-Data_samples      = ['EleData','MuData']
+Data_samples      = ['Single_Electron','Single_Muon']
 Lumi              = {'2016': 35.917149,
                      '2017': 41.525338,
                      '2018': 59.72444,
@@ -82,10 +70,14 @@ Lumi              = {'2016': 35.917149,
                      'run2': 137.166648,
                      'Total': 137.166648
                   } 
-goodLumis_file   = {'2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',
-                    '2017':dataDir+'/good_lumis/'+'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',
-                    '2018':dataDir+'/good_lumis/'+'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',
-                    }
+goodLumis_file   = {
+    #'2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',  # may change to re-reco
+    '2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON.txt', # re-reco
+    #'2017':dataDir+'/good_lumis/'+'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',# may change to re-reco
+    '2017':dataDir+'/good_lumis/'+'Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON.txt', # re-reco
+    #'2018':dataDir+'/good_lumis/'+'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',  # may change to re-reco
+    '2018':dataDir+'/good_lumis/'+'Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt', # re-reco
+}
 ##
 ##############
 ##### TTZ, Z to bb CONFIG #####
@@ -166,26 +158,6 @@ lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30)        &
                                                   (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
                              }
                 }
-# JMS (jet mass scale) and JMR (jet mass resolution) for softdrop Mass
-ak8_sys_vars = ['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC, 
-                'FatJet_msoftdrop'+LC, 'FatJet_rawFactor'+LC, 'FatJet_area'+LC,
-                'GenJetAK8_pt', 'GenJetAK8_eta', 'GenJetAK8_phi', 'GenJetAK8_mass',
-                #'SubGenJetAK8_pt', 'SubGenJetAK8_eta', 'SubGenJetAK8_phi', 'SubGenJetAK8_mass',
-                #'SubJet_pt', 'SubJet_eta', 'SubJet_phi', 'SubJet_mass', 'SubJet_rawFactor',
-                #'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC
-            ]
-
-#ana_sf_dir    = '/cms/data/store/user/ttxeft/Ana_sf_files'
-
-#why...
-BC_btag_sf = {'2016': {'values': [1.0, 1.0, 0.94241418, 0.98314421, 1.05133896, 1.33768073, 0.54615971, 0.],                                     
-                       'err':    [0, 0, 0.00209416, 0.00650319, 0.02603249, 0.13512616, 0.38619323, 0]},
-              '2017': {'values': [1.0, 1.0, 0.97374629, 1.05901002, 1.22053029, 1.31213915, 1.38618462, 0.],
-                       'err':    [0, 0, 0.00216191, 0.0071413, 0.03027763, 0.1398745, 0.80031406, 0]},
-              '2018': {'values': [1, 1, 1.00580723, 1.15602798, 1.36748448, 1.55950658, 2.72827293, 1.98275764],
-                       'err':    [0, 0, .00179402320, .00563560832, .0232546555, .108132326, .682068233, 1.98275764]}
-              }
-    
 
 ana_vars = {
     'ak4vars'    : ['Jet_btagDeepB','Jet_puId','Jet_jetId',],
@@ -270,13 +242,16 @@ dnn_ZH_dir  = dataDir+'/NN_files/'
 # only event level variables
 dnn_ZH_vars = [
     'max_lb_dr','max_lb_invM', 'n_Zh_btag_sj', 'Zh_bbvLscore', 'outZh_max_bbvLscore',#'best_rt_score',
-    'n_q_outZh', 'n_b_outZh', 'Zh_l_dr', 'n_Zh_sj',  'Zh_bestb_sj', #'Zh_worstb_sj',
+    'n_q_outZh', 'n_b_outZh', 'Zh_l_dr', 'n_Zh_sj',  'Zh_bestb_sj', 'Zh_worstb_sj',
     'Zh_eta','Zh_deepB','b1_outZh_score', 'best_Zh_b_invM_sd', 'Zh_b1_invM_sd', 'Zh_b2_invM_sd','Zh_l_invM_sd',
     'Zh_Wscore', 'Zh_Tscore', 'outZh_max_Wscore', 'outZh_max_Tscore', 
-    'ht_b', 'ht_outZh', 'max_farl_b_q_dr', 'outZh_bqq_mass', 
+    'ht_b', 'ht_outZh', 'max_farl_b_q_dr', 'min_farl_b_q_dr', 'outZh_bqq_mass', 
+    'outZh_bb_dr', 'outZh_qq_dr',
     'Zh_bqq_dr', 'Zh_lbbqq_dr',
     'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets',  
     'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
+    'outZh_bb_dr', 'outZh_qq_dr',
+    'sjpt1_over_Zhpt', 'sjpt2_over_Zhpt',
     #'Zh_bbscore_sj', 
     'b1_over_Zhpt', 'bb_over_Zhpt',
     'spher','aplan','n_b_inZh', 'n_q_inZh']

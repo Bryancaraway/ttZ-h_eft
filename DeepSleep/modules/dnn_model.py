@@ -70,7 +70,7 @@ class DNN_model:
         return df_.reset_index(drop=True).copy()
 
 
-    def Build_Model(self, input_shape, mean_,std_):
+    def Build_Model(self, input_shape, load_weights=None):
         #
         main_input = keras.layers.Input(shape=[input_shape], name='input')
         #
@@ -88,14 +88,12 @@ class DNN_model:
             #
         model      = keras.models.Model(inputs=main_input, outputs=output, name='model')
         optimizer  = keras.optimizers.Adam(learning_rate=self.lr_alpha)
-        # decay=cfg.dnn_ZH_alpha*1e-3, momentum=0.9, nesterov=True)
-        #
-        #if (cls.useW and os.path.exists(cls.outDir+cls.outName)): 
-        #    model.load_weights(cls.outDir+cls.outName)
+
+        if (load_weights and os.path.exists(cfg.dnn_ZH_dir+load_weights)): 
+            model.load_weights(cfg.dnn_ZH_dir+load_weights)
         #
         #from focal_loss import BinaryFocalLoss
         model.compile(
-            #loss='categorical_crossentropy',#[self.cfl(self.fl_alpha,self.fl_gamma)],
             loss=[self.cfl(self.fl_alpha,self.fl_gamma)],
             optimizer=optimizer, 
             #optimizer='adam', 
@@ -106,7 +104,6 @@ class DNN_model:
 
 def train_model(m_info):
     trainX, trainY, valX, valY, testX, testY, model = prep_model_data(m_info)
-    print(trainY.astype(int))
     # --
     # earlystopping here?
     cb = [tf.keras.callbacks.EarlyStopping(monitor='val_loss',patience=3,restore_best_weights=True)]
@@ -123,49 +120,90 @@ def train_model(m_info):
         shuffle = True,
         verbose = 1
     )
-    return model, testY, testX
-    #loss ,acc, auc             = model.evaluate(testX, testY)#, sample_weight = testW['DNNweight'].values)
-    #tr_loss ,tr_acc, tr_auc    = model.evaluate(trainX,trainY)
-    #val_loss ,val_acc, val_auc = model.evaluate(valX,  valY)
-    #print("\n\n")
-    #print(f"Train Set Loss: {tr_loss:10.4f}  Train Set Acc: {tr_acc:10.4f} Train Set AUC: {tr_auc:10.4f}")
-    #print(f"Val   Set Loss: {val_loss:10.4f}  Val   Set Acc: {val_acc:10.4f} Val   Set AUC: {val_auc:10.4f}")
-    #print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
+    if __name__ == '__main__':
+
+        loss ,acc, auc             = model.evaluate(testX, testY)#, sample_weight = testW['DNNweight'].values)
+        tr_loss ,tr_acc, tr_auc    = model.evaluate(trainX,trainY)
+        val_loss ,val_acc, val_auc = model.evaluate(valX,  valY)
+        print("\n\n")
+        print(f"Train Set Loss: {tr_loss:10.4f}  Train Set Acc: {tr_acc:10.4f} Train Set AUC: {tr_auc:10.4f}")
+        print(f"Val   Set Loss: {val_loss:10.4f}  Val   Set Acc: {val_acc:10.4f} Val   Set AUC: {val_auc:10.4f}")
+        print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
+        plot_history(history)
+        model.save_weights(cfg.dnn_ZH_dir+'/'+'ttzh_model'+'.h5')
+        
+    return model, testX, testY
+
+def plot_history(history):
+    import matplotlib.pyplot as plt
+    hist = pd.DataFrame(history.history)
+    hist['epoch'] = history.epoch
     
-    #from sklearn.metrics import confusion_matrix
-    #import matplotlib.pyplot as plt
-    #y_pred = model.predict(testX)
-    #cm = confusion_matrix(np.argmax(testY,axis=1), np.argmax(y_pred,axis=1))
-    #print ("\nThe confusion matrix of the test set on the trained nerual network:\n" , cm)
-    ## contruct score
-    #zh_score = cm[:,2]
-    #print(cm[:,2])
-    #s_b_val = zh_score[2]*.003/((zh_score[0]*0.14+zh_score[1]*.015)**(1/2))
-    #s_ttbb_val = zh_score[2]*.003/((zh_score[1]*.015)**(1/2))
-    #cm = confusion_matrix(np.argmax(testY[y_pred[:,2]>0.6],axis=1), np.argmax(y_pred[y_pred[:,2]>0.6],axis=1)) 
-    #print ("\nThe confusion matrix of the test set (high confidence in zh):\n" , cm) 
-    #out_name = f'{s_b_val:.2f}_{s_ttbb_val:.2f}'
+    fig, [loss, acc] = plt.subplots(1, 2, figsize=(12, 6))
+    loss.set_xlabel('Epoch')
+    loss.set_ylabel('Loss')
+    loss.grid(True)
+    loss.plot(hist['epoch'], hist['loss'],
+              label='Train Loss')
+    loss.plot(hist['epoch'], hist['val_loss'],
+              label = 'Val Loss')
+    #loss.set_yscale('log')                                                                                                                                                                            
+    loss.legend
+    
+    acc.set_xlabel('Epoch')
+    acc.set_ylabel('Acc')
+    acc.grid(True)
+    acc.plot(hist['epoch'], hist['accuracy'],
+                     label='Train Acc')
+    acc.plot(hist['epoch'], hist['val_accuracy'],
+                     label = 'Val Acc')
+    #acc.set_yscale('log')                                                                                                                                                                     
+    acc.legend()
+    plt.show()
+    plt.close()
+
+def local_test(m_info):
+    from sklearn.metrics import confusion_matrix
+    import matplotlib.pyplot as plt
+    model, testX, testY = train_model(m_info)
+    y_pred = model.predict(testX)
+    cm = confusion_matrix(np.argmax(testY,axis=1), np.argmax(y_pred,axis=1))
+    print ("\nThe confusion matrix of the test set on the trained nerual network:\n" , cm)
+    # contruct score
+    zh_score = cm[:,2]
+    print(cm[:,2])
+    s_b_val = zh_score[2]*.001/((zh_score[0]*0.10+zh_score[1]*.15)**(1/2))
+    s_ttbb_val = zh_score[2]*.001/((zh_score[1]*.15)**(1/2))
+    cm = confusion_matrix(np.argmax(testY[y_pred[:,2]>0.6],axis=1), np.argmax(y_pred[y_pred[:,2]>0.6],axis=1)) 
+    print ("\nThe confusion matrix of the test set (high confidence in zh):\n" , cm) 
+    #out_name = f'{s_b_val:.2f}_{s_ttbb_val:.2f}_{args.job_number}'
     #print(out_name)
     #model.save_weights(cfg.dnn_ZH_dir+'/test_archs/'+out_name+'.h5')
-    #
-    #plt.hist(y_pred[testY[:,2] == 1][:,2],bins=10, range=(0,1), histtype='step', weights=np.ones(len(y_pred[testY[:,2] == 1][:,2]))*.003, label='SIG')
-    #plt.hist(y_pred[testY[:,0] == 1][:,2],bins=10, range=(0,1), histtype='step', weights=np.ones(len(y_pred[testY[:,0] == 1][:,2]))*.14, label='tt')
-    #plt.hist(y_pred[testY[:,1] == 1][:,2],bins=10, range=(0,1), histtype='step', weights=np.ones(len(y_pred[testY[:,1] == 1][:,2]))*.015, label='ttbb')
-    #plt.legend()
-    #plt.yscale('log')
-    #plt.xlim(0,1)
-    #plt.title(out_name)
-    #plt.show()
-    #plt.save_fig(cfg.dnn_ZH_dir+'/test_archs/'+out_name+.pdf)
 
+    plt.hist(y_pred[testY[:,2] == 1][:,2],
+             bins=10, range=(0,1), histtype='step', 
+             weights=np.ones(len(y_pred[testY[:,2] == 1][:,2]))*.001, label='SIG')
+    plt.hist(y_pred[testY[:,0] == 1][:,2],
+             bins=10, range=(0,1), histtype='step', 
+             weights=np.ones(len(y_pred[testY[:,0] == 1][:,2]))*.10, label='tt')
+    plt.hist(y_pred[testY[:,1] == 1][:,2],
+             bins=10, range=(0,1), histtype='step', 
+             weights=np.ones(len(y_pred[testY[:,1] == 1][:,2]))*.15, label='ttbb')
+    plt.legend()
+    plt.yscale('log')
+    plt.xlim(0,1)
+    #plt.title(out_name)
+    plt.show()
+    #plt.savefig(cfg.dnn_ZH_dir+'/test_archs/'+out_name+'.pdf')
+    
     
 def prep_model_data(m_info):
     resetIndex = (lambda df: df.reset_index(drop=True).copy())
     # 
     trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/trainXY.pkl')
-    print(trainXY.keys())
+    #print(trainXY.isna().sum())
     # get val from trainXY
-    valXY   = trainXY.sample(frac=.75, random_state=1)
+    valXY   = trainXY.sample(frac=.25, random_state=1)
     trainXY = trainXY.drop(valXY.index).copy()
     #
     testXY  = pd.read_pickle(cfg.dnn_ZH_dir+'/testXY.pkl')
@@ -173,7 +211,7 @@ def prep_model_data(m_info):
     trainX, valX, testX = [resetIndex(df.drop(columns=['label'])) for df in [trainXY, valXY, testXY]]
     #
     m_class = DNN_model(m_info['sequence'],m_info['other_settings'])  
-    model = m_class.Build_Model(len(cfg.dnn_ZH_vars), trainX.mean(), trainX.std()) 
+    model = m_class.Build_Model(len(cfg.dnn_ZH_vars), )#load_weights='nn_ttzh_model.h5') 
     return (
         trainX.to_numpy(), np.stack(trainY.values), valX.to_numpy(), np.stack(valY.values), testX.to_numpy(), np.stack(testY.values), model
     )
@@ -182,18 +220,9 @@ def prep_model_data(m_info):
 if __name__ == "__main__":
     import json
     import sys
-    json_dir = f'sys.path[1]/log/nn/'
-    m_info = {
-        'sequence':[['Dense', 128],
-                    ['Dense', 64],
-                    ['Dropout',0.5]],
-        'other_settings': {'fl_a':[0.6,2.0,1.0],
-                           'fl_g':2,
-                           'lr_alpha':0.0001,},
-        'n_epochs':5,
-        'batch_size':5128,
-    }
+    json_dir = f'{sys.path[1]}/log/nn/'
+
+    m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.3]], 'other_settings': {'fl_a': [1, 1.1, 0.5], 'fl_g': 0.6, 'lr_alpha': 0.0001}, 'n_epochs': 100, 'batch_size': 10256}
     #m_info = json.load(open(json_dir/sys.argv[1]))
-    
-    train_model(m_info)
+    local_test(m_info)
 

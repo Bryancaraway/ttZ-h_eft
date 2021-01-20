@@ -56,9 +56,9 @@ def main():
         #StackedHist(processes,    'fjettscore_1', xlabel=r'leading fatjet deepAK8MD TvsQCD', bin_range=[0,1],  n_bins=25,     doCuts=False, addData=True, doShow=False)  
 
         
-        StackedHist(processes,    'Zh_pt', bin_range=[200,500],  n_bins=20,  doCuts=True, addData=True, doShow=False)  
+        StackedHist(processes,    'Zh_pt', bin_range=[200,500],  n_bins=20, add_cuts='Zh_bbvLscore>0.6',  doCuts=True, addData=True, doShow=False)  
             #
-        StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200],  doCuts=True, addData=True, doShow=False)  
+        StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200], add_cuts='Zh_bbvLscore>0.6',  doCuts=True, addData=True, doShow=False)  
             #StackedHist(cfg.MC_pow,    'Zh_M', bin_range=[0,250],  n_bins=20,  doCuts=True, addData=True)  
             #
             #StackedHist(cfg.MC_pow,    'n_b_outZh', bin_range=[-.5,3.5],  bins=[-.5,.5,1.5,2.5,3.5],  doCuts=False, addData=True)  
@@ -80,7 +80,7 @@ def main():
         #StackedHist(processes,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8',  doCuts=True, addData=True)  
         #StackedHist(processes,'b1_outZh_score', bin_range=[.4,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
         #StackedHist(processes,'Zh_deepB', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_bbvLscore', bin_range=[0,1],  n_bins=20,  doCuts=True, addData=True, doShow=False)  
+        StackedHist(processes,'Zh_bbvLscore', bin_range=[0,1],  n_bins=20,  doCuts=True, add_cuts='Zh_bbvLscore>0.6', addData=True, doShow=False, sepGenOpt='sepGenSig')  
         #StackedHist(processes,'best_rt_score', bin_range=[0,1],  n_bins=20,  doCuts=True, addData=True, doShow=False)  
         #StackedHist(processes,'Zh_worstb_sj', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
         #StackedHist(processes,'Zh_bestb_sj', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  

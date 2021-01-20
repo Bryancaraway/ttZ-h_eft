@@ -336,17 +336,21 @@ class processAna :
             [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M,w_tag,t_tag,ak8_bbtag],ak8_Zhbbtag,Zh_reco_cut)
         # =============================== # 
         # compute subject info related to Zh candidate : have to sort out candidate with no subjet
-        ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt, subj_btag] for id_ in [subj1, subj2]]
-        ak8_sj1_sdM, ak8_sj2_sdM, ak8_sj1_Zhbb, ak8_sj2_Zhbb = [ak8_k[id_ != -1] for ak8_k in [sd_M, ak8_Zhbbtag] for id_ in [subj1, subj2]]
-        Zh_kinem_sj1_cut = ((ak8_sj1_pt>=self.pt_cut) & (ak8_sj1_sdM >= 50) & (ak8_sj1_sdM <= 200) & (ak8_sj1_Zhbb >= 0.0))
+        ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt, subj_btag] for id_ in [subj1, subj2]] # sj kinems per ak8jet
+        ak8_sj1_sdM, ak8_sj2_sdM, ak8_sj1_Zhbb, ak8_sj2_Zhbb = [ak8_k[id_ != -1] for ak8_k in [sd_M, ak8_Zhbbtag] for id_ in [subj1, subj2]] # ak8 kinems 
+        #Zh_kinem_sj1_cut = ((ak8_sj1_pt>=self.pt_cut) & (ak8_sj1_sdM >= 50) & (ak8_sj1_sdM <= 200) & (ak8_sj1_Zhbb >= 0.0))
+        Zh_kinem_sj1_cut = (ak8_sj1_Zhbb >= 0.0)
         Zh_sj1_pt, Zh_sj1_btag, Zh_sj1_Zhbb = lib.sortbyscore([
             ak8_sj1_pt,ak8_sj1_btag,ak8_sj1_Zhbb],ak8_sj1_Zhbb,Zh_kinem_sj1_cut)
-        Zh_kinem_sj2_cut = ((ak8_sj2_pt>=self.pt_cut) & (ak8_sj2_sdM >= 50) & (ak8_sj2_sdM <= 200) & (ak8_sj2_Zhbb >= 0.0))
+        #Zh_kinem_sj2_cut = ((ak8_sj2_pt>=self.pt_cut) & (ak8_sj2_sdM >= 50) & (ak8_sj2_sdM <= 200) & (ak8_sj2_Zhbb >= 0.0))
+        Zh_kinem_sj2_cut = ((ak8_sj2_Zhbb >= 0.0))
         Zh_sj2_pt, Zh_sj2_btag, Zh_sj2_Zhbb = lib.sortbyscore([
             ak8_sj2_pt,ak8_sj2_btag,ak8_sj2_Zhbb],ak8_sj2_Zhbb,Zh_kinem_sj2_cut)
         #
+
         Zh_sj_b12  = np.column_stack([Zh_sj1_btag[:,0], Zh_sj2_btag[:,0]])
         Zh_sj_pt12 = np.nan_to_num(np.column_stack([Zh_sj1_pt[:,0], Zh_sj2_pt[:,0]]) )
+
         Zh_sjpt12_over_fjpt = (Zh_sj_pt12[:,0] +  Zh_sj_pt12[:,1])/Zh_pt[:,0]
         Zh_sjpt1_over_fjpt, Zh_sjpt2_over_fjpt  = [(Zh_sj_pt12[:,i])/Zh_pt[:,0] for i in range(2)]
         # =============================== #
@@ -360,15 +364,24 @@ class processAna :
         # Caclulate combinatorix between Zh and ak4, b, q, l || l and b
         Zh_ak4_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(ak4_eta),fillne(ak4_phi))
         Zh_b_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(b_eta),fillne(b_phi))
-        ind_Zh_b = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
-        b_pt_dRsort, b_eta_dRsort, b_phi_dRsort, b_mass_dRsort, b_btag_dRsort  = [np.take_along_axis(fillne(b_k),ind_Zh_b,axis=1) for b_k in [b_pt,b_eta,b_phi,b_mass, b_btag]]
+        #ind_Zh_b = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
+        ind_Zh_b = np.argsort(-1*np.where(Zh_b_dr > 0.8, fillne(b_btag), np.nan),axis=1)
+        b_pt_dRsort, b_eta_dRsort, b_phi_dRsort, b_mass_dRsort, b_btag_dRsort  = [
+            np.take_along_axis(np.where(Zh_b_dr > 0.8, fillne(b_k),np.nan),ind_Zh_b,axis=1) for b_k in [b_pt,b_eta,b_phi,b_mass, b_btag]]
+        print(b_btag_dRsort)
+        #
         Zh_q_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(q_eta),fillne(q_phi))
-        ind_Zh_q = np.argsort(np.where(Zh_q_dr > 0.8, Zh_q_dr, np.nan),axis=1)
-        q_pt_dRsort, q_eta_dRsort, q_phi_dRsort, q_mass_dRsort, q_btag_dRsort  = [np.take_along_axis(fillne(q_k),ind_Zh_b,axis=1) for q_k in [q_pt,q_eta,q_phi,q_mass, q_btag]]
+        #ind_Zh_q = np.argsort(np.where(Zh_q_dr > 0.8, Zh_q_dr, np.nan),axis=1)
+        ind_Zh_q = np.argsort(-1*np.where(Zh_q_dr > 0.8, fillne(q_pt), np.nan),axis=1)
+        q_pt_dRsort, q_eta_dRsort, q_phi_dRsort, q_mass_dRsort, q_btag_dRsort  = [
+            np.take_along_axis(np.where(Zh_q_dr > 0.8, fillne(q_k),np.nan),ind_Zh_q,axis=1) for q_k in [q_pt,q_eta,q_phi,q_mass, q_btag]]
+
         Zh_l_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],lep_eta,lep_phi)
         #
         Zh_l_invM_sd = lib.invM(Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],lep_pt,lep_eta,lep_phi,lep_M)
         #l_b_dr = deltaR(lep_eta.values,lep_phi.values,*map(fillne,[b_eta,b_phi]))
+        b_b_dr = deltaR(b_eta_dRsort[:,0],b_phi_dRsort[:,0], b_eta_dRsort[:,1],b_phi_dRsort[:,1])
+        q_q_dr = deltaR(q_eta_dRsort[:,0],q_phi_dRsort[:,0], q_eta_dRsort[:,1],q_phi_dRsort[:,1])
         l_b_dr = deltaR(lep_eta.values,lep_phi.values, b_eta_dRsort,b_phi_dRsort)
         #l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values,*map(fillne,[b_pt,b_eta,b_phi,b_mass]))
         l_b_invM = lib.invM(lep_pt.values,lep_eta.values,lep_phi.values,lep_M.values, b_pt_dRsort,b_eta_dRsort,b_phi_dRsort,b_mass_dRsort)
@@ -395,6 +408,7 @@ class processAna :
         #print(ind_lb_far)
         far_l_b_q_dr = deltaR(farl_b_eta_dRsort,farl_b_phi_dRsort, q_eta_dRsort,q_phi_dRsort) # get 1st and 2nd closest quarks
         max_far_l_b_q_dr = np.nanmax(far_l_b_q_dr, axis=1) # new
+        min_far_l_b_q_dr = np.nanmin(far_l_b_q_dr, axis=1) # new
         ind_farl_bq_dr = np.argsort(far_l_b_q_dr,axis=1)
         far_l_b_q_pt_dRsort, far_l_b_q_eta_dRsort, far_l_b_q_phi_dRsort, far_l_b_q_mass_dRsort = [np.take_along_axis(q_,ind_farl_bq_dr,axis=1) for q_ in [q_pt_dRsort,q_eta_dRsort,q_phi_dRsort,q_mass_dRsort]]
         far_l_b_tlv = getTLVm(farl_b_pt_dRsort,farl_b_eta_dRsort,farl_b_phi_dRsort,farl_b_mass_dRsort)
@@ -466,11 +480,11 @@ class processAna :
         self.val_df['outZh_max_Tscore'] = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
         self.val_df['outZh_max_bbvLscore']  = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
         self.val_df['Zh_deepB']  = Zh_bbtag[:,0]
-        self.val_df['n_Zh_btag_sj'] = np.sum(Zh_sj_b12 >= self.b_wp, axis=1)
-        self.val_df['n_Zh_sj']       = np.sum(Zh_sj_b12 >= 0, axis=1)
+        self.val_df['n_Zh_btag_sj'] = np.nansum(Zh_sj_b12 >= self.b_wp, axis=1)
+        self.val_df['n_Zh_sj']       = np.nansum(Zh_sj_b12 >= 0, axis=1)
         self.val_df['Zh_bestb_sj']   = np.nan_to_num(np.nanmax(Zh_sj_b12, axis=1))
-        self.val_df['Zh_worstb_sj']  = np.nan_to_num(np.min(Zh_sj_b12, axis=1))
-        self.val_df['Zh_bbscore_sj'] = np.sum(np.nan_to_num(Zh_sj_b12), axis=1)
+        self.val_df['Zh_worstb_sj']  = np.nan_to_num(np.nanmin(Zh_sj_b12, axis=1))
+        self.val_df['Zh_bbscore_sj'] = np.nansum(np.nan_to_num(Zh_sj_b12), axis=1)
         self.val_df['sjpt12_over_Zhpt'] = Zh_sjpt12_over_fjpt
         self.val_df['sjpt1_over_Zhpt'] = Zh_sjpt1_over_fjpt
         self.val_df['sjpt2_over_Zhpt'] = Zh_sjpt2_over_fjpt
@@ -478,6 +492,9 @@ class processAna :
         self.val_df['spher'] = spher
         self.val_df['aplan'] = aplan
         
+        self.val_df['outZh_bb_dr'] = b_b_dr #new
+        self.val_df['outZh_qq_dr'] = np.nan_to_num(q_q_dr) #new     
+
         self.val_df['max_lb_dr'] = max_l_b_dr
         self.val_df['min_lb_dr'] = min_l_b_dr
         self.val_df['max_lb_invM'] = max_lb_invM
@@ -515,24 +532,27 @@ class processAna :
         self.val_df['l_b2_dr']   = l_b_dr_dRsort[:,1]
         #
         self.val_df['max_farl_b_q_dr'] = np.nan_to_num(max_far_l_b_q_dr) # new
+        self.val_df['min_farl_b_q_dr'] = np.nan_to_num(min_far_l_b_q_dr) # new
         self.val_df['outZh_bqq_mass'] = np.nan_to_num(bqq_mass) # new
         self.val_df['Zh_bqq_dr'] = np.nan_to_num(Zh_bqq_dr) # new
         self.val_df['Zh_lbbqq_dr'] = np.nan_to_num(Zh_lbbqq_dr) # new
         #
     
     def applyDNN(self):
-        from modules.dnn_model import DNN_model as dnn
+        from modules.dnn_model import DNN_model
+        import json
         nn_dir   = cfg.dnn_ZH_dir 
-
-        train_df = pd.read_pickle(nn_dir+'train.pkl')
-        train_df = pd.read_pickle(nn_dir+'train.pkl')
-        trainX   = dnn.resetIndex(train_df.drop(columns=[ 'Signal',*re.findall(r'\w*weight', ' '.join(train_df.keys()))]))
-        nn_model = dnn.Build_Model(len(trainX.keys()),1,trainX.mean().values,trainX.std().values)
+        #open json nn settings
+        # --
+        m_info = None
+        #
+        dnn = DNN_model(m_info)
+        nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='nn_ttzh_model.h5')
         #
         base_cuts = lib.getZhbbBaseCuts(self.val_df)
         #
         pred_df = self.val_df[cfg.dnn_ZH_vars][base_cuts]
-        pred = nn_model.predict(pred_df.values).flatten()
+        pred = nn_model.predict(pred_df.values)[:,2]
         
         self.val_df.loc[:,'NN'] = -1.
         self.val_df.loc[base_cuts,'NN'] = pred

@@ -92,13 +92,18 @@ class MakeDataCard:
     
     tag = '' if len(sys.argv) < 2 else sys.argv[1]+'_'
     #sig and bkg variables
-    weights = ['weight','genWeight','Stop0l_topptWeight', #'SAT_HEMVetoWeight_drLeptonCleaned',
+    weights = ['weight','genWeight','topptWeight', #'SAT_HEMVetoWeight_drLeptonCleaned',
                'lep_trig_eff_tight_pt', 
                'lep_sf',
-               'BTagWeightLight','BTagWeightHeavy','puWeight']#,'PrefireWeight']
+               'BTagWeight','puWeight']#,'PrefireWeight']
     weight_sys = [#'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down', # only for top_powheg samples
-        'BTagWeightLight_Up', 'BTagWeightLight_Down',
-        'BTagWeightHeavy_Up', 'BTagWeightHeavy_Down',
+        'BTagWeight_jes_up','BTagWeight_jes_down',          
+        'BTagWeight_lf_up','BTagWeight_lf_down',            
+        'BTagWeight_hf_up','BTagWeight_hf_down',            
+        'BTagWeight_lfstats1_up','BTagWeight_lfstats1_down',# non-corr
+        'BTagWeight_lfstats2_up','BTagWeight_lfstats2_down',# non-corr
+        'BTagWeight_hfstats1_up','BTagWeight_hfstats1_down',# non-corr
+        'BTagWeight_hfstats2_up','BTagWeight_hfstats2_down',# non-corr
         'puWeight_Up','puWeight_Down',
         'pdfWeight_Up','pdfWeight_Down',
         'ISR_Up', 'ISR_Down',
@@ -106,6 +111,7 @@ class MakeDataCard:
         'mu_r_Up','mu_r_Down',
         'mu_f_Up','mu_f_Down',
         'mu_rf_Up','mu_rf_Down',
+        'topptWeight_Up' ,'topptWeight_Down',
         #'PrefireWeight_Up','PrefireWeight_Down',
         'lep_trig_eff_tight_pt_up','lep_trig_eff_tight_pt_down',
         'lep_sf_up','lep_sf_down']
@@ -116,13 +122,13 @@ class MakeDataCard:
     #
     accepted_sig  = [f'{s}{i}' for i in range(len(pt_bins)) for s in ['ttH','ttZ']]#['ttHbb','ttZbb']] # change new and not new ttzbb here
     #accepted_bkg  = ['ttX','TTBar','old_tt_bb','Vjets','other']
-    accepted_bkg  = ['ttX','TTBar','tt_bb','tt_2b','Vjets','other']
+    accepted_bkg  = ['ttX','TTBar','tt_bb','tt_2b','VJets','other','single_t']
     accepted_data = ['data_obs']
     
     
     def __init__(self, 
-                 sig = cfg.Sig_MC+cfg.sig_sys_samples, 
-                 bkg = cfg.Bkg_MC+cfg.bkg_sys_samples,  # does not include QCD
+                 sig = cfg.Sig_MC+cfg.sig_sys_samples, # new sig/bkg names
+                 bkg = cfg.Bkg_MC+cfg.bkg_sys_samples, # new sig/bkg names
                  years = cfg.Years, 
                  isblind=True,
                  sumw_sumw2=get_sumw_sumw2):
@@ -191,9 +197,9 @@ class MakeDataCard:
         p_vars = None # i think i have to do this to flush the memory
         p_vars = self.sig_v if process in self.sig else self.bkg_v
         p_vars = p_vars + cfg.ana_vars[f'sysvars_{y}']
-        if '2018' in process : p_vars = p_vars + ['SAT_HEMVetoWeight_drLeptonCleaned']
-        if 'pow' in process  : p_vars = p_vars + ['Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down','tt_type']
-        if 'Data' in process : p_vars = self.data_v #['NN','Zh_M','Zh_pt','process']
+        if '2018'  in process : p_vars = p_vars + ['HEM_weight']
+        if 'TTBar' in process or 'ttbb' in process : p_vars = p_vars + ['tt_type']
+        if 'Data'  in process : p_vars = self.data_v #['NN','Zh_M','Zh_pt','process']
         # get important info for signal
         return self.updatedict(process.replace(f'_{y}', ''), p_vars, y)
         
@@ -203,7 +209,7 @@ class MakeDataCard:
         sub_f_dir = 'data_files' if 'Data' in p else 'mc_files'
         if not os.path.exists(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl'): return 
         df = pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(items=v)
-        if 'TTbb' in p : df = pd.concat([df,pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(regex=r'\w*_weight')],axis='columns') # to get special ttbb normalizations
+        if 'ttbb' in p : df = pd.concat([df,pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(regex=r'\w*_weight')],axis='columns') # to get special ttbb normalizations
         if 'Data' not in p: # clip mu_rf, isr/fsr, pdf at 3sigma percentile, 99.7% (.15%,99.85%)
             func = np.nanpercentile # because this is a long name
             [df[v_str].clip(func(df[v_str].values,.15), func(df[v_str].values,99.85), inplace=True ) 
@@ -216,7 +222,7 @@ class MakeDataCard:
         sys = '' 
         if p in cfg.all_sys_samples: 
             sys =  '_'+p.split('_')[-1] # format [process_name]_[systype]
-            if 'hdamp' in sys and 'TTbb' in p: sys = sys.replace('hdamp','hdamp_ttbb') 
+            if 'hdamp' in sys and 'ttbb' in p: sys = sys.replace('hdamp','hdamp_ttbb') 
             if 'JES' in sys or 'JER' in sys :   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
             #if 'JES' in sys or 'JER' in sys or 'UE' in sys or 'hdamp' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
         data_dict = {f"{n.replace('Data','data_obs')}_{y}{sys}": g for n,g in group} # iterate over name and content

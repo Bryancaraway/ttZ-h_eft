@@ -196,7 +196,7 @@ class MakeQCDataCard(MakeDataCard):
         if p in cfg.all_sys_samples: 
             sys =  '_'+p.split('_')[-1] # format [process_name]_[systype]
             if 'hdamp' in sys and 'TTbb' in p: sys = sys.replace('hdamp','hdamp_ttbb') 
-            if 'JES' in sys or 'JER' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
+            if 'JES' in sys or 'JER' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down') # might not need for new samples
             #if 'JES' in sys or 'JER' in sys or 'UE' in sys or 'hdamp' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down') # only run this is running fully uncorrelated version
         data_dict = {f"{n.replace('Data','data_obs')}_{y}{sys}": g for n,g in group} # iterate over name and content
         return data_dict

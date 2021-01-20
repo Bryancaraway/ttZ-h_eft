@@ -41,6 +41,7 @@ log_dir = f'log/{args.year}/{args.sample}/'
 if not os.path.exists(log_dir):
     os.system(f'mkdir {log_dir}')
 #
+tag     = ('.'+(f'{args.tag}_' if args.tag != '' else '')+f'{args.jec}' if args.jec is not None else args.tag)
 
 @t2Run
 def runSkim():
@@ -52,8 +53,6 @@ def runSkim():
     isttbb  = 'TTbb' in args.sample
     out_dir = f"{cfg.postSkim_dir}/{args.year}/{sample_cfg[args.sample]['out_name']}"
     print(out_dir)
-
-    tag     = ('.'+(f'{args.tag}_' if args.tag != '' else '')+f'{args.jec}' if args.jec is not None else args.tag)
     if not os.path.exists(out_dir):
         os.system(f'mkdir {out_dir}')
     #### Skim #######
@@ -92,12 +91,13 @@ def skim_worker(i_sfile,out_dir,tag,golden_json):
         del run_Skim, Skim_data
 
 def parallel_skim(files, out_dir, tag):
-    os.system(f'rm {out_dir}/*.pkl ; rm {log_dir}Skim_{args.sample}_*.std*') # start of job, get rid of old files
+    # use glob
+    os.system(f'rm {out_dir}/*{args.sample}*{tag}*.pkl ; rm {log_dir}Skim_{args.sample}_*{tag}*.std*') # start of job, get rid of old files
     job_script = 'scripts/runSkim.sh'
     for i, sfile in enumerate(files):
         # rerun runSkim without pre/post skim using pbs
         command = f"qsub -l nodes=1:ppn=8 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
-        command += f" -o {log_dir}Skim_{args.sample}_{i}.stdout -e {log_dir}Skim_{args.sample}_{i}.stderr "
+        command += f" -o {log_dir}Skim_{args.sample}_{tag}{i}.stdout -e {log_dir}Skim_{args.sample}_{tag}{i}.stderr "
         add_args  = ''
         if args.jec is not None:
             add_args = f',jec={args.jec}'
@@ -118,7 +118,7 @@ def parallel_skim(files, out_dir, tag):
     # jobs are finished here
     # run postjob
     command = f"qsub -l nodes=1:ppn=1 -N PostSkim_{args.sample}_{args.year}{tag} "
-    command += f" -o {log_dir}{args.sample}.stdout -e {log_dir}{args.sample}.stderr "
+    command += f" -o {log_dir}{args.sample}{tag}.stdout -e {log_dir}{args.sample}{tag}.stderr "
     if args.jec is not None:
         add_args = f',jec={args.jec}'
         #
@@ -149,9 +149,9 @@ def get_jobfiles():
     if len(files) > 10 and args.qsub and '.list' not in files[0]: # create filelist of size 5 for less strain on kodiak
         new_files = []
         size = 48 if len(files) > 300 else 12
-        os.system(f'rm {log_dir}{args.sample}_*.list') # get rid of old list files
+        os.system(f'rm {log_dir}{args.sample}_*{tag}*.list') # get rid of old list files
         for i in range(0,len(files),size):
-            new_file = log_dir+f'{args.sample}_{i//size}.list'
+            new_file = log_dir+f'{args.sample}_{tag}{i//size}.list'
             new_files.append(new_file)
             with open(new_file, 'w') as lf:
                 try:

@@ -51,6 +51,7 @@ def submit_jobs():
     for year in years:
         for jec in jecs:
             if jec is not None and re.search(f'201\d', jec) and year not in jec: continue
+            if jec and 'HEM' in jec and year != '2018': continue # HEM issue is only for 2018
             func(samples,year,jec)
 
 def submit_runAna(samples, year, jec):
@@ -101,6 +102,13 @@ def execute_runSkim(samples,year,jec):
         #popens.append(sb.Popen(args, stdout=sb.PIPE))
         print(args)
         popens.append(sb.Popen(args, stdout=sb.PIPE, stderr=sb.PIPE))
+        time.sleep(10)
+        num_jobs_running = lambda: int(sb.check_output(
+            f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_' | wc -l", shell=True).decode())
+        # allow qsub to catch up?
+        time.sleep(5)
+        while num_jobs_running() > 30:
+            time.sleep(30) 
         #popens.append(sb.Popen(args))
 
 if __name__ == '__main__':
