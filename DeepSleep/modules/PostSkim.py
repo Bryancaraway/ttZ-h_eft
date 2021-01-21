@@ -47,7 +47,8 @@ class PostSkim :
             self.handle_btag_weight()
         self.final_pkl['events']['weight'] = weight
         AnaDict(self.final_pkl).to_pickle(self.outfile)
-    #
+
+    # --- #
     def concat_files(self):
         self.files = self.files()
         self.final_pkl = self.open_and_del(self.files[0])

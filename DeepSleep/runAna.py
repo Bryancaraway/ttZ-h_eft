@@ -40,7 +40,7 @@ def runAna():
         #    print(sample)
         #    analyzer(sample)
         import multiprocessing
-        pool = multiprocessing.Pool(8)
+        pool = multiprocessing.Pool(4)
         _ = pool.map(analyzer, process_cfg[args.sample])
         pool.close()
         # run post job

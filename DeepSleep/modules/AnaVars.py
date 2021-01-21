@@ -20,9 +20,10 @@ class AnaVars:
         if   'jes' in self.jec_sys:
             self.jec_type = 'both'
         elif 'jer' in self.jec_sys:
-            self.jec_type = self.jec_sys
+            self.jec_type = re.search(r'ak\djer' ,self.jec_sys).group()
         elif 'jms' in self.jec_sys or 'jmr' in self.jec_sys:
-            self.jec_type = self.jec_sys
+            #self.jec_type = self.jec_sys
+            self.jec_type = 'ak8jmsr'
         #
         ud  = re.search(r'(Up|Down)', self.jec_sys)
         self.ud = ud.group() if ud else ''
@@ -33,7 +34,7 @@ class AnaVars:
             f'jesAbsolute{self.year}{self.ud}'       :f'_jesAbsolute_{self.year}{self.ud}',
             f'jesEC2{self.year}{self.ud}'            :f'_jesEC2_{self.year}{self.ud}',
             f'jesBBEC1{self.year}{self.ud}'          :f'_jesBBEC1_{self.year}{self.ud}',
-            f'jesAbsolute{self.year}{self.ud}'       :f'_jesAbsolute{self.ud}',
+            f'jesAbsolute{self.ud}'                  :f'_jesAbsolute{self.ud}',
             f'jesEC2{self.ud}'                       :f'_jesEC2{self.ud}',
             f'jesBBEC1{self.ud}'                     :f'_jesBBEC1{self.ud}',
             f'jesHF{self.ud}'                        :f'_jesHF{self.ud}',

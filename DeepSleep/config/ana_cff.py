@@ -194,21 +194,12 @@ ana_vars = {
 #
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 
                     'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother','genTtbarId'], # event level identifier for ttbar+bb
-    'genLevCuts' : ['passGenCuts','isZToLL'], # these are MC only
-    'valvars'    : ['nJets30'+LC, 'nBottoms'+LC, 
-                    #'nSoftBottoms'+LC,
-                    #'nResolvedTops'+LC,'nMergedTops'+LC,
-                    'passSingleLepElec', 'passSingleLepMu',
-                    'MET_phi', 'MET_pt', #'Lep_pt', 'Lep_eta', 'Lep_phi', 'Lep_E',
-                    'Pass_IsoTrkVeto', 'Pass_TauVeto', 'Pass_ElecVeto', 'Pass_MuonVeto',
-                    'Pass_trigger_muon', 'Pass_trigger_electron'],
+
     'event'      : ['MET_phi', 'MET_pt','run','luminosityBlock','event'],
     'filters_all'    : ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter',
                         'Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter',
                         'Flag_BadPFMuonFilter','Flag_eeBadScFilter'],
     'filters_year' : {'2016': [], '2017':['Flag_ecalBadCalibFilterV2'], '2018':['Flag_ecalBadCalibFilterV2']},
-    'HEM_veto'        : ['SAT_Pass_HEMVeto_DataOnly', 'SAT_Pass_HEMVeto_DataAndMC', 'SAT_HEMVetoWeight',
-                         'SAT_Pass_HEMVeto_DataOnly'+LC, 'SAT_Pass_HEMVeto_DataAndMC'+LC, 'SAT_HEMVetoWeight'+LC],
     # these are MC only
     'sysvars_mc'      : ['genWeight','puWeight',
                          #'BTagWeight',
@@ -241,19 +232,24 @@ ana_vars = {
 dnn_ZH_dir  = dataDir+'/NN_files/'
 # only event level variables
 dnn_ZH_vars = [
-    'max_lb_dr','max_lb_invM', 'n_Zh_btag_sj', 'Zh_bbvLscore', 'outZh_max_bbvLscore',#'best_rt_score',
-    'n_q_outZh', 'n_b_outZh', 'Zh_l_dr', 'n_Zh_sj',  'Zh_bestb_sj', 'Zh_worstb_sj',
-    'Zh_eta','Zh_deepB','b1_outZh_score', 'best_Zh_b_invM_sd', 'Zh_b1_invM_sd', 'Zh_b2_invM_sd','Zh_l_invM_sd',
+    'max_lb_dr',
+    #'max_lb_invM','best_Zh_b_invM_sd',
+    'n_Zh_btag_sj', 'Zh_bbvLscore', 'outZh_max_bbvLscore',#'best_rt_score',
+    'n_b_outZh','n_Zh_sj',  'Zh_bestb_sj', #'Zh_worstb_sj',
+    #'Zh_eta', 'Zh_l_dr','n_q_outZh', 
+    'Zh_deepB','b1_outZh_score', 'b2_outZh_score', 'Zh_b1_invM_sd', 'Zh_b2_invM_sd','Zh_l_invM_sd',
     'Zh_Wscore', 'Zh_Tscore', 'outZh_max_Wscore', 'outZh_max_Tscore', 
-    'ht_b', 'ht_outZh', 'max_farl_b_q_dr', 'min_farl_b_q_dr', 'outZh_bqq_mass', 
+    'max_farl_b_q_dr',
+    'ht_b', 'ht_outZh', 'min_farl_b_q_dr', 'outZh_bqq_mass', 
     'outZh_bb_dr', 'outZh_qq_dr',
-    'Zh_bqq_dr', 'Zh_lbbqq_dr',
-    'n_ak8_Zhbb', 'n_ak8jets', 'n_ak4jets',  
+    #'Zh_bqq_dr', 
+    'Zh_lbbqq_dr',
+    #'n_ak8_Zhbb', 
+    'n_ak8jets', 'n_ak4jets',  
     'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
-    'outZh_bb_dr', 'outZh_qq_dr',
-    'sjpt1_over_Zhpt', 'sjpt2_over_Zhpt',
+    #'sjpt1_over_Zhpt', 'sjpt2_over_Zhpt',
     #'Zh_bbscore_sj', 
-    'b1_over_Zhpt', 'bb_over_Zhpt',
+    #'b1_over_Zhpt', 'bb_over_Zhpt',
     'spher','aplan','n_b_inZh', 'n_q_inZh']
     #'H_M',
     #'H_pt',

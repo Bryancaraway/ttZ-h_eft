@@ -334,6 +334,7 @@ class processAna :
         #print(Zh_reco_cut)
         Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M,Zh_wtag,Zh_ttag,Zh_bbtag=lib.sortbyscore(
             [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M,w_tag,t_tag,ak8_bbtag],ak8_Zhbbtag,Zh_reco_cut)
+        print(Zh_Zhbbtag)
         # =============================== # 
         # compute subject info related to Zh candidate : have to sort out candidate with no subjet
         ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt, subj_btag] for id_ in [subj1, subj2]] # sj kinems per ak8jet
@@ -364,11 +365,10 @@ class processAna :
         # Caclulate combinatorix between Zh and ak4, b, q, l || l and b
         Zh_ak4_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(ak4_eta),fillne(ak4_phi))
         Zh_b_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(b_eta),fillne(b_phi))
-        #ind_Zh_b = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
-        ind_Zh_b = np.argsort(-1*np.where(Zh_b_dr > 0.8, fillne(b_btag), np.nan),axis=1)
+        ind_Zh_b = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
+        #ind_Zh_b = np.argsort(-1*np.where(Zh_b_dr > 0.8, fillne(b_btag), np.nan),axis=1)
         b_pt_dRsort, b_eta_dRsort, b_phi_dRsort, b_mass_dRsort, b_btag_dRsort  = [
             np.take_along_axis(np.where(Zh_b_dr > 0.8, fillne(b_k),np.nan),ind_Zh_b,axis=1) for b_k in [b_pt,b_eta,b_phi,b_mass, b_btag]]
-        print(b_btag_dRsort)
         #
         Zh_q_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(q_eta),fillne(q_phi))
         #ind_Zh_q = np.argsort(np.where(Zh_q_dr > 0.8, Zh_q_dr, np.nan),axis=1)
@@ -468,7 +468,7 @@ class processAna :
         self.val_df['fjetwscore_1']= w_tag.pad(1)[:,0]
         self.val_df['fjettscore_1']= t_tag.pad(1)[:,0]
         #
-        self.val_df['n_ak8_Zhbb'] = ak8_Zhbbtag[Zh_reco_cut].counts
+        self.val_df['n_ak8_Zhbb'] = ak8_pt[((ak8_pt >= self.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.6))].counts
         self.val_df['Zh_bbvLscore']  = Zh_Zhbbtag[:,0]
         self.val_df['Zh_pt']     = Zh_pt[:,0]
         self.val_df['Zh_eta']    = Zh_eta[:,0]
@@ -476,8 +476,8 @@ class processAna :
         self.val_df['Zh_M']      = Zh_M[:,0]
         self.val_df['Zh_Wscore'] = Zh_wtag[:,0]
         self.val_df['Zh_Tscore'] = Zh_ttag[:,0]
-        self.val_df['outZh_max_Wscore'] = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
-        self.val_df['outZh_max_Tscore'] = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
+        self.val_df['outZh_max_Wscore'] = np.max(np.nan_to_num(Zh_wtag[:,1:]), axis=1) # new
+        self.val_df['outZh_max_Tscore'] = np.max(np.nan_to_num(Zh_ttag[:,1:]), axis=1) # new
         self.val_df['outZh_max_bbvLscore']  = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
         self.val_df['Zh_deepB']  = Zh_bbtag[:,0]
         self.val_df['n_Zh_btag_sj'] = np.nansum(Zh_sj_b12 >= self.b_wp, axis=1)
@@ -544,9 +544,10 @@ class processAna :
         nn_dir   = cfg.dnn_ZH_dir 
         #open json nn settings
         # --
-        m_info = None
+        m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.2]], 
+                  "other_settings": {"fl_a": [1, 1.1, 0.5], "fl_g": 0.6, "lr_alpha": 0.001}, "n_epochs": 60, "batch_size": 10256}
         #
-        dnn = DNN_model(m_info)
+        dnn = DNN_model(m_info['sequence'],m_info['other_settings'])
         nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='nn_ttzh_model.h5')
         #
         base_cuts = lib.getZhbbBaseCuts(self.val_df)

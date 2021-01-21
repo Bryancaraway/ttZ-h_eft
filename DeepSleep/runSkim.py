@@ -73,7 +73,7 @@ def sequential_skim(files, out_dir, tag):
     golden_json=json.load(open(cfg.goodLumis_file[args.year]))
     import multiprocessing
     from functools import partial
-    pool = multiprocessing.Pool(8)
+    pool = multiprocessing.Pool(4)
     #for i, sfile in enumerate(files):
     _worker = partial( skim_worker, out_dir=out_dir,tag=tag,golden_json=golden_json)  
     _ = pool.map(_worker, zip(range(0,len(files)),files))
@@ -92,11 +92,12 @@ def skim_worker(i_sfile,out_dir,tag,golden_json):
 
 def parallel_skim(files, out_dir, tag):
     # use glob
-    os.system(f'rm {out_dir}/*{args.sample}*{tag}*.pkl ; rm {log_dir}Skim_{args.sample}_*{tag}*.std*') # start of job, get rid of old files
+    remove_old_files(out_dir)
+    #os.system(f'rm {out_dir}/*{args.sample}*{tag}*.pkl ; rm {log_dir}Skim_{args.sample}_*{tag}*.std*') # start of job, get rid of old files
     job_script = 'scripts/runSkim.sh'
     for i, sfile in enumerate(files):
         # rerun runSkim without pre/post skim using pbs
-        command = f"qsub -l nodes=1:ppn=8 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
+        command = f"qsub -l nodes=1:ppn=4 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
         command += f" -o {log_dir}Skim_{args.sample}_{tag}{i}.stdout -e {log_dir}Skim_{args.sample}_{tag}{i}.stderr "
         add_args  = ''
         if args.jec is not None:
@@ -160,6 +161,22 @@ def get_jobfiles():
                     lf.writelines([f+'\n' for f in files[i:]])
         files = new_files
     return files
+
+def remove_old_files(out_dir):
+    pot_files_to_remove = glob(f'{out_dir}/{args.sample}*.pkl')
+    for pklf in  pot_files_to_remove:
+        if args.jec is not None:
+            if args.jec in pklf:
+                #print(f'rm {pklf}')
+                os.system(f'rm {pklf}')
+        else: # non jec files
+            if pklf.count('.') > 1: # jec is here
+                continue
+            else:
+                #print(f'rm {pklf}')
+                os.system(f'rm {pklf}')
+
+    #os.system(f'rm {log_dir}Skim_{args.sample}_*{tag}*.std*')
 
 if __name__ == '__main__':
     runSkim()

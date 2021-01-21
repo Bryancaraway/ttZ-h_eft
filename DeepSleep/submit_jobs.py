@@ -79,9 +79,9 @@ def execute(samples, year, jec):
             add_args +=',qsub=True'
         out_name  = sample+'_'+year+add_out_name
         if sample == 'TTBar':
-            ppn = 8
+            ppn = 4
         else:
-            ppn = 8
+            ppn = 4
         pass_args = f'-v sample={sample},year={year}{add_args}'
         command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}Ana_{out_name}std.out -e {log_dir}Ana_{out_name}.stderr '
         command  += f'-N {args.samples}_{args.year}_{sample}{year}{tag} '
@@ -107,7 +107,7 @@ def execute_runSkim(samples,year,jec):
             f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_' | wc -l", shell=True).decode())
         # allow qsub to catch up?
         time.sleep(5)
-        while num_jobs_running() > 30:
+        while num_jobs_running() > 40:
             time.sleep(30) 
         #popens.append(sb.Popen(args))
 

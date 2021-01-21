@@ -201,6 +201,7 @@ def prep_model_data(m_info):
     resetIndex = (lambda df: df.reset_index(drop=True).copy())
     # 
     trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/trainXY.pkl')
+    
     #print(trainXY.isna().sum())
     # get val from trainXY
     valXY   = trainXY.sample(frac=.25, random_state=1)
