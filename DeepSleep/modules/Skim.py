@@ -172,6 +172,7 @@ class Skim :
         )
         single_mu = (self.muons['Muon_pt'].counts         == 1)
         single_el = (self.electrons['Electron_pt'].counts == 1)
+        print(len(get_lep_info('pt')))
         self.events.update({
             'Lep_pt'  : get_lep_info('pt'),
             'Lep_eta' : get_lep_info('eta'),

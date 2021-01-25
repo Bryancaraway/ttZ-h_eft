@@ -26,5 +26,8 @@ fi
 if [ ! -z "$noskim" ]; then
     args="$args --noskim"
 fi
+if [ ! -z "$is4trig" ]; then
+    args="$args --is4trig"
+fi
 echo "$args"
 eval 'python runSkim.py $args'

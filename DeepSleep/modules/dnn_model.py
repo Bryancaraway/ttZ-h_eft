@@ -121,7 +121,6 @@ def train_model(m_info):
         verbose = 1
     )
     if __name__ == '__main__':
-
         loss ,acc, auc             = model.evaluate(testX, testY)#, sample_weight = testW['DNNweight'].values)
         tr_loss ,tr_acc, tr_auc    = model.evaluate(trainX,trainY)
         val_loss ,val_acc, val_auc = model.evaluate(valX,  valY)
@@ -164,9 +163,14 @@ def plot_history(history):
 
 def local_test(m_info):
     from sklearn.metrics import confusion_matrix
+    from sklearn.metrics import roc_auc_score
     import matplotlib.pyplot as plt
     model, testX, testY = train_model(m_info)
     y_pred = model.predict(testX)
+    weight = np.ones_like(y_pred[:,2])*.001
+    weight = np.where(testY[:,0]==1,.10,weight)
+    weight = np.where(testY[:,1]==1,.15,weight)
+    print('AUC score', roc_auc_score(testY[:,2],y_pred[:,2],sample_weight=weight))
     cm = confusion_matrix(np.argmax(testY,axis=1), np.argmax(y_pred,axis=1))
     print ("\nThe confusion matrix of the test set on the trained nerual network:\n" , cm)
     # contruct score
@@ -202,7 +206,7 @@ def prep_model_data(m_info):
     # 
     trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/trainXY.pkl')
     
-    #print(trainXY.isna().sum())
+    print(trainXY.isna().sum().head(50))
     # get val from trainXY
     valXY   = trainXY.sample(frac=.25, random_state=1)
     trainXY = trainXY.drop(valXY.index).copy()
@@ -212,7 +216,7 @@ def prep_model_data(m_info):
     trainX, valX, testX = [resetIndex(df.drop(columns=['label'])) for df in [trainXY, valXY, testXY]]
     #
     m_class = DNN_model(m_info['sequence'],m_info['other_settings'])  
-    model = m_class.Build_Model(len(cfg.dnn_ZH_vars), )#load_weights='nn_ttzh_model.h5') 
+    model = m_class.Build_Model(len(cfg.dnn_ZH_vars), )#load_weights='ttzh_model.h5') 
     return (
         trainX.to_numpy(), np.stack(trainY.values), valX.to_numpy(), np.stack(valY.values), testX.to_numpy(), np.stack(testY.values), model
     )
@@ -223,7 +227,9 @@ if __name__ == "__main__":
     import sys
     json_dir = f'{sys.path[1]}/log/nn/'
 
-    m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.3]], 'other_settings': {'fl_a': [1, 1.1, 0.5], 'fl_g': 0.6, 'lr_alpha': 0.0001}, 'n_epochs': 100, 'batch_size': 10256}
+    m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 80, 'batch_size': 10256}
+    #{'sequence': [['Dense', 128], ['Dense', 32], ['Dropout', 0.2]], 'other_settings': {'fl_a': [1.25,1.25,.4], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 60, 'batch_size': 10256}
+    
     #m_info = json.load(open(json_dir/sys.argv[1]))
     local_test(m_info)
 

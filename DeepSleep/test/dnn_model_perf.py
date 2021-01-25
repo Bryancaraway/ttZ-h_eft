@@ -42,14 +42,14 @@ def main():
     #
     chi2_score, chi_2_p_value = chi2(abs(df),df_target)
     f_score, f_p_value = f_classif(df,df_target)
-    #mut_info_score = mutual_info_classif(df,df_target)
+    mut_info_score = mutual_info_classif(df,df_target)
     #
-    stat_sum_df = pd.DataFrame(
-        [abs(p_corr['label'].values),abs(chi2_score),abs(chi_2_p_value),abs(f_score),abs(f_p_value)],
-        columns = df.keys(), index = ['P_corr','Chi2','Chi2_p','Fscore','Fscore_p']).transpose()
     #stat_sum_df = pd.DataFrame(
-    #    [abs(p_corr['label'].values),abs(chi2_score),abs(chi_2_p_value),abs(f_score),abs(f_p_value),abs(mut_info_score)],
-    #    columns = df.keys(), index = ['P_corr','Chi2','Chi2_p','Fscore','Fscore_p','mut_info']).transpose()
+    #    [abs(p_corr['label'].values),abs(chi2_score),abs(chi_2_p_value),abs(f_score),abs(f_p_value)],
+    #    columns = df.keys(), index = ['P_corr','Chi2','Chi2_p','Fscore','Fscore_p']).transpose()
+    stat_sum_df = pd.DataFrame(
+        [abs(p_corr['label'].values),abs(chi2_score),abs(np.log(chi_2_p_value)),abs(f_score),abs(np.log(f_p_value)),abs(mut_info_score)],
+        columns = df.keys(), index = ['P_corr','Chi2','log_Chi2_p','Fscore','log_Fscore_p','mut_info']).transpose()
     plot_heatmap(stat_sum_df, 'Statistical Test Metric Summary', col_norm=False)
     #
 
@@ -59,7 +59,7 @@ def plot_heatmap(score_df,title, norm=False, col_norm=False):
     #sns.set(font_scale=0.1)
     
     res = sns.heatmap(((score_df-score_df.mean())/score_df.std() if col_norm else score_df), 
-                      annot=True, fmt= '1.2f',annot_kws={"size": 4}, ax=ax, yticklabels=True,
+                      annot=True, fmt= '1.4f',annot_kws={"size": 4}, ax=ax, yticklabels=True,
                       cmap=plt.cm.Reds, cbar=False, square= False, norm=(LogNorm() if norm else None))
     res.set_yticklabels(res.get_ymajorticklabels(), fontsize = 4)
     fig.suptitle(title)

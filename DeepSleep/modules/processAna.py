@@ -77,7 +77,9 @@ class processAna :
         start = time.perf_counter()
         #self.lepCleaned_v2()
         #
-        self.recoZh()
+        #self.recoZh()
+        from modules.zh_helper import reco_zh_helper_andrew as recoZH_andrew
+        recoZH_andrew(self)
         # dum fix for files w/o this variable
         self.val_df['topptWeight']      = 1.
         self.val_df['topptWeight_Up']   = 1.
@@ -91,7 +93,7 @@ class processAna :
                 # Note: can be improved if ran after ZH is reconstructed and used to gen-reco match 
                 self.match_gen_sig() 
         #
-        #self.applyDNN()
+        self.applyDNN()
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
             #self.alter_btag_w()
@@ -468,7 +470,7 @@ class processAna :
         self.val_df['fjetwscore_1']= w_tag.pad(1)[:,0]
         self.val_df['fjettscore_1']= t_tag.pad(1)[:,0]
         #
-        self.val_df['n_ak8_Zhbb'] = ak8_pt[((ak8_pt >= self.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.6))].counts
+        self.val_df['n_ak8_Zhbb'] = ak8_pt[((ak8_pt >= self.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.8))].counts
         self.val_df['Zh_bbvLscore']  = Zh_Zhbbtag[:,0]
         self.val_df['Zh_pt']     = Zh_pt[:,0]
         self.val_df['Zh_eta']    = Zh_eta[:,0]
@@ -542,21 +544,27 @@ class processAna :
         from modules.dnn_model import DNN_model
         import json
         nn_dir   = cfg.dnn_ZH_dir 
+        resetIndex = (lambda df: df.reset_index(drop=True).copy())
         #open json nn settings
         # --
-        m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.2]], 
-                  "other_settings": {"fl_a": [1, 1.1, 0.5], "fl_g": 0.6, "lr_alpha": 0.001}, "n_epochs": 60, "batch_size": 10256}
+        m_info = {'sequence': [['Dense', 256], ['Dense', 128], ['Dropout', 0.5]], 
+                  'other_settings': {'fl_a': [1.25, 1, 0.4], 'fl_g': 1, 'lr_alpha': 0.001}, 'n_epochs': 60, 'batch_size': 10256}
+        #{"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.2]], 
+        # "other_settings": {"fl_a": [1, 1.1, 0.5], "fl_g": 0.6, "lr_alpha": 0.001}, "n_epochs": 60, "batch_size": 10256}
         #
-        dnn = DNN_model(m_info['sequence'],m_info['other_settings'])
-        nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='nn_ttzh_model.h5')
+        dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
+        nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='ttzh_model.h5')#'nn_ttzh_model.h5')
         #
         base_cuts = lib.getZhbbBaseCuts(self.val_df)
         #
-        pred_df = self.val_df[cfg.dnn_ZH_vars][base_cuts]
-        pred = nn_model.predict(pred_df.values)[:,2]
+        pred_df = resetIndex(self.val_df[cfg.dnn_ZH_vars][base_cuts])
+
+        pred = nn_model.predict(pred_df)[:,2]
+        print(pred)
         
         self.val_df.loc[:,'NN'] = -1.
         self.val_df.loc[base_cuts,'NN'] = pred
+
         #
     def addHLT_to_MC(self):
         # add hlt variables into MC and set them to 1

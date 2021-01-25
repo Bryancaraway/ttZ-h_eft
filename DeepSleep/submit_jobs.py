@@ -20,7 +20,7 @@ parser.add_argument('-s', dest='samples', type=str,
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years+['all'],
                     required=True, help='year or all years')
 parser.add_argument('-j', dest='jec', type=str, required=False, help='Run with specified jec variation', choices=cfg.jec_variations+['all'], default=None)
-parser.add_argument('--script', type=str, required=False, help='Run Analysis or SKim', choices=['runAna','runSkim'], default='runAna')
+parser.add_argument('--script', type=str, required=False, help='Run Analysis or SKim', choices=['runAna','runSkim','trigSkim'], default='runAna')
 #parser.add_argument('-t', dest='tag',     type=str, required=False, help='Optional tag to add to output file', default='')
 args = parser.parse_args()
 
@@ -29,7 +29,7 @@ job_script = f'scripts/{args.script}.sh'
 
 sample_dict = {'all' :process_cfg.keys(),
                'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
-               'data': [k for k in process_cfg.keys() if 'Data' in k],
+               'data': ['Data_SingleElectron','Data_SingleMuon'],
                'tt'   : process_cfg['TTBar'],
                'ttsys': process_cfg['TTBar_sys'],
                #'tt_bb' : process_cfg['ttbb'],
@@ -55,7 +55,7 @@ def submit_jobs():
             func(samples,year,jec)
 
 def submit_runAna(samples, year, jec):
-    execute(samples,year,jec)
+    execute_runAna(samples,year,jec)
 
 def submit_runSkim(samples, year, jec):
     for s in samples:
@@ -64,7 +64,7 @@ def submit_runSkim(samples, year, jec):
         else:
             execute_runSkim(process_cfg[s],year,jec)
 
-def execute(samples, year, jec):
+def execute_runAna(samples, year, jec):
     for sample in samples:
         add_args  = ''
         add_out_name = ''
@@ -75,8 +75,6 @@ def execute(samples, year, jec):
         else:
             tag = ''
         #
-        if 'Skim' in args.script:
-            add_args +=',qsub=True'
         out_name  = sample+'_'+year+add_out_name
         if sample == 'TTBar':
             ppn = 4
@@ -92,16 +90,18 @@ def execute(samples, year, jec):
 def execute_runSkim(samples,year,jec):
     popens = []
     for sample in samples:
-        args = ['python','runSkim.py','-s',sample,'-y',year,'--qsub','--nopost']
+        _args = ['python','runSkim.py','-s',sample,'-y',year,'--qsub','--nopost']
+        if args.script == 'trigSkim':
+            _args = _args+['--is4trig']
         if jec is not None :
             tag = jec
-            args += ['-j',jec]
+            _args += ['-j',jec]
         else:
             tag = ''
-        args += ['-t',tag]
-        #popens.append(sb.Popen(args, stdout=sb.PIPE))
-        print(args)
-        popens.append(sb.Popen(args, stdout=sb.PIPE, stderr=sb.PIPE))
+        _args += ['-t',tag]
+        #popens.append(sb.Popen(_args, stdout=sb.PIPE))
+        print(_args)
+        popens.append(sb.Popen(_args, stdout=sb.PIPE, stderr=sb.PIPE))
         time.sleep(10)
         num_jobs_running = lambda: int(sb.check_output(
             f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_' | wc -l", shell=True).decode())
@@ -109,7 +109,7 @@ def execute_runSkim(samples,year,jec):
         time.sleep(5)
         while num_jobs_running() > 40:
             time.sleep(30) 
-        #popens.append(sb.Popen(args))
+        #popens.append(sb.Popen(_args))
 
 if __name__ == '__main__':
     submit_jobs()

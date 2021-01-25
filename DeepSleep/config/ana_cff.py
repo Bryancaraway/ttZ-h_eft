@@ -232,6 +232,46 @@ ana_vars = {
 dnn_ZH_dir  = dataDir+'/NN_files/'
 # only event level variables
 dnn_ZH_vars = [
+    'outZH_b1_pt','outZH_b2_pt',
+    'outZH_b1_score','outZH_b2_score',
+    'outZh_q1_pt','outZh_q2_pt',
+    'outZh_q1_btag','outZh_q2_btag',
+    #
+    'outZH_b1_q_mindr','outZH_b2_q_mindr',
+    'outZH_q_q_dr_nearb1','outZH_q_q_dr_nearb2',
+    'outZH_qq_M_nearb1','outZH_qq_M_nearb2',
+    'outZH_b1q_M','outZH_b2q_M',
+    'outZH_b1_qq_dr','outZH_b2_qq_dr',
+    'outZH_b1qq_M','outZH_b2qq_M',
+    'ZH_b1qq_dr','ZH_b2qq_dr',
+    'ZH_lbb1qq_dr','ZH_lbb2qq_dr',
+    'l_b1_mtb','l_b2_mtb',
+    #
+    'HT',
+    'Zh_closeb_invM','Zh_closeq_invM',
+    'n_ak8jets', 'n_ak4jets','n_ak8_Zhbb',
+    'Zh_Wscore', 'Zh_Tscore', 'outZh_max_Wscore', 'outZh_max_Tscore',
+    'Zh_bbvLscore', 'outZh_max_bbvLscore',
+    'outZh_max_ak8pt','outZh_max_ak8sdM',
+    'outZh_b12_m', 'outZh_b12_dr', 
+    'ht_b', 'ht_outZh',
+    #
+    'n_Zh_btag_sj',
+    'Zh_bestb_sj', 'Zh_worstb_sj',
+    'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
+    #
+    'nonZhbb_q1_dr', 'nonZhbb_b1_dr',
+    #
+    'Zh_l_dr', 'Zh_l_invM_sd', 
+    'l_b1_invM','l_b2_invM',
+    'l_b1_dr','l_b2_dr',
+    #
+    'spher','aplan',
+    'n_b_inZh', 'n_q_inZh',
+    'n_b_outZh', 'n_q_outZh',
+]
+
+old_dnn_ZH_vars = [
     'max_lb_dr',
     #'max_lb_invM','best_Zh_b_invM_sd',
     'n_Zh_btag_sj', 'Zh_bbvLscore', 'outZh_max_bbvLscore',#'best_rt_score',
@@ -251,27 +291,6 @@ dnn_ZH_vars = [
     #'Zh_bbscore_sj', 
     #'b1_over_Zhpt', 'bb_over_Zhpt',
     'spher','aplan','n_b_inZh', 'n_q_inZh']
-    #'H_M',
-    #'H_pt',
-    #'min_lb_invm', 'MET_pt', 'b2oHZpt' 
-    #'lb_mtb1', 'lb_invm1', 'lb_dr1',
-    ##'weight', 'genWeight'] ####### dont do this...
-old_dnn_ZH_vars = [
-    'max_lb_dr','max_lb_invm', 'n_H_sj_btag', 'nJets30', 'H_score', 'best_rt_score',
-    'n_qnonHbb', 'n_nonHbb', 'Hl_dr', 'n_H_sj', 'n_b_Hbb', 'H_sj_bestb', 'H_sj_worstb',
-    'H_eta','H_bbscore','b1_outH_score', 'best_Wb_invM_sd', 'Hb_invM1_sd', 'Hb_invM2_sd','Hl_invm_sd',
-    'H_Wscore', 'H_Tscore', 'nhbbFatJets', 'nFatJets', 'nJets', 'nonHbb_b1_dr', 'nonHbb_b2_dr', 
-    'H_sj_bbscore', 
-    'b1oHZpt', 'bboHZpt',
-    'spher','aplan',
-    #'H_M',
-    #'H_pt',
-    #'min_lb_invm', 'MET_pt', 'b2oHZpt' 
-    #'lb_mtb1', 'lb_invm1', 'lb_dr1',
-    'n_q_Hbb', 'weight', 'genWeight']
-uncor_dnn_ZH_vars = [ # tests_failed >= 4 
-    'min_lb_dr', 'b2_outH_score'
-]
 #
 dnn_ZH_alpha      = 0.00003 # 200: 0.0003 # 300 : 0.00003
 dnn_ZH_batch_size = 512

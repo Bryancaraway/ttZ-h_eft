@@ -12,8 +12,9 @@ import config.ana_cff as cfg
 from config.sample_cff import sample_cfg, process_cfg
 from lib.fun_library import t2Run
 #  module classes
-from modules.AnaDict  import AnaDict
-from modules.Skim     import Skim
+from modules.AnaDict     import AnaDict
+from modules.Skim        import Skim
+from modules.trigsf_Skim import TrigSkim # trigsf_Skim.py
 from modules.PostSkim import PostSkim
 
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
@@ -28,8 +29,9 @@ parser.add_argument('-o', dest='outfile', type=str, required=False, help="Option
 parser.add_argument('-j','--jec', dest='jec', type=str, required=False, help='Run with specified jec variation', choices=cfg.jec_variations+[''], default=None)
 parser.add_argument('-t', dest='tag', type=str, required=False, help='Optional tag to add to output file', default='')
 parser.add_argument('--qsub', dest='qsub',  action='store_true', required=False, help='Run jobs on pbs', default=False)
-parser.add_argument('--noskim', dest='noskim',  action='store_true', required=False, help='Run postSkim', default=False)
+parser.add_argument('--noskim', dest='noskim',  action='store_true', required=False, help='Run Skim', default=False)
 parser.add_argument('--nopost', dest='nopost',  action='store_true', required=False, help='Run postSkim', default=False)
+parser.add_argument('--is4trig', dest='is4trig',  action='store_true', required=False, help='Run trigSkim', default=False)
 args = parser.parse_args()
 
 if args.jec is not None and re.search(r'201\d', str(args.jec)) and args.year not in args.jec:
@@ -42,6 +44,13 @@ if not os.path.exists(log_dir):
     os.system(f'mkdir {log_dir}')
 #
 tag     = ('.'+(f'{args.tag}_' if args.tag != '' else '')+f'{args.jec}' if args.jec is not None else args.tag)
+#
+out_dir = f"{cfg.postSkim_dir}/{args.year}/"
+if args.is4trig:
+    Skim = TrigSkim # run trig skim instead
+    out_dir = out_dir+f"Trig_{sample_cfg[args.sample]['out_name']}"
+else:
+    out_dir = out_dir+f"{sample_cfg[args.sample]['out_name']}"
 
 @t2Run
 def runSkim():
@@ -51,7 +60,6 @@ def runSkim():
     print(f"{sample_dir}/{args.year}/{args.sample}_{args.year}/*.root")
     isttbar = 'TTTo' in args.sample or 'TTJets' in args.sample
     isttbb  = 'TTbb' in args.sample
-    out_dir = f"{cfg.postSkim_dir}/{args.year}/{sample_cfg[args.sample]['out_name']}"
     print(out_dir)
     if not os.path.exists(out_dir):
         os.system(f'mkdir {out_dir}')
@@ -101,8 +109,10 @@ def parallel_skim(files, out_dir, tag):
         command += f" -o {log_dir}Skim_{args.sample}_{tag}{i}.stdout -e {log_dir}Skim_{args.sample}_{tag}{i}.stderr "
         add_args  = ''
         if args.jec is not None:
-            add_args = f',jec={args.jec}'
-            #
+            add_args += f',jec={args.jec}'
+        #
+        if args.is4trig:
+            add_args += f',is4trig={args.is4trig}'
         out_name  = f'{args.sample}_{i}{tag}.pkl'
         pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},outfile={out_name},nopost=True{add_args}'
         command += f'{pass_args} {job_script}'

@@ -28,19 +28,19 @@ def main():
     #
     # define sequences to test out
     def iterate_hpsettings():
-        for d in [.2,.5,.7]:
+        for d in [.5]:
             sequences = [
                 [['Dense', 128],['Dense', 64],['Dropout',d]],
-                [['Dense', 256],['Dense', 128],['Dropout',d]],
+                #[['Dense', 256],['Dense', 128],['Dropout',d]],
             ]
             for seq in sequences:
-                for n_epoch in [60]:
+                for n_epoch in [80]:
                     for batch in [5128*2]:
-                        for lr in [0.001]:
-                            for g in [.5,.6,.8,1]:
-                                for tt_a in [1,1.25,1.5,1.75][::-1]:
-                                    for ttbb_a in [0.9,1,1.1,1.2][::-1]:
-                                        for ttzh_a in [.4,.5,.6,.75]:
+                        for lr in [0.0003]:
+                            for g in [.25,.5,.75,1]:
+                                for tt_a in [.25,0.5,.75,1,1.25][::-1]:
+                                    for ttbb_a in [.25,.5,0.75,1,1.25][::-1]:
+                                        for ttzh_a in [.25,.4,.5,.75,1,1.25]:
                                             yield {
                                                 'sequence':seq,
                                                 'other_settings':{
@@ -60,7 +60,7 @@ def main():
         command += f" -v json={json_name},jobnum={i} {sys.path[1]}/scripts/testDNN.sh"
         num_jobs_running = lambda: int(sb.check_output('qstat -u $USER | grep testDNN | wc -l', shell=True).decode())
         #num_jobs_running = lambda: int(sb.check_output('jobs | wc -l', shell=True).decode())
-        while num_jobs_running() >= 30:
+        while num_jobs_running() >= 20:
             time.sleep(30)
         print(command)
         os.system(command)
@@ -68,6 +68,7 @@ def main():
 @t2Run
 def run():
     from sklearn.metrics import confusion_matrix
+    from sklearn.metrics import roc_auc_score
     import matplotlib.pyplot as plt
     print(args.inputjson, args.job_number)
     m_info = json.load(open(json_dir+args.inputjson,'r'))
@@ -75,17 +76,28 @@ def run():
     #
     model, testX, testY = train_model(m_info)
     y_pred = model.predict(testX)
+    #
+    weight = np.ones_like(y_pred[:,2])*.001
+    weight = np.where(testY[:,0]==1,.10,weight)
+    weight = np.where(testY[:,1]==1,.15,weight)
+    sig_roc_auc = roc_auc_score(testY[:,2],y_pred[:,2],sample_weight=weight)
+    print('AUC score', sig_roc_auc)
+    if sig_roc_auc < .8:
+        exit()
+    #
     loss ,acc, auc = model.evaluate(testX, testY)#, sample_weight = testW['DNNweight'].values)
     cm = confusion_matrix(np.argmax(testY,axis=1), np.argmax(y_pred,axis=1))
     print ("\nThe confusion matrix of the test set on the trained nerual network:\n" , cm)
     # contruct score
+    #
     zh_score = cm[:,2]
     print(cm[:,2])
     s_b_val = zh_score[2]*.001/((zh_score[0]*0.10+zh_score[1]*.15)**(1/2))
     s_ttbb_val = zh_score[2]*.001/((zh_score[1]*.15)**(1/2))
     cm = confusion_matrix(np.argmax(testY[y_pred[:,2]>0.6],axis=1), np.argmax(y_pred[y_pred[:,2]>0.6],axis=1)) 
     print ("\nThe confusion matrix of the test set (high confidence in zh):\n" , cm) 
-    out_name = f'{s_b_val:.2f}_{s_ttbb_val:.2f}_{auc:.2f}_{acc:.2f}_{args.job_number}'
+    
+    out_name = f"{sig_roc_auc:.3f}_{m_info['other_settings']['fl_a']}_{m_info['other_settings']['fl_g']}_{s_ttbb_val:.2f}_{args.job_number}"
     print(out_name)
     model.save_weights(cfg.dnn_ZH_dir+'/test_archs/'+out_name+'.h5')
 
