@@ -16,7 +16,7 @@ import config.ana_cff as cfg
 processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','ttX','single_t','Vjets','other']
 
 #@save_pdf('control_plots.pdf')
-@save_pdf('NN_plots.pdf')
+@save_pdf('bbvl_fake_andrew.pdf')
 def main():
     for y in cfg.Years: 
         #for jec in jec_list:
@@ -79,8 +79,12 @@ def main():
     
         #StackedHist(cfg.MC_pow,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.8', sepGenOpt='sepGenBkg;--', doCuts=True, addData=True,  doShow=False)  
         # ----
-        StackedHist(processes,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=1.7',  sepGenOpt='sepGenSig', doCuts=True, addData=True, doShow=False)  
-        StackedHist(processes,'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200], add_cuts='NN>0.5;Zh_pt>300', sepGenOpt='sepGenSig',  doCuts=True, addData=True, doShow=False)  
+        StackedHist(processes,'Zh_bbvLscore', xlabel='Zh_bbvLscore (no extra cuts)', bin_range=[0,1],  n_bins=20,  doCuts=False, addData=True, doShow=False)  
+        StackedHist(processes,'Zh_bbvLscore', xlabel='Zh_bbvLscore Fake?', bin_range=[0,1],  n_bins=20, add_cuts='Zh_M>65;Zh_M<90;Zh_closeb_invM>150;Zh_closeb_invM<190',  doCuts=False, addData=True, doShow=False)  
+        StackedHist(processes,'Zh_bbvLscore', xlabel='Zh_bbvLscore Fake? (>2 b-jets outZH)', bin_range=[0,1],  n_bins=20, add_cuts='Zh_M>65;Zh_M<90;Zh_closeb_invM>150;Zh_closeb_invM<190;n_b_outZh>=2',  doCuts=False, addData=True, doShow=False)  
+        #StackedHist(processes,'NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', add_d_cuts='NN<=0.7',  sepGenOpt='sepGenSig', doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV) (NN>0.75,ZhpT>300)', bin_range=[50,200],  bins=[50,80,105,145,200], add_cuts='NN>0.75;Zh_pt>300', doCuts=True, addData=False, doShow=False)  
+        #Hist(processes,'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV) (NN>0.75,ZhpT>300)', bin_range=[50,200],  bins=[50,80,105,145,200], add_cuts='NN>0.75;Zh_pt>300', doCuts=True,  doNorm=False, doLog=True, addData=False, doShow=False)  
         # ----
         #StackedHist(processes,'b1_outZh_score', bin_range=[.4,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
         #StackedHist(processes,'Zh_deepB', bin_range=[0,1],  n_bins=10,  doCuts=True, addData=True, doShow=False)  
