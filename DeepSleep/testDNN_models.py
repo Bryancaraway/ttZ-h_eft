@@ -34,13 +34,13 @@ def main():
                 #[['Dense', 256],['Dense', 128],['Dropout',d]],
             ]
             for seq in sequences:
-                for n_epoch in [80]:
+                for n_epoch in [100]:
                     for batch in [5128*2]:
                         for lr in [0.0003]:
                             for g in [.25,.5,.75,1]:
-                                for tt_a in [.25,0.5,.75,1,1.25][::-1]:
-                                    for ttbb_a in [.25,.5,0.75,1,1.25][::-1]:
-                                        for ttzh_a in [.25,.4,.5,.75,1,1.25]:
+                                for tt_a in [.25,0.5,.75,1,1.25,1.5,2][::-1]:
+                                    for ttbb_a in [.25,.5,0.75,1,1.25,1.5,2][::-1]:
+                                        for ttzh_a in [.25,.5,.75,1,1.25,1.5,2]:
                                             yield {
                                                 'sequence':seq,
                                                 'other_settings':{
@@ -60,7 +60,7 @@ def main():
         command += f" -v json={json_name},jobnum={i} {sys.path[1]}/scripts/testDNN.sh"
         num_jobs_running = lambda: int(sb.check_output('qstat -u $USER | grep testDNN | wc -l', shell=True).decode())
         #num_jobs_running = lambda: int(sb.check_output('jobs | wc -l', shell=True).decode())
-        while num_jobs_running() >= 20:
+        while num_jobs_running() >= 35:
             time.sleep(30)
         print(command)
         os.system(command)
@@ -97,7 +97,7 @@ def run():
     cm = confusion_matrix(np.argmax(testY[y_pred[:,2]>0.6],axis=1), np.argmax(y_pred[y_pred[:,2]>0.6],axis=1)) 
     print ("\nThe confusion matrix of the test set (high confidence in zh):\n" , cm) 
     
-    out_name = f"{sig_roc_auc:.3f}_{m_info['other_settings']['fl_a']}_{m_info['other_settings']['fl_g']}_{s_ttbb_val:.2f}_{args.job_number}"
+    out_name = f"{sig_roc_auc:.3f}_{m_info['other_settings']['fl_a']}_{m_info['other_settings']['fl_g']}_{s_ttbb_val:.2f}_{s_b_val:.2f}_{args.job_number}"
     print(out_name)
     model.save_weights(cfg.dnn_ZH_dir+'/test_archs/'+out_name+'.h5')
 

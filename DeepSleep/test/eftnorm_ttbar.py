@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 import uproot
 import re
+from functools import partial
+from multiprocessing import Pool
 import concurrent.futures
 executor = concurrent.futures.ThreadPoolExecutor()
 from lib.fun_library import save_pdf
@@ -20,40 +22,116 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 import config.ana_cff as cfg
 from modules.eftParam import TestEFTFitParams
 
+single_points = {
+    'ttZ': {
+        'SM': [[0,1]], 'cbW':[[-7,.6903/.6320],[7,.7009/.6320]], 'cpQ3': [[ -7,.6555/.6320], [ 7,.6909/.6320] ], 'cpQM': [[ -12,1.778/.6320], [ 16,.2684/.6320] ],
+        'cpt': [[ -20,.8176/.6320], [ 15,1.852/.6320] ], 'cptb': [[ -15,.6567/.6320], [ 15,.6553/.6320] ], 'ctW': [[ -2, .6796/.6320], [ 2, .7014/.6320] ], 'ctZ': [[ -2,.8729/.6320], [ 2,.8822/.6320] ],
+        'ctp': [[ -11,.6304/.6320], [ 40,.6397/.6320] ]
+    },
+    'ttH' : {
+        'SM': [[0,1]], 'cbW':[[-7,.4911/.4461],[7,.4892/.4461]], 'cpQ3': [[ -7,.5008/.4461], [ 7,.5103/.4461] ], 'cpQM': [[ -12, .4954/.4461], [ 16,.5178/.4461] ],
+        'cpt': [[ -20,.5477/.4461], [ 15, .5094/.4461] ], 'cptb': [[ -15,.4856/.4461], [ 15,.4839/.4461] ], 'ctW': [[ -2, .5820/.4461], [ 2, .6182/.4461] ], 'ctZ': [[ -2,.5617/.4461], [ 2,.5439/.4461] ],
+        'ctp': [[ -11,1.264/.4461], [ 40,1.016/.4461] ]
+    },
+}
+
+wc_ranges = {
+    #'ctG'  :np.arange(-1,1,.01) 
+    'cbW': np.arange(-14,14,1),
+    'cpQ3': np.arange(-14,14,1),
+    'cpQM': np.arange(-20,24,1),
+    'cpt': np.arange(-40,40,2),
+    'cptb': np.arange(-30,30,2),
+    'ctW': np.arange(-4,4,.2),
+    'ctZ': np.arange(-4,4,.2),
+    'ctp': np.arange(-30,60,3),
+}
+
+def main(input_files, samples):
+    norm_change = {}
+    for input_file, sample in zip(input_files, samples):
+        norm_change[sample] = process(input_file,sample)
+        #plot_overal_norm(norm_change, sample)
+    plot_overall_norm_compare(norm_change, samples)
 
 
-def main(input_file):
+def process(input_file, sample):
     eft_df = pd.DataFrame()
     with open(input_file) as ifile:
-        for line in ifile.readlines():
-            print(line)
-            eft_df = pd.concat([eft_df,get_eft_df(line.strip('\n'))], axis = 'rows', ignore_index=True)
-            #
-        #
+        eft_df = __worker(ifile.readlines())
+
     # get parameterization
-    df = getBeta('ttjets').calcBeta(eft_df,'ttjets')
-    plot_overal_norm(df, 'ttjets')
+    df = getBeta(sample).calcBeta(eft_df,sample)
+    return get_norm_change(df, sample)
+    #plot_overal_norm(norm_change, sample)
     
-    
-def plot_overal_norm(df, sample):
-    wc_ranges = {'ctG'  :np.arange(-1,1,.01) }
+def get_norm_change(df,sample):
     norm_change = {}
+    #pool = Pool()
     for wc, r in wc_ranges.items():
-        norm_change[wc] = [calc_norm(df,wc,v) for v in r]
-    
+        _norm = partial(calc_norm, df=df, wc=wc)
+        #norm_change[wc] = [calc_norm(df,wc,v) for v in r]
+        norm_change[wc] = [_norm(v) for v in r]
+        #norm_change[wc] = map(_norm, r)
+        #pool.close()
+    return norm_change
+
+@save_pdf("ttH_ttZ_2018_incxs_impacts.pdf")
+def plot_overall_norm_compare(norm_change, samples):
+    for w in norm_change[samples[0]]: # samples[0] is dummy index
+        fig, ax = plt.subplots(1,len(samples), sharey=True) # anticipating this is ttz vs tth
+        fig.subplots_adjust(
+            top=0.88,
+            bottom=0.11,
+            left=0.11,
+            right=0.93,
+            hspace=0.0,
+            wspace=0.2
+        )
+        test_points = { sample: np.array(single_points[sample]['SM']+single_points[sample][w]) for sample in samples}
+        for i, sample in enumerate(samples):
+            ax[i].plot(wc_ranges[w],norm_change[sample][w])
+            ax[i].scatter(x=test_points[sample][:,0], y=test_points[sample][:,1], 
+                       marker='*',color='red',label='Validation')
+            ax[i].axhline(1,c='r',ls='--')
+            #plt.xticks([i for i in range(len(norm_change))], norm_change.keys())
+            ax[i].set_xlabel(f'WC {w} ')
+            ax[i].set_ylabel(rf'$\sigma$({sample})'+r'$^{EFT}$/$\sigma$'+f'({sample})'+r'$^{SM}$')
+            ax[i].xaxis.set_minor_locator(AutoMinorLocator())
+            ax[i].yaxis.set_minor_locator(AutoMinorLocator())
+            ax[i].set_title(sample)
+            ax[i].grid(True)
+        #fig.suptitle(f'Inc. Rate change w/resp. to WC {w}}')
+        #plt.xlim(-1,1)
+        #plt.legend()
+        #plt.show()
+
+
+@save_pdf("ttZ_2018_incxs_impacts.pdf")
+def plot_overal_norm(norm_change, sample):
+
     for w in norm_change:
+        test_points = np.array(single_points[sample]['SM']+single_points[sample][w])
         fig, ax = plt.subplots()
         ax.plot(wc_ranges[w],norm_change[w])
+        ax.scatter(x=test_points[:,0], y=test_points[:,1], marker='*',color='red',label='Validation')
         ax.axhline(1,c='r',ls='--')
         #plt.xticks([i for i in range(len(norm_change))], norm_change.keys())
         ax.set_xlabel(f'WC {w} ')
-        ax.set_ylabel(r'$\sigma$(ttjets)$^{EFT}$/$\sigma$(ttjets)$^{SM}$')
+        ax.set_ylabel(rf'$\sigma$({sample})'+r'$^{EFT}$/$\sigma$'+f'({sample})'+r'$^{SM}$')
         ax.xaxis.set_minor_locator(AutoMinorLocator())
         ax.yaxis.set_minor_locator(AutoMinorLocator())
-        fig.suptitle(f'Inc. Rate change w/resp. to {w} for tt+jets')
+        fig.suptitle(f'Inc. Rate change w/resp. to {w} for {sample}')
         #plt.xlim(-1,1)
         #plt.legend()
-        plt.show()
+        #plt.show()
+
+def __worker(lines):
+    pool = Pool()
+    results = pool.map(get_eft_df,[line.strip('\n') for line in lines])
+    pool.close()
+    _out_df = pd.concat(results, axis='rows', ignore_index=True)
+    return _out_df
 
 def get_eft_df(roofile):
     with uproot.open(roofile) as roo:
@@ -69,7 +147,7 @@ class getBeta(TestEFTFitParams):
     def __init__(self, sample):
         self.aux_df = {sample : pd.read_pickle(f'{self.aux_dir}/{self.aux_dict[sample]}')} 
 
-def calc_norm(df,wc,v):
+def calc_norm(v,df=None,wc=None):
     p = sum(df[f'{wc}_{wc}']*v*v)
     q = sum(df[f'{wc}']*v)
     r = sum(df['SM'])
@@ -77,4 +155,10 @@ def calc_norm(df,wc,v):
 
 
 if __name__ == '__main__':
-    main("ttjets_eft.txt")
+    #main("ttjets_eft.txt", 'ttjets')
+    input_files = [
+        "files/ttz_eft_2018.txt",
+        "files/tth_eft_2018.txt"
+    ]
+    main(input_files, ['ttZ','ttH'])
+

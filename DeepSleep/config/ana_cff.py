@@ -44,8 +44,9 @@ Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VV','VVV','VJets']
 All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VV','VVV','VJets']
 
 # Handle systematic sample docs
-tt_sys_samples    = ['TTBar_UEUp','TTBar_UEDown','TTBar_hdampUp','TTBar_hdampDown',
-                     'ttbb_hdampUp','ttbb_hdampDown']
+#tt_sys_samples    = ['TTBar_UEUp','TTBar_UEDown','TTBar_hdampUp','TTBar_hdampDown',
+#                     'ttbb_hdampUp','ttbb_hdampDown']
+tt_sys_samples    = ['TTBar_sys','ttbb_sys']
 tt_bb             = ['ttbb',]
 tt_bb_sys         = [ 'ttbb_hdampUp','ttbb_hdampDown', ]
 
@@ -57,11 +58,14 @@ jecs              = [jec+y for jec in ['jesRelativeSample','jesHF' , 'jesAbsolut
                      'ak4jer','ak8jer', # jer
                      'jms','jmr'] # puppi sdm corr
 jec_variations    = [jec+ud for jec in jecs for ud in ['Up','Down']]
+
 sig_sys_samples   = [sig+'_'+jec for sig in Sig_MC for jec in jec_variations]
-bkg_sys_samples   = [bkg+'_'+jec for bkg in Bkg_MC for jec in jec_variations] + tt_sys_samples
+jec_bkg           = ['TTBar','ttbb','single_t'] # for the sake of memory
+bkg_sys_samples   = [bkg+'_'+jec for bkg in jec_bkg for jec in jec_variations] + tt_sys_samples
 all_sys_samples   = sig_sys_samples + bkg_sys_samples
 #
-Data_samples      = ['Single_Electron','Single_Muon']
+Data_samples      = ['Data_SingleElectron','Data_SingleMuon']
+
 Lumi              = {'2016': 35.917149,
                      '2017': 41.525338,
                      '2018': 59.72444,
@@ -71,12 +75,12 @@ Lumi              = {'2016': 35.917149,
                      'Total': 137.166648
                   } 
 goodLumis_file   = {
-    #'2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',  # may change to re-reco
     '2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON.txt', # re-reco
-    #'2017':dataDir+'/good_lumis/'+'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',# may change to re-reco
     '2017':dataDir+'/good_lumis/'+'Cert_294927-306462_13TeV_EOY2017ReReco_Collisions17_JSON.txt', # re-reco
-    #'2018':dataDir+'/good_lumis/'+'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',  # may change to re-reco
     '2018':dataDir+'/good_lumis/'+'Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt', # re-reco
+    #'2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt',  # legacy
+    #'2017':dataDir+'/good_lumis/'+'Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt',# legacy
+    #'2018':dataDir+'/good_lumis/'+'Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt',  # legacy
 }
 ##
 ##############
@@ -87,14 +91,6 @@ ZHbb_btagWP    = {'2016': 0.6321, # Med for 2016
                   '2017': 0.4941, # Med for 2017
                   '2018': 0.4148  # Med for 2018
                   }
-# ttZ/H->bb SM x-section
-ZHbbXsec = {'ttZbb': .1157,
-            'ttHbb': .2934 }
-ZHbbtotXsec = ZHbbXsec['ttZbb'] + ZHbbXsec['ttHbb']
-# ttZ/H->bb MC count 2017
-n_ZHbbMC_dict      = {'ttZbb': 163876,
-                      'ttHbb': 5698653 }
-n_ZHbbMC           = n_ZHbbMC_dict['ttZbb'] + n_ZHbbMC_dict['ttHbb']
 #
 hlt_path = {
     'muon'    :{ '2016': (lambda x : ((x['HLT_IsoMu24']) | 
@@ -170,13 +166,8 @@ ana_vars = {
                     'Jet_btagSF_deepcsv_shape_up_hfstats2','Jet_btagSF_deepcsv_shape_down_hfstats2',
                     'Jet_btagSF_deepcsv_shape_up_lfstats2','Jet_btagSF_deepcsv_shape_down_lfstats2',],
     # 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
-    'ak4lvec'    : {'TLV'         :['JetTLV'+LC],
-                    'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
+    'ak4lvec'    : {'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
                     'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass'],
-                    'jesTotUp'    :['Jet_pt_jesTotalUp', 'Jet_eta' 'Jet_phi', 'Jet_mass_jesTotalUp'],
-                    'jesTotDown'  :['Jet_pt_jesTotalDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jesTotalDown'],
-                    'jerUp'       :['Jet_pt_jerUp', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerUp'],
-                    'jerDown'     :['Jet_pt_jerDown', 'Jet_eta' 'Jet_phi', 'Jet_mass_jerDown'],
                 },
 #
     'ak8vars'    : ['FatJet_jetId',
@@ -187,15 +178,17 @@ ana_vars = {
                     #'FatJet_deepTagMD_ZbbvsQCD'+LC, 'FatJet_deepTagMD_ZvsQCD'+LC, 'FatJet_deepTagMD_bbvsLight'+LC, 'FatJet_deepTagMD_ccvsLight'+LC,     
                     'FatJet_msoftdrop'+LC,'FatJet_btagDeepB'+LC,'FatJet_btagHbb'+LC,
                     'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC],
-    'ak8lvec'    : {'TLV'      :['FatJetTLV'+LC],
-                    'TLVarsLC' :['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC],
+    'ak8lvec'    : {'TLVarsLC' :['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC],
                     'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass']},
     'ak8sj'      : ['SubJet_pt', 'SubJet_btagDeepB'],
 #
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 
                     'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother','genTtbarId'], # event level identifier for ttbar+bb
 
-    'event'      : ['MET_phi', 'MET_pt','run','luminosityBlock','event'],
+    'event'      : ['MET_phi', 'MET_pt',
+                    'MET_T1_phi', 'MET_T1_pt',
+                    'MET_T1Smear_phi', 'MET_T1Smear_pt',
+                    'PV_npvsGood','run','luminosityBlock','event'],
     'filters_all'    : ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter',
                         'Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter',
                         'Flag_BadPFMuonFilter','Flag_eeBadScFilter'],
@@ -231,7 +224,7 @@ ana_vars = {
 ##### DNN backend for Z/H -> bb #####
 dnn_ZH_dir  = dataDir+'/NN_files/'
 # only event level variables
-dnn_ZH_vars = [
+nodak8md_dnn_ZH_vars = [
     'outZH_b1_pt','outZH_b2_pt',
     'outZH_b1_score','outZH_b2_score',
     'outZh_q1_pt','outZh_q2_pt',
@@ -240,27 +233,33 @@ dnn_ZH_vars = [
     'outZH_b1_q_mindr','outZH_b2_q_mindr',
     'outZH_q_q_dr_nearb1','outZH_q_q_dr_nearb2',
     'outZH_qq_M_nearb1','outZH_qq_M_nearb2',
-    'outZH_b1q_M','outZH_b2q_M',
+    'outZH_b1q_M',#'outZH_b2q_M',
     'outZH_b1_qq_dr','outZH_b2_qq_dr',
     'outZH_b1qq_M','outZH_b2qq_M',
     'ZH_b1qq_dr','ZH_b2qq_dr',
     'ZH_lbb1qq_dr','ZH_lbb2qq_dr',
-    'l_b1_mtb','l_b2_mtb',
+    #'l_b1_mtb',
+    'l_b2_mtb',
     #
-    'HT',
-    'Zh_closeb_invM','Zh_closeq_invM',
+    #'HT',
+    'Zh_closeb_invM',#'Zh_closeq_invM',
     'n_ak8jets', 'n_ak4jets','n_ak8_Zhbb',
-    'Zh_Wscore', 'Zh_Tscore', 'outZh_max_Wscore', 'outZh_max_Tscore',
-    'Zh_bbvLscore', 'outZh_max_bbvLscore',
-    'outZh_max_ak8pt','outZh_max_ak8sdM',
+    #'Zh_Wscore', 'Zh_Tscore', 
+    #'outZh_max_Wscore', 'outZh_max_Tscore',
+    #'Zh_bbvLscore', 'outZh_max_bbvLscore',
+    #'outZh_max_ak8pt',
+    'outZh_max_ak8sdM',
     'outZh_b12_m', 'outZh_b12_dr', 
     'ht_b', 'ht_outZh',
     #
     'n_Zh_btag_sj',
-    'Zh_bestb_sj', 'Zh_worstb_sj',
-    'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
+    'Zh_bestb_sj', 
+    'Zh_worstb_sj',
+    #'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
     #
-    'nonZhbb_q1_dr', 'nonZhbb_b1_dr',
+    'nonZhbb_q1_dr', 
+    'nonZhbb_b1_dr',
+    'inZhb_outZhb_dr',
     #
     'Zh_l_dr', 'Zh_l_invM_sd', 
     'l_b1_invM','l_b2_invM',
@@ -268,7 +267,100 @@ dnn_ZH_vars = [
     #
     'spher','aplan',
     'n_b_inZh', 'n_q_inZh',
-    'n_b_outZh', 'n_q_outZh',
+    'n_b_outZh', 'n_q_outZh'
+]
+withbbvl_dnn_ZH_vars = nodak8md_dnn_ZH_vars+['Zh_bbvLscore']
+
+allvars_dnn_ZH_vars = [
+    'outZH_b1_pt','outZH_b2_pt',
+    'outZH_b1_score','outZH_b2_score',
+    'outZh_q1_pt','outZh_q2_pt',
+    'outZh_q1_btag','outZh_q2_btag',
+    #
+    'outZH_b1_q_mindr','outZH_b2_q_mindr',
+    'outZH_q_q_dr_nearb1','outZH_q_q_dr_nearb2',
+    'outZH_qq_M_nearb1','outZH_qq_M_nearb2',
+    'outZH_b1q_M',#'outZH_b2q_M',
+    'outZH_b1_qq_dr','outZH_b2_qq_dr',
+    'outZH_b1qq_M','outZH_b2qq_M',
+    'ZH_b1qq_dr','ZH_b2qq_dr',
+    'ZH_lbb1qq_dr','ZH_lbb2qq_dr',
+    #'l_b1_mtb',
+    'l_b2_mtb',
+    #
+    #'HT',
+    'Zh_closeb_invM',#'Zh_closeq_invM',
+    'n_ak8jets', 'n_ak4jets','n_ak8_Zhbb',
+    'Zh_Wscore', 'Zh_Tscore', 
+    'outZh_max_Wscore', 'outZh_max_Tscore',
+    'Zh_bbvLscore', 'outZh_max_bbvLscore',
+    #'outZh_max_ak8pt',
+    'outZh_max_ak8sdM',
+    'outZh_b12_m', 'outZh_b12_dr', 
+    'ht_b', 'ht_outZh',
+    #
+    'n_Zh_btag_sj',
+    'Zh_bestb_sj', 
+    'Zh_worstb_sj',
+    #'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
+    #
+    'nonZhbb_q1_dr', 
+    'nonZhbb_b1_dr',
+    'inZhb_outZhb_dr',
+    #
+    'Zh_l_dr', 'Zh_l_invM_sd', 
+    'l_b1_invM','l_b2_invM',
+    'l_b1_dr','l_b2_dr',
+    #
+    'spher','aplan',
+    'n_b_inZh', 'n_q_inZh',
+    'n_b_outZh', 'n_q_outZh'
+]
+
+selvars_dnn_ZH_vars = [
+    'outZH_b1_pt','outZH_b2_pt',
+    'outZH_b1_score',#'outZH_b2_score',
+    #'outZh_q1_pt','outZh_q2_pt',
+    'outZh_q1_btag',#'outZh_q2_btag',
+    #
+    'outZH_b1_q_mindr','outZH_b2_q_mindr',
+    'outZH_q_q_dr_nearb1',#'outZH_q_q_dr_nearb2',
+    #'outZH_qq_M_nearb1','outZH_qq_M_nearb2',
+    'outZH_b1q_M',#'outZH_b2q_M',
+    #'outZH_b1_qq_dr','outZH_b2_qq_dr',
+    #'outZH_b1qq_M','outZH_b2qq_M',
+    'ZH_b1qq_dr',#'ZH_b2qq_dr',
+    'ZH_lbb1qq_dr','ZH_lbb2qq_dr',
+    #'l_b1_mtb',
+    'l_b2_mtb',
+    #
+    #'HT',
+    'Zh_closeb_invM',#'Zh_closeq_invM',
+    'n_ak8jets', 'n_ak4jets','n_ak8_Zhbb',
+    'Zh_Wscore', #'Zh_Tscore', 
+    'outZh_max_Wscore', 'outZh_max_Tscore',
+    'Zh_bbvLscore', 'outZh_max_bbvLscore',
+    #'outZh_max_ak8pt',
+    'outZh_max_ak8sdM',
+    'outZh_b12_m', 'outZh_b12_dr', 
+    'ht_b', #'ht_outZh',
+    #
+    'n_Zh_btag_sj',
+    #'Zh_bestb_sj', 
+    'Zh_worstb_sj',
+    #'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
+    #
+    #'nonZhbb_q1_dr', 
+    'nonZhbb_b1_dr',
+    'inZhb_outZhb_dr',
+    #
+    'Zh_l_dr', 'Zh_l_invM_sd', 
+    'l_b1_invM','l_b2_invM',
+    'l_b1_dr','l_b2_dr',
+    #
+    'spher','aplan',
+    'n_b_inZh', 'n_q_inZh',
+    'n_b_outZh',# 'n_q_outZh',
 ]
 
 old_dnn_ZH_vars = [

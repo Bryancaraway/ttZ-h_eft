@@ -16,7 +16,7 @@ parser.add_argument('-s', dest='sample', type=str,
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years,
                     required=True, help='year')
 parser.add_argument('-i', dest='inputfile', type=str, required=False, help="Optional input pkl file", default=None)
-parser.add_argument('--jec', dest='jec',     type=str, required=False, help='Run with specified jec variation', choices=cfg.jec_variations+[''], default=None)
+parser.add_argument('-j','--jec', dest='jec',     type=str, required=False, help='Run with specified jec variation', choices=cfg.jec_variations+[''], default=None)
 parser.add_argument('-t', dest='tag',     type=str, required=False, help='Optional tag to add to output file', default='')
 parser.add_argument('--estart', dest='estart', type=int, required=False, help='parse event to start from', default=None)
 parser.add_argument('--estop',  dest='estop',  type=int, required=False, help='parse event to stop at', default=None)
@@ -55,7 +55,6 @@ def analyzer(sample):
     isSignal = re.search(r'(tt(Z|H))', sample_cfg[sample]['out_name']) is not None
     isttbar  = re.search(r'(TT|tt)(Bar)|(bb)', sample_cfg[sample]['out_name']) is not None
     #isttbar  = re.search(r'TT[To,bb]', sample) is not None
-    print(isSignal, isttbar)
     #isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
     tag      = (args.tag + args.jec if args.jec is not None else args.tag)
     #

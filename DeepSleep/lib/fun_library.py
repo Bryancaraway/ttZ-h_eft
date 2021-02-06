@@ -188,13 +188,13 @@ def compose(*functions):
 def getZhbbBaseCuts(df_):
     import config.ana_cff as cfg
     base_cuts = (
-        (df_['n_b_outZh']   >= 2)          &
-        (df_['Zh_bbvLscore'] >= 0.8)        &
-
+        (df_['n_b_outZh']   >= 2)             &
+        (df_['Zh_bbvLscore'] >= 0.8)          &
+        ( (df_['isEleE']==True) | (df_['isMuonE']==True)) &
         #(df_['n_ak8_Zhbb']  >  0)          &
         (df_['Zh_pt']       >= cfg.ZHptcut)& # 200
-        (df_['MET_pt']      >= 20)         &
-        (df_['Zh_M']        >= 50)         &
+        (df_['MET_pt']      >= 20)            &
+        (df_['Zh_M']        >= 50)            &
         (df_['Zh_M']        <= 200))
     return base_cuts
 
@@ -202,19 +202,13 @@ def getZhbbWeight(df_, year):
     import config.ana_cff as cfg
     tot_weight = (df_['weight']* np.sign(df_['genWeight']) 
                   * (np.where(df_['weight']>300,0,1))
-                  #####* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
-                  #####* (df_['BC_btagSF'] if self.addBSF else 1.0)
                   ###* (cfg.Lumi['Total']/cfg.Lumi[year])
                   * df_['topptWeight']
-                  ######* (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
                   * (df_['HEM_weight']  if year == '2018' else 1.0 )
-                  #####* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
-                  * df_['lep_trig_eff_tight_pt']
-                  ####* v['lep_trig_eff_tight_eta']
+                  * (df_['lep_trigeffsf'])
                   * df_['lep_sf']
+                  * df_['dak8md_bbvl_sf']
                   * df_['BTagWeight'] 
-                  #* df_['BTagWeightLight'] 
-                  #* df_['BTagWeightHeavy'] 
                   * df_['puWeight']  
                   * (df_['PrefireWeight'] if year != '2018' else 1.0))
     return tot_weight
@@ -307,7 +301,7 @@ def getLaLabel(str_):
                              'tab:green'],
         'tt_2b':        [r't$\mathregular{\bar{t}}+$2b',
                              'tab:purple'],
-        'Vjets':            [r'V$+$jets',
+        'VJets':            [r'V$+$jets',
                              'tab:cyan'],
         'other':            ['other',
                              'tab:pink'],

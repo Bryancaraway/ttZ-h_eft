@@ -59,9 +59,7 @@ class TrigSkim(Skim) :
     def get_skim(self):
         __out_dict = {}
         events = {**self.events,**self.hlt}
-        print(events)
         __out_dict['events'] = pd.DataFrame.from_dict({k:v for k,v in events.items()})
-        print(len(__out_dict['events']))
         if not self.isData:
             __out_dict['gen'] = self.geninfo
             __out_dict['metaData'] = self.Meta.get_metadata()

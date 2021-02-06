@@ -77,20 +77,16 @@ class Plotter :
         self.sepData()
         #
         self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
-                       * (np.where(v['weight']>300,0,1))
-                       #* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
-                       #* (v['BC_btagSF'] if self.addBSF else 1.0)
+                       #* (np.where(v['weight']>300,0,1))
                        #* (self.lumi/cfg.Lumi[self.year])
                        * v['topptWeight']
-                       #* (v['SAT_HEMVetoWeight_drLeptonCleaned']  if self.year+self.HEM_opt == '2018' else 1.0 )
                        * (v['HEM_weight'] if self.year+self.HEM_opt == '2018' else 1.0)
-                       * v['lep_trig_eff_tight_pt']
-                       ####* v['lep_trig_eff_tight_eta']
+                       * (v['lep_trigeffsf'])
                        * v['lep_sf']
+                       * v['dak8md_bbvl_sf']
                        * v['BTagWeight'] 
                        * v['puWeight']  
                        * (v['PrefireWeight'] if self.year != '2018' else 1.0)
-                       #* v['ISRWeight']  
                        for k,v in self.data.items()}
 
 
@@ -122,12 +118,14 @@ class Plotter :
         return df
 
     def apply_cuts(self,df):
-        df_mask = self.cut_func(df) if self.doCuts else True
+        default_mask = (lambda _df: ((_df['isEleE']==True) | (_df['isMuonE']==True) )) # this should happen no matter what
+        df_mask = self.cut_func(df) if self.doCuts else default_mask(df)
         if self.add_cuts == '': 
-            if self.doCuts:
-                return df[df_mask]
-            else:
-                return df
+            return df[df_mask]
+            #if self.doCuts:
+            #    return df[df_mask]
+            #else:
+            #    return df
 
         b_str    = re.findall(r'[><=!]=*',self.add_cuts)
         interp_dict = {'>=':op.ge, '<=':op.le, '>':op.gt, '<':op.lt, '==':op.eq, '!=':op.ne}
@@ -434,6 +432,7 @@ class StackedHist(Plotter) :
         self.ax2.yaxis.set_minor_locator(AutoMinorLocator())
         self.ax2.tick_params(which='both', direction='in', top=True, right=True)
         self.ax2.set_ylim(0.3,1.7)
+        #self.ax2.set_ylim(0.0,3.0)
         self.ax2.set_ylabel('data/MC')
         self.ax2.grid(True)
 

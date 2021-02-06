@@ -18,8 +18,9 @@ class DataCardShapes():
     years = cfg.Years
     file_dir = './files/'
     #
-    ref_sample = 'TTZH_val.pkl'
+    ref_samples = ['ttZ','ttH']
     #
+    nn = 'NN'
     hist_dict = {}
     #
     def __init__(self, recopt_bins, recosdM_bins, n_NN_bins=10, isblind=True): # will have to change isblind for final fit
@@ -33,12 +34,14 @@ class DataCardShapes():
     @t2Run
     def init_hist_funcs(self):
         for y in self.years:
-            df = pd.read_pickle(f'{self.file_dir}{y}/mc_files/{self.ref_sample}')
-            if y != '2018':
-                df = df[(df['NN'] >= 0.0) & (df['process'] != 'ttX')]
-            else:
-                df2 = pd.read_pickle(f'{self.file_dir}{y}/mc_files/TTZ_bb_val.pkl')
-                df = pd.concat([df[(df['NN'] >= 0.0) & (df['process'] == 'ttHbb')],df2[df2['NN'] >= 0.0]])
+            get_pickle= (lambda s: pd.read_pickle(f'{self.file_dir}{y}/mc_files/{s}_val.pkl'))
+            df = pd.concat([get_pickle(s) for s in self.ref_samples], axis='rows', ignore_index=True)
+            df = df[((df[self.nn]>=0.0) & ((df['Hbb']==True) | (df['Zbb'] == True)))]
+            #if y != '2018':
+            #    df = df[(df[self.nn] >= 0.0) & (df['process'] != 'ttX')]
+            #else:
+            #    df2 = pd.read_pickle(f'{self.file_dir}{y}/mc_files/TTZ_bb_val.pkl')
+            #    df = pd.concat([df[(df[self.nn] >= 0.0) & (df['process'] == 'ttHbb')],df2[df2[self.nn] >= 0.0]])
 
             df['genZHpt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]-1, inplace=True)
             df['pt_bin'] = pd.cut(df['genZHpt'], bins=self.pt_bins, 
@@ -49,16 +52,16 @@ class DataCardShapes():
                 sub_df = df[df['pt_bin'] == f'Zhpt{i}']
                 quantiles = np.linspace(0,1,self.n_NN_bins+1) # actual quantiles, 10% intervals
                 #if self.isblind:
-                nn_df = sub_df['NN'] 
+                nn_df = sub_df[self.nn] 
                 #else:
-                #    nn_df = sub_df['NN'][sub_df['NN']<=1.7]
+                #    nn_df = sub_df[self.nn][sub_df[self.nn]<=1.7]
 
                 nn_bins = weighted_quantile(nn_df,
                                             quantiles, 
                                             getZhbbWeight(sub_df,y))
                 if self.isblind == False:
                     nn_bins = nn_bins[:8] # first 4 bins to first 6
-                nn_bins = nn_bins[1:] # drop first background dominated bin
+                #nn_bins = nn_bins[1:] # drop first background dominated bin
                 print(nn_bins)
                 self.hist_dict[y][i] = functools.partial(
                     np.histogram2d,
@@ -117,5 +120,5 @@ if __name__ == '__main__':
     plt.show()
     #sig_df = pd.read_pickle(f'./files/2017/mc_files/TTZH_val.pkl')
     #sub_df = sig_df[(((sig_df['Zh_pt'] >= 300) & (sig_df['Zh_pt']<450)) & ((sig_df['genZHpt'] >= 300)&(sig_df['genZHpt'] < 450)))]
-    #hist= test['2017'][2](sub_df['NN'].to_numpy(), sub_df['Zh_M'].to_numpy(), weights=getZhbbWeight(sub_df,'2017'))
+    #hist= test['2017'][2](sub_df[self.nn].to_numpy(), sub_df['Zh_M'].to_numpy(), weights=getZhbbWeight(sub_df,'2017'))
     #print(hist)

@@ -129,7 +129,9 @@ def train_model(m_info):
         print(f"Val   Set Loss: {val_loss:10.4f}  Val   Set Acc: {val_acc:10.4f} Val   Set AUC: {val_auc:10.4f}")
         print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
         plot_history(history)
+        print('here')
         model.save_weights(cfg.dnn_ZH_dir+'/'+'ttzh_model'+'.h5')
+        print('here')
         
     return model, testX, testY
 
@@ -137,7 +139,6 @@ def plot_history(history):
     import matplotlib.pyplot as plt
     hist = pd.DataFrame(history.history)
     hist['epoch'] = history.epoch
-    
     fig, [loss, acc] = plt.subplots(1, 2, figsize=(12, 6))
     loss.set_xlabel('Epoch')
     loss.set_ylabel('Loss')
@@ -216,7 +217,7 @@ def prep_model_data(m_info):
     trainX, valX, testX = [resetIndex(df.drop(columns=['label'])) for df in [trainXY, valXY, testXY]]
     #
     m_class = DNN_model(m_info['sequence'],m_info['other_settings'])  
-    model = m_class.Build_Model(len(cfg.dnn_ZH_vars), )#load_weights='ttzh_model.h5') 
+    model = m_class.Build_Model(len(cfg.withbbvl_dnn_ZH_vars), )#load_weights='ttzh_model.h5') 
     return (
         trainX.to_numpy(), np.stack(trainY.values), valX.to_numpy(), np.stack(valY.values), testX.to_numpy(), np.stack(testY.values), model
     )
@@ -227,7 +228,11 @@ if __name__ == "__main__":
     import sys
     json_dir = f'{sys.path[1]}/log/nn/'
 
-    m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 80, 'batch_size': 10256}
+    #best - > m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 0.75, 0.75], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
+
+    #all_vars -> m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
+
+    m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.5, 1.25, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
     #{'sequence': [['Dense', 128], ['Dense', 32], ['Dropout', 0.2]], 'other_settings': {'fl_a': [1.25,1.25,.4], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 60, 'batch_size': 10256}
     
     #m_info = json.load(open(json_dir/sys.argv[1]))

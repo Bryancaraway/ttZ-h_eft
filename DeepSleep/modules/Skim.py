@@ -108,7 +108,7 @@ class Skim :
         self.handle_multiplicity_HEM_info()
         if not self.isData:
             self.handle_lheweights()
-            self.Meta.add_btagweightsf_counts(self.jets, self.events)
+            self.Meta.add_btagweightsf_counts(self.jets, self.events, self.geninfo)
         self.handle_lep_info()
         #
         self.btag_event_mask = self.get_b_tag_eventmask()
@@ -129,7 +129,6 @@ class Skim :
         }
         events = {**self.events,**self.hlt}
         __out_dict['events'] = pd.DataFrame.from_dict({k:v for k,v in events.items()})
-        print(len(__out_dict['events']))
         if not self.isData:
             __out_dict['gen'] = self.geninfo
             __out_dict['metaData'] = self.Meta.get_metadata()
@@ -172,7 +171,7 @@ class Skim :
         )
         single_mu = (self.muons['Muon_pt'].counts         == 1)
         single_el = (self.electrons['Electron_pt'].counts == 1)
-        print(len(get_lep_info('pt')))
+        #print(len(get_lep_info('pt')))
         self.events.update({
             'Lep_pt'  : get_lep_info('pt'),
             'Lep_eta' : get_lep_info('eta'),
@@ -189,7 +188,7 @@ class Skim :
             'nBottoms' : self.jets['Jet_pt'][(self.jets['Jet_btagDeepB'] > cfg.ZHbb_btagWP[self.year])].counts
         })
         if self.year == '2018':
-            if not self.isData:
+            if not self.isData: # is MC 
                 self.events.update({
                     'HEM_weight': np.where(self.get_HEM_veto(), 1, 0.3518) # fraction of lumi with no HEM issue
                 })
@@ -215,8 +214,8 @@ class Skim :
             (abs(self.jets['Jet_eta']) < 2.4) & 
             ((self.jets['Jet_pt'] > 50) | (self.jets['Jet_puId'] >= 4) ) &
             ( self.jets['Jet_jetId'] >= 2) & 
-            ( self.is_lep_cleaned(self.electrons,'Electron',self.jets,'Jet',0.4) ) &  
-            ( self.is_lep_cleaned(self.muons,'Muon',self.jets,'Jet',0.4) ) 
+            ( self.is_lep_cleaned(self.electrons,'Electron',self.jets,'Jet',0.4) == True ) &  
+            ( self.is_lep_cleaned(self.muons,'Muon',self.jets,'Jet',0.4) == True ) 
         )
     #
     def is_a_fatjet(self):
@@ -226,8 +225,8 @@ class Skim :
             (self.fatjets['FatJet_msoftdrop'] >= 50) & 
             (self.fatjets['FatJet_msoftdrop'] <= 200) & 
             ( self.fatjets['FatJet_jetId'] >= 2) &
-            ( self.is_lep_cleaned(self.electrons,'Electron',self.fatjets,'FatJet',0.8) ) & 
-            ( self.is_lep_cleaned(self.muons,'Muon',self.fatjets,'FatJet',0.8) ) 
+            ( self.is_lep_cleaned(self.electrons,'Electron',self.fatjets,'FatJet',0.8) == True ) & 
+            ( self.is_lep_cleaned(self.muons,'Muon',self.fatjets,'FatJet',0.8) == True ) 
         )
                         
     #

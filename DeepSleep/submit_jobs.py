@@ -29,7 +29,7 @@ job_script = f'scripts/{args.script}.sh'
 
 sample_dict = {'all' :process_cfg.keys(),
                'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
-               'data': ['Data_SingleElectron','Data_SingleMuon'],
+               'data': cfg.Data_samples,
                'tt'   : process_cfg['TTBar'],
                'ttsys': process_cfg['TTBar_sys'],
                #'tt_bb' : process_cfg['ttbb'],
@@ -81,11 +81,17 @@ def execute_runAna(samples, year, jec):
         else:
             ppn = 4
         pass_args = f'-v sample={sample},year={year}{add_args}'
-        command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}Ana_{out_name}std.out -e {log_dir}Ana_{out_name}.stderr '
+        command   = f'qsub -l nodes=1:ppn={ppn} -o {log_dir}Ana_{out_name}.stdout -e {log_dir}Ana_{out_name}.stderr '
         command  += f'-N {args.samples}_{args.year}_{sample}{year}{tag} '
         command += f' {pass_args} {job_script}'
         print(command)
         os.system(command)
+        num_jobs_running = lambda: int(sb.check_output(
+            f"qstat -u $USER -w -f | grep 'Job_Name = {args.samples}_{args.year}_{sample}{year}{tag}' | wc -l", shell=True).decode())
+        # allow qsub to catch up?
+        time.sleep(5)
+        while num_jobs_running() > 40:
+            time.sleep(30) 
 
 def execute_runSkim(samples,year,jec):
     popens = []

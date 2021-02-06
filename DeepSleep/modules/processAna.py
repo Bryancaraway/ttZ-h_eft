@@ -1,4 +1,4 @@
-########################OA
+########################
 ### process code     ###
 ### for analysis     ###
 ########################
@@ -15,10 +15,12 @@ if __name__ == '__main__':
     sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 import time
 import re
+import json
 from numba import njit, prange
 from uproot_methods import TLorentzVectorArray
 # Custom cfg, lib, modules
 import config.ana_cff as cfg
+from config.sample_cff import sample_cfg
 import lib.fun_library as lib
 from lib.fun_library import fill1e, fillne, deltaR, deltaPhi, invM, calc_mtb, t2Run
 from modules.AnaDict import AnaDict
@@ -93,16 +95,19 @@ class processAna :
                 # Note: can be improved if ran after ZH is reconstructed and used to gen-reco match 
                 self.match_gen_sig() 
         #
-        self.applyDNN()
+        self.passHLT_by_year()
+        self.applyDNN(model_file='withdak8md_model.h5')
+        self.applyDNN(model_file='noak8md_model.h5')
+        self.applyDNN(model_file='withbbvl_model.h5')
+        self.val_df['NN'] = self.val_df['withdak8md_NN'] # hard-coded to not break anythin
+
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
-            #self.alter_btag_w()
-            #self.addHLT_to_MC()
-            self.getLepEff()
+            self.finalize_btag_w()
+            self.getbbvlsf()
+            self.getLepEffSF()
             self.getLepSF()
             #self.getBCbtagSF()
-
-        self.passHLT_by_year()
         self.categorize_process()
         #
         if self.outTag != '': outTag = f'{self.outTag}_'
@@ -121,17 +126,18 @@ class processAna :
         finish = time.perf_counter()
         print(f'\nTime to finish {type(self).__name__} for {self.sample}: {finish-start:.1f}\n')
 
-    def alter_btag_w(self):
-        btw = self.val_df['BTagWeight']
-        nj  = self.val_df['n_ak4jets'].clip(0,12)
-        opp = np.where(self.meta_df == 0 , 0.,
-                       self.meta_df['btw_yield']/self.meta_df['nj_yield'])
-        rr = nj.apply((lambda i : opp[i]))
-        print(rr)
-        old_btw = btw*rr
-        print(btw)
-        self.val_df['BTagWeight'] = old_btw * sum(self.meta_df['nj_yield'])/sum(self.meta_df['btw_yield'])
-        print(self.val_df['BTagWeight'])
+    def finalize_btag_w(self):
+        r_ratio_json = json.load(open(cfg.dataDir+f'/btagw_r_ratio/btagw_r_ratio_{self.year}.json', 'r'))
+        if 'Up' in self.sample or 'Down' in self.sample:
+            # to use base ttbar and ttbb
+            r_ratios = r_ratio_json[sample_cfg['_'.join(self.sample.split('_')[:-1])]['out_name']] 
+        else:
+            r_ratios = r_ratio_json[sample_cfg[self.sample]['out_name']]
+        nj  = self.val_df['n_ak4jets'].clip(0,9)
+        for r_key  in r_ratios:
+            btw_name = r_key.replace('r_ratio','BTagWeight')
+            r_ = nj.apply((lambda i : r_ratios[r_key][int(i)]))
+            self.val_df.loc[:,btw_name] = r_*self.val_df[btw_name]
 
     def lepCleaned_v2(self):
         # Clean ak4 and ak8 jets within dR of 0.4 and 0.8 of Lepton
@@ -145,7 +151,7 @@ class processAna :
         #
     def match_gen_tt(self):
         # first get ttbar decay type : Had, Semi, Di
-        if   'Di' in self.sample:
+        if   '2L2Nu' in self.sample:
             self.val_df['tt_type'] = 'Di'
         elif 'Semi' in self.sample:
             self.val_df['tt_type'] = 'Semi'
@@ -188,8 +194,6 @@ class processAna :
         # calculate toppt weight for powheg only
         if True:#'pow' in self.sample:
             tt_pt = gen_pt[(abs(gen_ids) == 6)]
-            ##wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800))) # old data driven re-weighting
-
             # Using the newer theo (NNLO QCD + NLO EW) corrections which is better for BSM analysis aspects
             sf = (lambda x: 0.103*np.exp(-0.0118*np.clip(x,0,np.inf)) - 0.000134*np.clip(x,0,np.inf) + 0.973) #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Case_3_3_The_Effective_Field_The
 
@@ -203,9 +207,8 @@ class processAna :
             self.val_df['topptWeight_Up']   = toppt_rwgt_up
             self.val_df['topptWeight_Down'] = toppt_rwgt_dn
             
-
             # old data-driven approach
-
+            ##wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800))) # old data driven re-weighting
             #up_, dn_ = toppt_sys['topPt_up'], toppt_sys['topPt_dn']
             #tt_up = np.column_stack([self.getToppt_sys(tt_pt[:,i],up_) for i in [0,1]])
             #tt_dn = np.column_stack([self.getToppt_sys(tt_pt[:,i],dn_) for i in [0,1]])
@@ -336,7 +339,6 @@ class processAna :
         #print(Zh_reco_cut)
         Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M,Zh_wtag,Zh_ttag,Zh_bbtag=lib.sortbyscore(
             [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M,w_tag,t_tag,ak8_bbtag],ak8_Zhbbtag,Zh_reco_cut)
-        print(Zh_Zhbbtag)
         # =============================== # 
         # compute subject info related to Zh candidate : have to sort out candidate with no subjet
         ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt, subj_btag] for id_ in [subj1, subj2]] # sj kinems per ak8jet
@@ -540,54 +542,99 @@ class processAna :
         self.val_df['Zh_lbbqq_dr'] = np.nan_to_num(Zh_lbbqq_dr) # new
         #
     
-    def applyDNN(self):
+    def applyDNN(self, model_file='withdak8md_model.h5'):
         from modules.dnn_model import DNN_model
-        import json
-        nn_dir   = cfg.dnn_ZH_dir 
+
+        nn_dir    = cfg.dnn_ZH_dir 
+        dnn_vars = {
+            'withdak8md_model.h5' :cfg.allvars_dnn_ZH_vars,
+            'noak8md_model.h5'     :cfg.nodak8md_dnn_ZH_vars,
+            'selvars_ttzh_model.h5':cfg.selvars_dnn_ZH_vars,
+            'withbbvl_model.h5':    cfg.withbbvl_dnn_ZH_vars,
+        }
         resetIndex = (lambda df: df.reset_index(drop=True).copy())
         #open json nn settings
         # --
-        m_info = {'sequence': [['Dense', 256], ['Dense', 128], ['Dropout', 0.5]], 
-                  'other_settings': {'fl_a': [1.25, 1, 0.4], 'fl_g': 1, 'lr_alpha': 0.001}, 'n_epochs': 60, 'batch_size': 10256}
-        #{"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.2]], 
-        # "other_settings": {"fl_a": [1, 1.1, 0.5], "fl_g": 0.6, "lr_alpha": 0.001}, "n_epochs": 60, "batch_size": 10256}
+        #m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 1.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 80, 'batch_size': 10256}
+        #m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 0.75, 0.75], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
+        m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
         #
         dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
-        nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='ttzh_model.h5')#'nn_ttzh_model.h5')
+        #nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='ttzh_model.h5')#'nn_ttzh_model.h5')
+        nn_model = dnn.Build_Model(len(dnn_vars[model_file]), load_weights=model_file)#'nn_ttzh_model.h5')
+        #nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='nn_ttzh_model.h5')
         #
         base_cuts = lib.getZhbbBaseCuts(self.val_df)
         #
-        pred_df = resetIndex(self.val_df[cfg.dnn_ZH_vars][base_cuts])
+        pred_df = resetIndex(self.val_df[dnn_vars[model_file]][base_cuts])
 
         pred = nn_model.predict(pred_df)[:,2]
-        print(pred)
-        
-        self.val_df.loc[:,'NN'] = -1.
-        self.val_df.loc[base_cuts,'NN'] = pred
+        #print(pred)
+        df_nn_name = model_file.replace("model.h5",'')+'NN'
+        self.val_df.loc[:,df_nn_name] = -1.
+        self.val_df.loc[base_cuts,df_nn_name] = pred
 
         #
     def addHLT_to_MC(self):
         # add hlt variables into MC and set them to 1
         for var in cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}']:
             self.val_df[var] = True
+
+    def getbbvlsf(self):
+        sf_file_dict = json.load(open(cfg.dataDir+f'/deepak8sf/deepak8_bbvL_sf_{self.year}.json','r'))
+        pt_bins = sf_file_dict['pt_bins']
+        score_bins = sf_file_dict['score_bins']
+        # apply by file 
+        def get_right_sf(_df,r_or_f='fake'):
+            sf = sf_file_dict[r_or_f]['score_pt_sf']
+            sf_err = sf_file_dict[r_or_f]['score_pt_sf_err']
+            pt_digi = pd.cut(_df['Zh_pt'].clip(pt_bins[0]+0.001,pt_bins[-1]-0.001), bins = pt_bins, 
+                             right=True,  include_lowest=True, labels=range(len(pt_bins)-1))
+            score_digi = pd.cut(_df['Zh_bbvLscore'], bins = score_bins, 
+                                right=True,  include_lowest=True, labels=range(len(score_bins)-1))
+            pt_digi_ignore_nan    = np.nan_to_num(pt_digi.values).astype(int)
+            score_digi_ignore_nan = np.nan_to_num(score_digi.values).astype(int)
+            
+            get_sf = (lambda _sf : np.array([ _sf[x][y] for x,y in zip(score_digi_ignore_nan,pt_digi_ignore_nan)]))
+            _df.loc[:,'dak8md_bbvl_sf'] = np.where(score_digi.isna().values, 1, get_sf(sf))     # for bbvl = -10, we drop these events later
+            list_sf_err                 = np.where(score_digi.isna().values, 0, get_sf(sf_err)) # for bbvl = -10
+            _df.loc[:,'dak8md_bbvl_sf_Up']   = _df['dak8md_bbvl_sf'] + list_sf_err
+            _df.loc[:,'dak8md_bbvl_sf_Down'] = _df['dak8md_bbvl_sf'] - list_sf_err
+            return _df
+            
+        if self.isSignal:
+            self.val_df.loc[:,'dak8md_bbvl_sf']      = 1
+            self.val_df.loc[:,'dak8md_bbvl_sf_Up']   = 1
+            self.val_df.loc[:,'dak8md_bbvl_sf_Down'] = 1
+            self.val_df = pd.concat([get_right_sf(self.val_df.loc[((self.val_df['Hbb']==True)|(self.val_df['Zbb']==True))], 'real'),
+                                     get_right_sf(self.val_df.loc[((self.val_df['Hbb']==False)&(self.val_df['Zbb']==False))],'fake')
+                                 ],axis='rows')
+        elif 'TTbb' in self.sample:
+            self.val_df = get_right_sf(self.val_df,'real')
+        else:
+            self.val_df = get_right_sf(self.val_df,'fake')
+            
+
     @t2Run
-    def getLepEff(self):
-        lep_pt  = self.val_df['Lep_pt']
-        lep_eta = self.val_df['Lep_eta'] 
-        for eff_tag in ['med','tight']:
-            for kinem, k_name in zip([lep_pt,lep_eta],['pt','eta']):
-                for lep_type in ('muon','electron'):
-                    #eff = AnaDict.read_pickle(f'{self.outDir}{self.year}/eff_files/{lep_type}_eff_{self.year}_{eff_tag}.pkl')
-                    eff = AnaDict.read_pickle(f'{self.dataDir}lep_eff_files/{lep_type}_eff_{self.year}_{eff_tag}.pkl')
-                    self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}'], self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}_up'], self.val_df[f'{lep_type}_eff_{eff_tag}_{k_name}_down']  = self.addLepEff(kinem, lep_type, eff[k_name])
-                #
-                for varr in ['','_up','_down']:
-                    self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}{varr}'] = pd.concat(
-                        [self.val_df[f'electron_eff_{eff_tag}_{k_name}{varr}'][self.val_df['passSingleLepElec']==1],
-                         self.val_df[f'muon_eff_{eff_tag}_{k_name}{varr}'][self.val_df['passSingleLepMu']==1]]).sort_index()
-                    #print(self.val_df[f'lep_trig_eff_{eff_tag}_{k_name}{varr}'])
-                
-        #self.val_df['Muon_eff'] = eff_fun_dict[self.year](lep_pt)
+    def getLepEffSF(self):
+        self.val_df['lep_trigeffsf']      = 1
+        self.val_df['lep_trigeffsf_Up']   = 1
+        self.val_df['lep_trigeffsf_Down'] = 1
+        for lep, singlelep in zip(['Electron','Muon'],['passSingleLepElec','passSingleLepMu']):
+            lep_pt, lep_eta  = self.val_df['Lep_pt'], self.val_df['Lep_eta']
+            if lep == 'Muon': lep_eta = abs(lep_eta)
+            sf_dict = json.load(open(cfg.dataDir+'/lep_effsf_files/'+f"trigeffSF_{lep}_{self.year}.json",'r'))[lep]
+            sf, sf_up, sf_down, pt_bins, eta_bins = sf_dict['pt_eta_sf'], sf_dict['pt_eta_sf_Up'], sf_dict['pt_eta_sf_Down'], sf_dict['pt_bins'], sf_dict['eta_bins']
+            pt_digi  = pd.cut(lep_pt.clip(pt_bins[0]+eps,pt_bins[-1]-eps), bins=pt_bins, right=True, include_lowest=True, labels=range(len(pt_bins)-1))
+            eta_digi = pd.cut(np.clip(lep_eta,eta_bins[0]+eps,eta_bins[-1]-eps), bins=eta_bins, right=True, include_lowest=True, labels=range(len(eta_bins)-1))
+            get_sf = (lambda _sf : np.array([ _sf[x][y] for x,y in zip(pt_digi.values,eta_digi.values)]))
+            weight, weight_up, weight_down = get_sf(sf), get_sf(sf_up), get_sf(sf_down)
+            self.val_df.loc[self.val_df[singlelep]==True, 'lep_trigeffsf']      = (weight)            [self.val_df[singlelep] == True]
+            self.val_df.loc[self.val_df[singlelep]==True, 'lep_trigeffsf_Up']   = (weight+weight_up)  [self.val_df[singlelep] == True]
+            self.val_df.loc[self.val_df[singlelep]==True, 'lep_trigeffsf_Down'] = (weight-weight_down)[self.val_df[singlelep] == True]
+            #print(self.val_df['lep_trigeffsf'])
+            #print(self.val_df['lep_trigeffsf_Up'])
+            #print(self.val_df['lep_trigeffsf_Down'])
 
     @t2Run
     def getLepSF(self):
@@ -613,9 +660,11 @@ class processAna :
                 lep_sf = np.array([(lambda x,y: np.array([sf[k][x][y]['values'], sf[k][x][y]['up']]))(x,y) for x,y in zip(eta_digi.values,pt_digi.values)]) # this should be propagating the error properly
                 #total_lep_sf *= lep_sf.to_numpy(dtype=float)
                 total_lep_sf[0] *= lep_sf[:,0]
-                lep_sf_err = abs(lep_sf[:,1] - lep_sf[:,0]) 
+                lep_sf_err = abs(lep_sf[:,1] - lep_sf[:,0]) * lep_sf[:,0]
                 total_lep_sf[1] = total_lep_sf[0]*np.sqrt(np.power(lep_sf_err/lep_sf[:,0],2)+ np.power(total_lep_sf[1]/total_lep_sf[0],2)) 
             self.val_df[f'{lep_type}_sf']      = total_lep_sf[0]
+            if lep_type == 'muon': 
+                total_lep_sf[1] = np.sqrt(total_lep_sf[1]**2 + (.03*total_lep_sf[0])**2) # 3% additional error added to suslep mu
             self.val_df[f'{lep_type}_sf_up']   = total_lep_sf[1]+total_lep_sf[0]
             self.val_df[f'{lep_type}_sf_down'] = total_lep_sf[0]-total_lep_sf[1]
         #
@@ -623,7 +672,6 @@ class processAna :
             self.val_df[f'lep_sf{var}'] = pd.concat(
                 [self.val_df[f'electron_sf{var}'][self.val_df['passSingleLepElec']==1],
                  self.val_df[f'muon_sf{var}'][self.val_df['passSingleLepMu']==1]]).sort_index()
-
 
     def addLepEff(self, dist, lep_type, eff):
         bins=[float(bin_str.split(',')[0]) for bin_str in eff] + [float(list(eff.keys())[-1].split(',')[1])]
@@ -640,20 +688,6 @@ class processAna :
     #    BCbtagSF = n_b.map(lambda k: sf[int(k)])
     #    self.val_df['BC_btagSF'] = BCbtagSF
         
-
-    #@staticmethod
-    #def calcMuonEff_2018(pt_dist):
-    #    b_update = pd.read_pickle('muonSF2018_beforeupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
-    #    a_update = pd.read_pickle('muonSF2018_afterupdate.pkl')['IsoMu24_PtBins']['histo_pt_DATA']
-    #    # weighting calculated from: 2018 muon runs 315257 -> 325172 which has 477 total runs
-    #    b_weight = 76/477  # 76  runs before run 316361
-    #    a_weight = 401/477 # 401 runs after  run 316361
-    #    bins=[2, 18, 22, 24, 26, 30, 40, 50, 60, 120, 200, 300, 500, 700, 1200] # from MUON POG for 2018 HLT_IsoMu24
-    #    digi_pt = pd.cut(pt_dist.clip(bins[0],bins[-1]), bins=bins, 
-    #                     labels= sorted(b_update.keys(), key= lambda z : float(z.split('[')[1].split(',')[0]))) # key has format 'pt:[low_edge,hi_edge]'
-    #    muon_eff = digi_pt.map(lambda k: a_update[k]['value']*a_weight + b_update[k]['value']*b_weight)
-    #    return muon_eff.to_numpy(dtype=float)
-
     def passHLT_by_year(self):
         self.val_df['pbt_elec'] = cfg.hlt_path['electron'][self.year](self.val_df)
         self.val_df['pbt_muon'] = cfg.hlt_path['muon'][self.year](self.val_df)
@@ -667,23 +701,13 @@ class processAna :
         # special rules for handling TTZH, TTZ_bb
         # TTBar, tt_bb, and Data
         self.val_df['process'] = ''
-        #def handleTTZH():
-        #    self.val_df.loc[(self.val_df['Hbb']== True),'process'] = 'ttHbb'
-        #    #if self.year == '2018':
-        #    #    self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'old_ttZbb' # will change to old
-        #    #else:
-        #    self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'ttZbb' # will change to old
-        #    self.val_df.loc[(self.val_df['Zqq']== True),'process'] = 'ttX'
+        
         def handleTTZ():
             self.val_df['process'] = 'ttZ'
             if self.sample == 'TTZToQQ':
                 self.val_df.loc[(self.val_df['Zbb']== True),'process'] = 'old_ttZbb'
         def handleTTH():
             self.val_df['process'] = 'ttH'
-        #def handleTTZ_bb():
-        #    #if self.year == '2018':
-        #    self.val_df['process'] = 'new_ttZbb' # think of this as just extra statistics for ttz, z->bb # thinking about this more, its not --> have to just replace
-        #    self.val_df['weight']  = 0.001421 # mistake with calculating cross-section
         def handleTTBar():
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'TTBar'
             self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_bb'
@@ -697,7 +721,7 @@ class processAna :
         def handleTTX():
             self.val_df['process'] = 'ttX'
         def handleVjets():
-            self.val_df['process'] = 'Vjets'
+            self.val_df['process'] = 'VJets'
         def handleOther():
             self.val_df['process'] = 'other'
         def handleEleData():
@@ -724,45 +748,17 @@ class processAna :
                              'Data_SingleMuon'                      : handleMuData
         }
         #sample_to_process.get(self.sample, handleOther)()
-        from config.sample_cff import sample_cfg
-        process = sample_cfg[self.sample]['out_name']
+        process = sample_cfg[self.sample]['out_name'].replace('_sys','') # replace to handle TTBar_sys, ttbb_sys
         sample_to_process.get(process, handleOther)()
         print(np.unique(self.val_df['process']))
 
     def add_weights_to_ttbb(self):
-        tt_bb_norms_scales = AnaDict.read_pickle(self.dataDir + '/tt_bb_nom.pkl')
-        for w_or_scale, _dict in tt_bb_norms_scales.items():
-            for key, v in _dict.items():
-                if self.year in key:
-                    if self.sample.split('_')[0].replace('TTbb','') in key: # check which type this is Di, Semi, Had
-                        prefix = key.replace(key.split('_')[0]+'_','').strip(f'_{self.year}') 
-                        if 'nom' in key and 'hdamp' not in self.sample:
-                            self.val_df["weight"] = v
-                            print(self.val_df["weight"])
-                        elif( 'hdampUp' in key and 'hdampUp' in self.sample): # my brain is dead so this hacky solution should work
-                            self.val_df["weight"] = v
-                            print(self.val_df["weight"])
-                        elif( 'hdampDown' in key and 'hdampDown' in self.sample):
-                            self.val_df["weight"] = v
-                            print(self.val_df["weight"])
-                        elif 'hdamp' not in key and 'nom' not in key:
-                            self.val_df[f"{prefix}_{w_or_scale}"] = v
-                            print(self.val_df[f"{prefix}_{w_or_scale}"])
+        tt_bb_nw_files = f'{cfg.dataDir}/process_norms/process_norms_ttbbw_run2.json'
+        tt_bb_norm_weights =  json.load(open(tt_bb_nw_files,'r'))[self.year]
+        ttbb_key = (sample_cfg[self.sample]['out_name'], self.sample)
+        self.val_df['weight'] = tt_bb_norm_weights[ttbb_key[0]][ttbb_key[1]]['weight']
+        #print(self.val_df['weight'])
 
-    #@staticmethod
-    #@njit(parallel=True)
-    #def clean_rtc_Zh(rtd, j1, j2, j3, ak4, out):
-    #    rows, cols = out.shape
-    #    for i in prange(rows):
-    #        for j in prange(cols):
-    #            if np.isnan(j1[i,j]) | np.isnan(j2[i,j]) | np.isnan(j3[i,j]):
-    #                continue
-    #            if np.isnan(ak4[i,int(j1[i,j])]) | np.isnan(ak4[i,int(j2[i,j])]) | np.isnan(ak4[i,int(j3[i,j])]):
-    #                continue
-    #            else:
-    #                out[i,j] = rtd[i,j]
-    #    return out        
-    #    #
 
 if __name__ == '__main__':
 

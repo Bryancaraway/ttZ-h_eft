@@ -27,8 +27,10 @@ class DNN_datasets:
     sig = ['ttH','ttZ']
     bkg = ['TTBar','ttbb']
     sb_loc = cfg.master_file_path+'/*/mc_files/'
-    dnn_vars = cfg.dnn_ZH_vars 
-    cut_vars =  ['process','Zh_pt','MET_pt','Zh_M']
+    #dnn_vars = cfg.dnn_ZH_vars 
+    #dnn_vars = cfg.nodak8md_dnn_ZH_vars
+    dnn_vars = cfg.withbbvl_dnn_ZH_vars
+    cut_vars =  ['process','Zh_pt','MET_pt','Zh_M', 'isEleE', 'isMuonE','Zh_bbvLscore']
     test_train_dir = cfg.dnn_ZH_dir
 
     def __init__(self):
@@ -39,7 +41,7 @@ class DNN_datasets:
         self.sep_test_train()
 
     def get_sigbkg(self):
-        pre_vars = self.dnn_vars + self.cut_vars
+        pre_vars = self.dnn_vars + [v for v in self.cut_vars if v not in self.dnn_vars]
         s_df = pd.concat([
             pd.read_pickle(b).loc[:,pre_vars+['matchedGen_ZHbb']] for b in self.sig_files], ignore_index=True)
         b_df = pd.concat([
@@ -64,7 +66,8 @@ class DNN_datasets:
         self.sb_df = sb_df[dnn_cut(sb_df)].sample(frac=1).reset_index(drop=True) # to shuffle dataset
         print(np.unique(self.sb_df['process'],return_counts=True))
         for v in self.cut_vars:
-            del self.sb_df[v]
+            if v not in self.dnn_vars:
+                del self.sb_df[v]
 
     def sep_test_train(self):
         train_df = self.sb_df.sample(frac=.75, random_state=1)
