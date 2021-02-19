@@ -17,7 +17,7 @@ import config.ana_cff as cfg
 from config.sample_cff import sample_cfg, process_cfg
 from modules.AnaDict import AnaDict
 from modules.PostSkim import PostSkim
-from lib.fun_library import clop_pear_ci
+from lib.fun_library import clop_pear_ci, save_pdf
 
 eps = 0.0001
 
@@ -41,16 +41,29 @@ class Calc_LepEffSF :
                 '2018':['2018']}
     }
 
-    bins_dict = {
-        'Electron': {'pt': [30,  40,  55, 120, 200, 500], 'eta': [-2.5,-2.1,-1.5,-0.8,0.,0.8,1.5,2.1,2.5]},
-        'Muon'    : {'pt':[30,  40,  50,  60, 120, 200, 500], 'eta':[0.0,0.9,1.2,2.1,2.4]}#'eta': [-2.4,-2.1,-1.2,-0.9,0.0,0.9,1.2,2.1,2.4]}
-    }
-        
                     
 
     def __init__(self,channel, year):
         self.channel = channel # Electron or Muon
         self.year = year
+        self.bins_dict = {
+            'Electron': { # cut off for electron is at 35 for 2017/18
+                '2016':{ 
+                    'pt': [30,  40,  55, 120, 200, 500], 
+                    'eta': [-2.5,-2.1,-1.5,-0.8,0.,0.8,1.5,2.1,2.5]},
+                '2017':{
+                    'pt': [35,  45,  60, 120, 200, 500], 
+                    'eta': [-2.5,-2.1,-1.5,-0.8,0.,0.8,1.5,2.1,2.5]},
+                '2018':{
+                    'pt': [35,  45,  60, 120, 200, 500], 
+                    'eta': [-2.5,-2.1,-1.5,-0.8,0.,0.8,1.5,2.1,2.5]},
+            },
+            'Muon'    : {
+                self.year: { # same for all years
+                    'pt':[30,  40,  50,  60, 120, 200, 500], 
+                    'eta':[0.0,0.9,1.2,2.1,2.4]},#'eta': [-2.4,-2.1,-1.2,-0.9,0.0,0.9,1.2,2.1,2.4]}
+            },
+        }
         # load data and mc that passes reference trigger
         self.data_df = self.getData('Data_Single'+self.of_lep[self.channel])
         di_mc_df, di_gen_df   = self.getData('TTTo2L2Nu')
@@ -66,7 +79,8 @@ class Calc_LepEffSF :
         #
         self.alpha = self.get_alpha()
         self.sf, self.sf_up, self.sf_down, self.sf_bins = self.calc_trig_eff_sf()
-        self.store_sf()
+        #self.store_sf()
+        save_pdf(f'{self.channel}_trigeff_{self.year}.pdf')(self.plot_datamc_eff)()
         #self.plot_test('nBottoms',[-.5,0.5,1.5,2.5,3.5,4.5])
         #self.plot_test(f'{self.of_lep[channel]}_pt',[30,  40,  50,  60, 120, 200, 500])
         #self.plot_test(f'{self.of_lep[channel]}_eta',[0,  0.9, 1.2, 2.1, 2.5])
@@ -78,8 +92,8 @@ class Calc_LepEffSF :
         # store like pt bin -> eta bin 
         print(self.sf)
         print(self.sf_bins)
-        out_dict = {self.channel :{'pt_bins' : self.bins_dict[self.channel]['pt'],
-                                   'eta_bins': self.bins_dict[self.channel]['eta'],
+        out_dict = {self.channel :{'pt_bins' : self.bins_dict[self.channel][self.year]['pt'],
+                                   'eta_bins': self.bins_dict[self.channel][self.year]['eta'],
                                    'pt_eta_sf': self.sf.tolist(),
                                    'pt_eta_sf_Up': self.sf_up.tolist(),
                                    'pt_eta_sf_Down': self.sf_down.tolist(),
@@ -100,7 +114,7 @@ class Calc_LepEffSF :
         return alpha
 
     def calc_trig_eff_sf(self):
-        bins = self.bins_dict[self.channel]            
+        bins = self.bins_dict[self.channel][self.year]
         # first pass reference trigger
         self.mc_df = self.mc_df[self.pass_refTrig(self.mc_df)]
         self.data_df = self.data_df[self.pass_refTrig(self.data_df)]
@@ -119,10 +133,12 @@ class Calc_LepEffSF :
         num_mc, den_mc, eff_mc_up, eff_mc_down, edges = get_eff(self.mc_df[self.mc_df['ttype'] == '2L']) # for SF measurement 
         num_mc_sys, den_mc_sys, *_ = get_eff(self.mc_df) # for systematic
         eff_mc     = num_mc/den_mc
+        self.eff_mc, self.eff_mc_up, self.eff_mc_down = eff_mc,eff_mc_up,eff_mc_down
         eff_mc_sys = num_mc_sys/den_mc_sys
         #
         num_data, den_data, eff_data_up, eff_data_down, _ = get_eff(self.data_df)
         eff_data = num_data/den_data
+        self.eff_data, self.eff_data_up, self.eff_data_down = eff_data,eff_data_up,eff_data_down
         print("MC eff per pt/eta bin",  num_mc/den_mc)
         print("Data eff per pt/eta bin",num_data/den_data)
         #SF
@@ -154,6 +170,40 @@ class Calc_LepEffSF :
         #plt.title(f"Data/MC Single{self.channel} trigger eff.")
         #plt.legend()
         #plt.show()
+
+    def plot_datamc_eff(self):
+        self.plot_eff(self.eff_mc, self.eff_mc_up, self.eff_mc_down, 'MC')
+        self.plot_eff(self.eff_data, self.eff_data_up, self.eff_data_down, 'Data')
+
+    def plot_eff(self,eff,eff_up,eff_down, datamc):
+        fig, ax = plt.subplots()
+        fig.subplots_adjust(
+            top=0.88,
+            bottom=0.11,
+            left=0.11,
+            right=0.99,
+            #hspace=0.0 
+            wspace=0.0
+        )
+        pt_bins = self.bins_dict[self.channel][self.year]['pt']
+        eta_bins = self.bins_dict[self.channel][self.year]['eta']
+        
+        c = ax.pcolor(pt_bins,eta_bins,np.array(eff).T, vmin=0, vmax=1.05)
+        #c = ax.pcolor(eff_dict['pt_eta_sf'])
+        for i in range(len(eta_bins)-1):
+            for j in range(len(pt_bins)-1):
+                ax.text( pt_bins[j] + (pt_bins[j+1]-pt_bins[j])/2, eta_bins[i] + (eta_bins[i+1]-eta_bins[i])/2, 
+                         f"{eff[j][i]:.3f}"+r"${{}}^{{+{0:.3f}}}_{{-{1:.3f}}}$".format(eff_up[j][i],eff_down[j][i]), horizontalalignment='center', verticalalignment='center', fontsize=5.5)
+        ax.set_xscale("Log")
+        ax.set_xticks(pt_bins)
+        ax.set_xticklabels([str(i) for i in pt_bins])
+        ax.set_yticks(eta_bins)
+        ax.set_yticklabels([f"{i:.1f}" for i in eta_bins])
+        plt.minorticks_off()
+        fig.suptitle(f'{self.channel} triger eff. ({self.year} {datamc})')
+        cbar = fig.colorbar(c, pad=0)
+        cbar.set_ticks(np.arange(0,1.1,.1))
+        cbar.set_ticklabels([f"{i:.1f}" for i in np.arange(0,1.1,.1)])
 
 
     def plot_test(self,k_name,bins):

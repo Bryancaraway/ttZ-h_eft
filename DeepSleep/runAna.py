@@ -68,7 +68,7 @@ def analyzer(sample):
     #               'treeDir':cfg.tree_dir+'_bb', 'isData':isData, 'jec_sys': args.jec, 'jec_type': args.jetjec,
     #               'estart':args.estart, 'estop':args.estop}
     #gD_out = getData(getData_cfg).getdata()
-    gD_out = AnaDict.read_pickle(f'{input_file}')
+    gD_out = AnaDict.read_pickle(input_file)
     if isData: 
         ak4_df, ak8_df = [ AnaDict(gD_out[k]) for k in ['ak4','ak8'] ]
         val_df = gD_out['events']

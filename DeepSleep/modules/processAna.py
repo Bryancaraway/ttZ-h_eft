@@ -129,7 +129,7 @@ class processAna :
     def finalize_btag_w(self):
         r_ratio_json = json.load(open(cfg.dataDir+f'/btagw_r_ratio/btagw_r_ratio_{self.year}.json', 'r'))
         if 'Up' in self.sample or 'Down' in self.sample:
-            # to use base ttbar and ttbb
+            # ttbar/ttbb_sys to use nominal ttbar and ttbb
             r_ratios = r_ratio_json[sample_cfg['_'.join(self.sample.split('_')[:-1])]['out_name']] 
         else:
             r_ratios = r_ratio_json[sample_cfg[self.sample]['out_name']]

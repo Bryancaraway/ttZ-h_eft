@@ -29,6 +29,7 @@ class AnaDict (UserDict): # may want to move this to different file
     #class methods
     @classmethod
     def read_pickle(cls,input_name):
+        print(input_name)
         with open(input_name, 'rb') as handle:
             return cls(pickle.load(handle))
     @classmethod

@@ -9,11 +9,12 @@ from matplotlib.ticker import AutoMinorLocator
 from lib.fun_library import getZhbbBaseCuts as zh_cuts
 import config.ana_cff as cfg
 
+nn = 'withbbvl_NN'
 
 def get_val_info(sample):
     s_dict = {}
     for y in cfg.Years:
-        s_dict[y] = pd.read_pickle(f'files/{y}/mc_files/{sample}_val.pkl')
+        s_dict[y] = pd.read_pickle(f'{sys.path[1]}/files/{y}/mc_files/{sample}_val.pkl')
     return s_dict
 
 
@@ -37,7 +38,7 @@ def plot_roc(sb):
     plt.plot([0,1],[0,1], 'k--')
     for y in cfg.Years:
         sb[y] = sb[y][zh_cuts(sb[y])]
-        fpr, tpr, thresh = metrics.roc_curve(sb[y]['Y'], sb[y]['NN'])
+        fpr, tpr, thresh = metrics.roc_curve(sb[y]['Y'], sb[y][nn], sample_weight = sb[y]['weight'])
         plt.plot(fpr,tpr,
                  label=f'{y}, AUC: {metrics.auc(fpr,tpr):.4f}')
     plt.xlabel('False Positive Rate')
@@ -52,8 +53,12 @@ def plot_roc(sb):
     plt.show()
 
 def main():
-    tt = get_val_info('TTBarLep')
-    sig = signal_wrapper(get_val_info('TTZH'))
+    tt = get_val_info('TTBar')
+    #ttbb = get_val_info('ttbb')
+    #bkg = {k:pd.concat([ttbb[k],tt[k]],axis='rows',ignore_index=True) for k in cfg.Years}
+    ttz = signal_wrapper(get_val_info('ttZ'))
+    tth = signal_wrapper(get_val_info('ttH'))
+    sig = {k: pd.concat([ttz[k],tth[k]],axis='rows',ignore_index=True) for k in cfg.Years}
     plot_roc(prep_for_roc(sig,tt))
 
 if __name__ == '__main__':

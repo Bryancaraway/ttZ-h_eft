@@ -166,13 +166,13 @@ class SkimMeta :
         if   'TTbb'    in self.sample:
             process_mask = (geninfo['genTtbarId'] % 100 >= 51)
         elif 'TTTo'    in self.sample:
-            process_mask = (geninfo['genTtbarId'] % 100 >= 51)
+            process_mask = (geninfo['genTtbarId'] % 100 < 51)
         elif 'TTZToQQ' in self.sample:
             isbb_fromZ     = ((abs(geninfo['GenPart_pdgId']) == 5) & (geninfo['GenPart_pdgId'][geninfo['GenPart_genPartIdxMother']] == 23))
             isZbb  = ((geninfo['GenPart_pdgId'] == 23) & (isbb_fromZ.sum() == 2))
             process_mask = isZbb.sum() == 0
         ## -- ## 
-        if   process_mask is not None:
+        if process_mask is not None:
             active_mask = (lambda df : df[process_mask])
         else : active_mask = (lambda df : df)
         n_ak4jets = np.clip(0, 12, active_mask(events['n_ak4jets']))

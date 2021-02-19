@@ -47,11 +47,11 @@ class Plotter :
 
         self.samples    = samples
         self.kinem      = kinem
-        self.bin_range  = bin_range
+        self.bin_range  = bin_range if bin_range else [bins[0],bins[-1]]
         self.xlabel     = kinem if xlabel is None else xlabel
         self.n_bins     = n_bins
         self.bins       = np.arange(bin_range[0],bin_range[-1]+((bin_range[-1]-bin_range[0])/n_bins) , (bin_range[-1]-bin_range[0])/n_bins) if bins is None else np.array(bins)
-        self.bin_w      = self.bins[1:]-self.bins[:-1]
+        self.bin_w      = np.linspace(bin_range[0],bin_range[-1],bins+1)[1:] - np.linspace(bin_range[0],bin_range[-1],bins+1)[:-1] if type(bins) is int  else self.bins[1:]-self.bins[:-1]
         self.doLog      = doLog
         self.doNorm     = doNorm
         self.doShow     = doShow
@@ -257,7 +257,7 @@ class Plotter :
         self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary $", fontsize = self.fontsize)
         self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
         plt.xlabel(self.xlabel+self.tag, fontsize = self.fontsize)
-        self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
+        self.ax.set_ylabel(f"{'fraction of yield' if self.doNorm else 'Events'} / {(np.round(self.bin_w[0],2) if len(set(self.bin_w)) == 1 else 'bin')}")#fontsize = self.fontsize)
         #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )
         
         self.ax.set_xlim(self.bin_range)
@@ -339,9 +339,9 @@ class Plotter :
 class StackedHist(Plotter) :
     #Creates stacked histograms
     
-    def __init__(self,samples, kinem, bin_range, 
+    def __init__(self,samples, kinem, bin_range=None, 
                  xlabel=None, n_bins=20, bins=None,
-                 doLog=True, doNorm=False, 
+                 doLog=True, doNorm=False,
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
         super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
@@ -451,10 +451,10 @@ class StackedHist(Plotter) :
     
 class Hist (Plotter) :
     # creats hists for 1-to-1 comparison
-    def __init__(self,samples, kinem, bin_range, 
+    def __init__(self,samples, kinem, bin_range=None, 
                  droptt=False, dropNoGenM=True, dropZqq=False,
                  xlabel=None, n_bins=20, bins=None,
-                 doLog=False, doNorm=True, 
+                 doLog=False, doNorm=True, doBinRatio=False, 
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
 
@@ -464,6 +464,7 @@ class Hist (Plotter) :
         if dropNoGenM: [self.data.pop(k) for k in re.findall(r'\w*_no\w*GenMatch',' '.join(self.data)) if k in self.data]
         if droptt    : [self.data.pop(k) for k in re.findall(r'TTBar{Had|Semi|Di}_\w*nobb', ' '.join(self.data)) if k in self.data]
         if dropZqq   : [self.data.pop(k) for k in re.findall(r'TTZH_\w*Zqq',      ' '.join(self.data)) if k in self.data]
+        self.doBinRatio = doBinRatio
         #
         self.makePlot()
 
@@ -471,25 +472,32 @@ class Hist (Plotter) :
         self.beginPlt
         #
         k, h, w, i, c, l = self.retData
-        n, bins_, patches_ = self.ax.hist(
-            h,
-            bins=self.bins, 
-            stacked=False,# fill=True,
-            #range=range_,
-            histtype='step',
-            #density=False,
-            #linewidth=0,
-            weights = w if not self.doNorm else np.divide(w,i),
-            color   = c,
-            label   = l
-        )
-        self.addMCStat(h,n,w,i,c)
+        if not self.doBinRatio :
+            n, bins_, patches_ = self.ax.hist(
+                h,
+                bins=self.bins, 
+                stacked=False,# fill=True,
+                histtype='step',
+                weights = w if not self.doNorm else np.divide(w,i),
+                color   = c,
+                label   = l
+            )
+            self.addMCStat(h,n,w,i,c,bins_)
+        else:
+            tot_n, _ = np.histogram(np.concatenate(h).ravel(), bins=self.bins, weights=np.concatenate(w).ravel())
+            p_n      = np.array([np.histogram(h_, bins=self.bins, weights=w_)[0] for h_,w_ in zip(h,w)])
+            y = np.array([ np.append(p_/tot_n,0) for p_ in p_n ])
+            for _ in range(len(h)):
+                self.ax.step(
+                    x = self.bins,
+                    y = y[_],
+                    where='post', color=c[_], label=l[_])
         # need to plot mc stats error 
         #
         self.endPlt
 
-    def addMCStat(self,h,n,w,i,c):
-        bin_c = (self.bins[1:]+self.bins[:-1])/2
+    def addMCStat(self,h,n,w,i,c,bins):
+        bin_c = (bins[1:]+bins[:-1])/2
         yerr = np.array([np.histogram(h[s], bins=self.bins, weights=np.power(w[s],2))[0] for s in range(len(h))])
         for j in range(len(i)):
             self.ax.errorbar(x=bin_c, y=n[j], 
