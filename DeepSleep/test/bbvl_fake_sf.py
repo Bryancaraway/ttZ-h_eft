@@ -101,7 +101,8 @@ class DeepAk8_fakeSF:
         nonzbb = self.mc_dict['ttZ'].loc[self.mc_dict['ttZ']['Zbb']==False,:].copy()
         zbb = self.mc_dict['ttZ'].drop(nonzbb.index).copy()
         mc2_df = pd.concat([self.mc_dict[k] for k in ['TTBar','other','VJets','ttX','single_t']]+[nonzbb,nonhbb],axis='rows',ignore_index=True)
-        mc1_df = pd.concat([self.mc_dict[k] for k in ['tt_bb','tt_2b']]+[zbb,hbb],axis='rows',ignore_index=True)
+        #mc1_df = pd.concat([self.mc_dict[k] for k in ['tt_bb','tt_2b']]+[zbb,hbb],axis='rows',ignore_index=True)
+        mc1_df = pd.concat([self.mc_dict[k] for k in ['tt_B']]+[zbb,hbb],axis='rows',ignore_index=True)
         del self.mc_dict
         mc1_df = self.add_sf_to_df(mc1_df)
         self.get_total_weight(mc1_df)

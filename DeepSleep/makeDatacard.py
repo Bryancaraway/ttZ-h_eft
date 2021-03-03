@@ -56,7 +56,7 @@ pt_bins  = [0,200,300,450]
 sdM_bins = [50,75,90,105,120,140,200] # new format
 
 #nn = 'NN'
-nn = 'withbbvl_NN'
+nn = cfg.nn
 
 #[50, 75, 85, 100, 110, 120, 135, 150, 200]
 #hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=isblind) # syntax np2d[year][ith_ptbin]
@@ -94,7 +94,7 @@ class MakeDataCard:
     pt_bins = [0,200,300,450] # [200,300,400]
     
     dc_dir = 'Higgs-Combine-Tool'
-    eft_out_file = 'EFT_Parameterization_v3.npy' # update this if settings are changed
+    eft_out_file = 'EFT_Parameterization_v4.npy' # update this if settings are changed
     
     tag = '' if len(sys.argv) < 2 else sys.argv[1]+'_'
     #sig and bkg variables
@@ -118,6 +118,8 @@ class MakeDataCard:
         'BTagWeight_up_lfstats2','BTagWeight_down_lfstats2',# non-corr
         'BTagWeight_up_hfstats1','BTagWeight_down_hfstats1',# non-corr
         'BTagWeight_up_hfstats2','BTagWeight_down_hfstats2',# non-corr
+        #'BTagWeight_up_cferr1','BTagWeight_down_cferr1',# non-corr
+        #'BTagWeight_up_cferr2','BTagWeight_down_cferr2',# non-corr
         #'puWeight_Up','puWeight_Down',
         'puWeightUp','puWeightDown',
         'pdfWeight_Up','pdfWeight_Down',
@@ -138,7 +140,8 @@ class MakeDataCard:
     #
     accepted_sig  = [f'{s}{i}' for i in range(len(pt_bins)) for s in ['ttH','ttZ']]#['ttHbb','ttZbb']] # change new and not new ttzbb here
     #accepted_bkg  = ['ttX','TTBar','tt_bb','tt_2b','VJets','other','single_t']
-    accepted_bkg  = ['ttX','TTBar','tt_bb','tt_2b','VJets','single_t']
+    #accepted_bkg  = ['ttX','TTBar','tt_bb','tt_2b','VJets','single_t']
+    accepted_bkg  = ['ttX','TTBar','tt_B','VJets','single_t']
     accepted_data = ['data_obs']
     
     
@@ -171,6 +174,9 @@ class MakeDataCard:
         # add systematics to histos
         self.setup_Systematics()
         self.add_Systematics()
+        #
+        # from lib.datacard_uncorrsys import add_uncorrSystematics
+        # add_uncorrSystematics(self)
         # make eft param file is needed
         self.make_eftparam_file()
         #self.add_wcs() # antiquated, adds eft params directly to datacard
@@ -215,7 +221,8 @@ class MakeDataCard:
         p_vars = self.sig_v if process in self.sig else self.bkg_v
         p_vars = p_vars + cfg.ana_vars[f'sysvars_{y}']
         if '2018'  in process : p_vars = p_vars + ['HEM_weight']
-        if 'TTBar' in process or 'ttbb' in process : p_vars = p_vars + ['tt_type']
+        if 'TTBar' in process : p_vars = p_vars + ['tt_type','ttCxsecWeight','ttCxsecWeight_Up','ttCxsecWeight_Down']
+        if 'ttbb' in process  : p_vars = p_vars + ['tt_type','tt2bxsecWeight','tt2bxsecWeight_Up','tt2bxsecWeight_Down']
         if 'Data'  in process : p_vars = self.data_v #[nn,'Zh_M','Zh_pt','process']
         # get important info for signal
         return self.updatedict(process.replace(f'_{y}', ''), p_vars, y)
@@ -336,7 +343,8 @@ class MakeDataCard:
         all_but_ttbb = self.accepted_sig + ['TTBar','ttX','VJets','single_t']
         tth_sig  = re.findall(r'ttH\d', ' '.join(self.accepted_sig))
         ttz_sig  = re.findall(r'\w*ttZ\d', ' '.join(self.accepted_sig))
-        ttbar_mc = ['TTBar','tt_bb', 'tt_2b']
+        #ttbar_mc = ['TTBar','tt_bb', 'tt_2b']
+        ttbar_mc = ['TTBar','tt_B']
         jec_mc   = ttbar_mc + ['single_t'] + tth_sig + ttz_sig
         #ttbar_mc = ['TTBar','old_tt_bb']
         #new_ttz_sig = ['new_'+z for z in ttz_sig]
@@ -370,7 +378,6 @@ class MakeDataCard:
         Systematic('singlet_qsc'  ,  'lnN', ['single_t'], p_norms.rate_unc['QCD_scale']['single_t']) 
         Systematic('v_qsc'    , 'lnN', ['VJets'],p_norms.rate_unc['QCD_scale']['VJets'])#1.008, 0.996) # .821/1.24
         #Systematic('other_qsc', 'lnN', ['other'],p_norms.rate_unc['QCD_scale']['other']) #1.05, 0.95)   # .898/1.12
-        Systematic('tt2bxsec', 'lnN', ['tt_2b'], 1.5)
         #Systematic('tt2bxsec', 'lnN', ['old_tt_bb'], 1.5)
         # Shape Systatics
         self.write2dc(100*'-'+'\n')
@@ -410,6 +417,8 @@ class MakeDataCard:
         #self.histos = ShapeSystematic(f'btglf', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_lf', 'BTagWeight_down_lf').get_shape()
         self.histos = ShapeSystematic(f'btghf', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_hf', 'BTagWeight_down_hf').get_shape()
         self.histos = ShapeSystematic(f'btgjes', 'shape', 'up/down', all_mc, 1,'BTagWeight_up_jes','BTagWeight_down_jes').get_shape()
+        #self.histos = ShapeSystematic(f'btgcferr1', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_cferr1','BTagWeight_down_cferr1').get_shape()
+        #self.histos = ShapeSystematic(f'btgcferr2', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_cferr2','BTagWeight_down_cferr2').get_shape()
         self.histos = ShapeSystematic(f'pref_2016', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'pref_2017', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'topptWeight_Up' ,'topptWeight_Down').get_shape() # using hacky unc.
@@ -423,26 +432,34 @@ class MakeDataCard:
         self.histos = ShapeSystematic(f'mu_f_tth', 'shape', 'normup/down', tth_sig, 1, 'mu_f_Up','mu_f_Down').get_shape()
         self.histos = ShapeSystematic(f'mu_r_ttz', 'shape', 'normup/down', ttz_sig, 1, 'mu_r_Up','mu_r_Down').get_shape()
         self.histos = ShapeSystematic(f'mu_f_ttz', 'shape', 'normup/down', ttz_sig, 1, 'mu_f_Up','mu_f_Down').get_shape()
-        self.histos = ShapeSystematic(f'isr_ttbb', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'ISR_Up','ISR_Down').get_shape()
-        self.histos = ShapeSystematic(f'fsr_ttbb', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'FSR_Up','FSR_Down', extraQC=True).get_shape()
-        self.histos = ShapeSystematic(f'mu_r_ttbb', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_r_Up','mu_r_Down').get_shape()
-        self.histos = ShapeSystematic(f'mu_f_ttbb', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_f_Up','mu_f_Down').get_shape()
+        #self.histos = ShapeSystematic(f'isr_ttbb', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'ISR_Up','ISR_Down').get_shape()
+        #self.histos = ShapeSystematic(f'fsr_ttbb', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'FSR_Up','FSR_Down', extraQC=True).get_shape()
+        #self.histos = ShapeSystematic(f'mu_r_ttbb', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_r_Up','mu_r_Down').get_shape()
+        #self.histos = ShapeSystematic(f'mu_f_ttbb', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_f_Up','mu_f_Down').get_shape()
+        self.histos = ShapeSystematic(f'isr_ttbb', 'shape', 'ps', ['tt_B'], 1, 'ISR_Up','ISR_Down').get_shape()
+        self.histos = ShapeSystematic(f'fsr_ttbb', 'shape', 'ps', ['tt_B'], 1, 'FSR_Up','FSR_Down', extraQC=True).get_shape()
+        self.histos = ShapeSystematic(f'mu_r_ttbb', 'shape', 'normup/down', ['tt_B'], 1, 'mu_r_Up','mu_r_Down').get_shape()
+        self.histos = ShapeSystematic(f'mu_f_ttbb', 'shape', 'normup/down', ['tt_B'], 1, 'mu_f_Up','mu_f_Down').get_shape()
         # redundant #self.histos = ShapeSystematic(f'mu_rf', 'shape', 'normup/down', all_mc, 1, 'mu_rf_Up','mu_rf_Down').get_shape()
         #
         #self.histos = ShapeSystematic(f'pdf_ttz', 'shape', 'up/down', ttz_sig, 1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
         #self.histos = ShapeSystematic(f'pdf', 'shape', 'normup/down', all_but_ttbb, 1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'pdf', 'shape', 'normup/down', tth_sig+ttz_sig+['TTBar'], 1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
-        self.histos = ShapeSystematic(f'pdf_ttbb', 'shape', 'normup/down', ['tt_bb','tt_2b'],                    1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
+        #self.histos = ShapeSystematic(f'pdf_ttbb', 'shape', 'normup/down', ['tt_bb','tt_2b'],                    1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
+        self.histos = ShapeSystematic(f'pdf_ttbb', 'shape', 'normup/down', ['tt_B'],                    1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
         
         # These shapes are already computed, just need to add to datacard
         self.histos = ShapeSystematic('UE',     'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
         #self.histos = ShapeSystematic('erdOn', 'shape',  ['TTBar'], 1) # not working with just one shape at the moment
         self.histos = ShapeSystematic('hdamp', 'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
-        self.histos = ShapeSystematic('hdamp_ttbb', 'shape', 'qconly', ['tt_bb', 'tt_2b'], 1, extraQC=True).get_shape()
+        #self.histos = ShapeSystematic('hdamp_ttbb', 'shape', 'qconly', ['tt_bb', 'tt_2b'], 1, extraQC=True).get_shape()
+        self.histos = ShapeSystematic('hdamp_ttbb', 'shape', 'qconly', ['tt_B'], 1, extraQC=True).get_shape()
         #
         self.write2dc(100*'-'+'\n')
-        self.write2dc('# Float tt_bb normalization\n') 
-        self.write2dc('CMS_ttbbnorm rateParam * tt_*b 1 [0.0,5.0]\n')
+        self.histos = ShapeSystematic('tt2bxsec', 'shape', 'up/down', ['tt_B'],  1, 'tt2bxsecWeight_Up', 'tt2bxsecWeight_Down').get_shape()
+        self.histos = ShapeSystematic('ttCxsec',  'shape', 'up/down', ['TTBar'], 1, 'ttCxsecWeight_Up',  'ttCxsecWeight_Down').get_shape()
+        self.write2dc('# Float tt_B normalization\n') 
+        self.write2dc('CMS_ttbbnorm rateParam * tt_B 1 [0.0,5.0]\n')
         #Systematic('CMS_ttbbnorm', 'lnN', ['tt_bb','tt_2b'], 10)
         self.write2dc(100*'-'+'\n')
         self.write2dc('# MC Stats uncertainties\n') 
@@ -451,116 +468,16 @@ class MakeDataCard:
         self.write2dc(100*'-'+'\n')
         #
 
-    @t2Run
-    def add_uncorrSystematics(self):
-        # SIG = ttZbb[0,1,2,3] ttHbb[0,1,2,3]
-        # BKG = ttX, TTBar, old_tt_bb, VJets, other
-        #process_line = np.array([self.accepted_sig + self.accepted_bkg for _ in range(self.dc_bins)]).flatten()
-        all_mc = self.accepted_sig + self.accepted_bkg
-        all_but_ttbb = self.accepted_sig + ['TTBar','ttX','VJets','other']
-        tth_sig = re.findall(r'ttH\d', ' '.join(self.accepted_sig))
-        ttz_sig = re.findall(r'\w*ttZ\d', ' '.join(self.accepted_sig))
-        ttbar_mc = ['TTBar','tt_bb', 'tt_2b']
-        #ttbar_mc = ['TTBar','old_tt_bb']
-        #new_ttz_sig = ['new_'+z for z in ttz_sig]
-        #
-        #Systematic.set_dc_processes(self.dc_dict, process_line)
-        self.write2dc(f'# Rate uncertainties\n')
-        Systematic('lumi_2016', 'lnN',  all_mc, 1.025)
-        Systematic('lumi_2017', 'lnN',  all_mc, 1.023)
-        Systematic('lumi_2018', 'lnN',  all_mc, 1.025)
-        #Systematic('tt2bxsec', 'lnN', ['old_tt_bb'], 1.5)
-        # Shape Systatics
-        self.write2dc(100*'-'+'\n')
-        self.write2dc('# Shape uncertainties \n')
-        #ShapeSystematic.set_df_histos_histfuncs(self.data_dict, self.histos)#, self.hist3d, self.ptclip)
-        # when defining shape, must incluse whether it is a mcsta, scale, or up/down syst
-        for y in self.years:
-            #self.histos = ShapeSystematic(f'btg_{y}', 'shape', 'up/down', all_mc, 1, 'BTagWeight_Up','BTagWeight_Down').get_shape()
-            # probably do xsec theo rates here
-            # first signal
-            Systematic(f'tth_ggpdf_{y}', 'lnN', tth_sig, 1.036)
-            Systematic(f'ttz_ggpdf_{y}', 'lnN', tth_sig, 1.035)
-            Systematic(f'tth_qsc_{y}' ,  'lnN', tth_sig, 1.058,0.908)
-            Systematic(f'ttz_qsc_{y}'  , 'lnN', ttz_sig, 1.081,0.907) 
-            # now background
-            Systematic(f'ggpdf_{y}', 'lnN', ttbar_mc, 1.042)
-            Systematic(f'qqpdf_{y}', 'lnN', ['ttX','VJets','other'],
-                       [p_norms.rate_unc['pdf']['ttX'],
-                        p_norms.rate_unc['pdf']['VJets'],
-                        p_norms.rate_unc['pdf']['other']])# combine into one 
-            #Systematic('qqpdf', 'lnN', ['VJets'], 1.038)# combine into one
-            #Systematic('qqpdf', 'lnN', ['other'], 1.050)# combine into one
-            #Systematic('tt_qsc'   , 'lnN', ttbar_mc+['ttX'], [[1.024,0.965] for _ in ttbar_mc]+[1.300])
-            Systematic(f'tt_qsc_{y}'   , 'lnN', ttbar_mc, [[1.024,0.965] for _ in ttbar_mc])
-            Systematic(f'ttx_qsc_{y}'  ,  'lnN', ['ttX'], p_norms.rate_unc['QCD_scale']['ttX']) 
-            Systematic(f'v_qsc_{y}'    , 'lnN', ['VJets'],p_norms.rate_unc['QCD_scale']['VJets'])#1.008, 0.996) # .821/1.24
-            Systematic(f'other_qsc_{y}', 'lnN', ['other'],p_norms.rate_unc['QCD_scale']['other']) #1.05, 0.95)   # .898/1.12
-            Systematic(f'tt2bxsec_{y}', 'lnN', ['tt_2b'], 1.5)
-            self.histos = ShapeSystematic(f'btglf_{y}', 'shape', 'up/down', all_mc, 1, 'BTagWeightLight_Up','BTagWeightLight_Down').get_shape()
-            self.histos = ShapeSystematic(f'btghf_{y}', 'shape', 'up/down', all_mc, 1, 'BTagWeightHeavy_Up','BTagWeightHeavy_Down').get_shape()
-            self.histos = ShapeSystematic(f'lepsf_{y}', 'shape', 'up/down', all_mc, 1, 'lep_sf_up','lep_sf_down').get_shape()
-            self.histos = ShapeSystematic(f'trigeff_{y}', 'shape', 'up/down', all_mc, 1, 'lep_trig_eff_tight_pt_up','lep_trig_eff_tight_pt_down').get_shape()
-            self.histos = ShapeSystematic(f'pu_{y}',      'shape', 'up/down', all_mc, 1, 'puWeight_Up','puWeight_Down').get_shape()
-            self.histos = ShapeSystematic(f'ak4JER_{y}', 'shape', 'qconly', all_mc, 1,    extraQC=True).get_shape()
-            self.histos = ShapeSystematic(f'ak4JES_{y}', 'shape', 'qconly', all_mc, 1,    extraQC=True).get_shape()
-            self.histos = ShapeSystematic(f'ak8JER_{y}', 'shape', 'qconly', all_mc, 1,    extraQC=True).get_shape()
-            self.histos = ShapeSystematic(f'ak8JES_{y}', 'shape', 'qconly', all_mc, 1,    extraQC=True).get_shape() 
-
-            #self.histos = ShapeSystematic(f'toppt_{y}', 'shape', 'up/down', ttbar_mc, 1, 'Stop0l_topptWeight_Up' ,'Stop0l_topptWeight_Down').get_shape()
-            self.histos = ShapeSystematic(f'isr_{y}', 'shape', 'ps', ['TTBar'], 1, 'ISR_Up','ISR_Down').get_shape()
-            self.histos = ShapeSystematic(f'fsr_{y}', 'shape', 'ps', ['TTBar'], 1, 'FSR_Up','FSR_Down', extraQC=False).get_shape()
-            #self.histos = ShapeSystematic(f'mu_r', 'shape', 'normup/down', all_but_ttbb, 1, 'mu_r_Up','mu_r_Down').get_shape()
-            #self.histos = ShapeSystematic(f'mu_f', 'shape', 'normup/down', all_but_ttbb, 1, 'mu_f_Up','mu_f_Down').get_shape()
-            self.histos = ShapeSystematic(f'mu_r_tt_{y}', 'shape', 'normup/down', ['TTBar'], 1, 'mu_r_Up','mu_r_Down').get_shape()
-            self.histos = ShapeSystematic(f'mu_f_tt_{y}', 'shape', 'normup/down', ['TTBar'], 1, 'mu_f_Up','mu_f_Down').get_shape()
-            self.histos = ShapeSystematic(f'mu_r_tth_{y}', 'shape', 'normup/down', tth_sig, 1, 'mu_r_Up','mu_r_Down').get_shape()
-            self.histos = ShapeSystematic(f'mu_f_tth_{y}', 'shape', 'normup/down', tth_sig, 1, 'mu_f_Up','mu_f_Down').get_shape()
-            self.histos = ShapeSystematic(f'mu_r_ttz_{y}', 'shape', 'normup/down', ttz_sig, 1, 'mu_r_Up','mu_r_Down').get_shape()
-            self.histos = ShapeSystematic(f'mu_f_ttz_{y}', 'shape', 'normup/down', ttz_sig, 1, 'mu_f_Up','mu_f_Down').get_shape()
-            self.histos = ShapeSystematic(f'isr_ttbb_{y}', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'ISR_Up','ISR_Down').get_shape()
-            self.histos = ShapeSystematic(f'fsr_ttbb_{y}', 'shape', 'ps', ['tt_bb', 'tt_2b'], 1, 'FSR_Up','FSR_Down', extraQC=False).get_shape()
-            self.histos = ShapeSystematic(f'mu_r_ttbb_{y}', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_r_Up','mu_r_Down').get_shape()
-            self.histos = ShapeSystematic(f'mu_f_ttbb_{y}', 'shape', 'normup/down', ['tt_bb', 'tt_2b'], 1, 'mu_f_Up','mu_f_Down').get_shape()
-            self.histos = ShapeSystematic(f'pdf_{y}', 'shape', 'normup/down', tth_sig+ttz_sig+['TTBar'], 1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
-            self.histos = ShapeSystematic(f'pdf_ttbb_{y}', 'shape', 'normup/down', ['tt_bb','tt_2b'],                    1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
-            self.histos = ShapeSystematic(f'UE_{y}',     'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
-            #self.histos = ShapeSystematic('erdOn', 'shape',  ['TTBar'], 1) # not working with just one shape at the moment
-            self.histos = ShapeSystematic(f'hdamp_{y}', 'shape', 'qconly', ['TTBar'], 1, extraQC=True).get_shape()
-            self.histos = ShapeSystematic(f'hdamp_ttbb_{y}', 'shape', 'qconly', ['tt_bb', 'tt_2b'], 1, extraQC=True).get_shape()
-            Systematic(f'CMS_ttbbnorm_{y}', 'lnN', ['tt_bb','tt_2b'], 2)
-        #
-        self.histos = ShapeSystematic(f'pref_2016', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
-        self.histos = ShapeSystematic(f'pref_2017', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
-        # redundant #self.histos = ShapeSystematic(f'mu_rf', 'shape', 'normup/down', all_mc, 1, 'mu_rf_Up','mu_rf_Down').get_shape()
-        #
-        #self.histos = ShapeSystematic(f'pdf_ttz', 'shape', 'up/down', ttz_sig, 1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
-        #self.histos = ShapeSystematic(f'pdf', 'shape', 'normup/down', all_but_ttbb, 1, 'pdfWeight_Up','pdfWeight_Down').get_shape()
-
-        
-        # These shapes are already computed, just need to add to datacard
-
-        
-        #
-        self.write2dc(100*'-'+'\n')
-        self.write2dc('# Float tt_bb normalization\n') 
-        #self.write2dc('CMS_ttbbnorm rateParam * tt_*b 1 [-10,10]\n')
-        #Systematic('CMS_ttbbnorm', 'lnN', ['tt_bb','tt_2b'], 10)
-        #
-        self.write2dc(100*'-'+'\n')
-        self.write2dc('# MC Stats uncertainties\n') 
-        #self.histos = ShapeSystematic(f'mcstat','shape','mcstat', all_mc, 1).get_shape()
-        self.write2dc('#* autoMCStats 10 0  1\n') 
-        
-        #
-
     def make_eftparam_file(self):
         out_path = sys.path[1]+'Higgs-Combine-Tool/'
         out_file = self.eft_out_file #'EFT_Parameterization_v2.npy' # manually change this 
         if os.path.exists(out_path+out_file): return
         eft = EFTParam()
-        eft.save_to_dict(year='2016', force_year='2016')
-        eft.save_to_dict(year='2017', force_year='2017')
+        #eft.save_to_dict(year='2016', force_year='2016')
+        #eft.save_to_dict(year='2017', force_year='2017')
+        #eft.save_to_dict(year='2018', force_year='2018')
+        eft.save_to_dict(year='2016', force_year='2018')
+        eft.save_to_dict(year='2017', force_year='2018')
         eft.save_to_dict(year='2018', force_year='2018')
         import pickle
         pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2)
@@ -603,6 +520,9 @@ class MakeDataCard:
             for pt_bin in range(v['sumw'].shape[0]):
                 if pt_bin == 0: # 0,1,2 (-1)
                     to_flat = (lambda a: self.merge_last_mbin(pt_bin,a))
+                elif pt_bin == 2: # last bin
+                    to_flat = (lambda a: self.merge_last3_nnbin(pt_bin,a))
+                    #to_flat = (lambda a: self.merge_to_4mbin(pt_bin,a))
                 else:
                     to_flat = (lambda a : a[pt_bin,:,:].flatten())
                 temp_dict = {'sumw' : to_flat(v['sumw'])}#* (1 if y != '2017' else 3.3032)}#2.2967)} # to just scale to full run2
@@ -616,6 +536,27 @@ class MakeDataCard:
     def merge_last_mbin(pt_bin,a):
         a[pt_bin,:,-2] = a[pt_bin,:,-2] + a[pt_bin,:,-1]
         return a[pt_bin,:,:-1].flatten()
+    @staticmethod
+    def merge_last3_nnbin(pt_bin,a):
+        n_ = 3 # add last 3-1 to the 3rd to last bin
+        a[pt_bin,-1*n_,:] = sum(a[pt_bin,-1*n_:,:])
+        return a[pt_bin,:-1*(n_-1),:].flatten()
+    @staticmethod
+    def merge_to_4mbin(pt_bin,a):
+        print(a[pt_bin].flatten())
+        a[pt_bin,7:,1] = np.sum(a[pt_bin,7:,1:3],axis=1)   # concat last set of bins
+        a[pt_bin,7:,4] = np.sum(a[pt_bin,7:,4:],axis=1)   # concat last set of bins
+        a = np.append(a[pt_bin,:7,:],np.hstack([a[pt_bin,7:,0:2],a[pt_bin,7:,4:]]))
+        print(a)
+        return a
+    #@staticmethod
+    #def merge_last_nnbin(pt_bin,a):
+    #    print(a[pt_bin].flatten())
+    #    a[pt_bin,-2,:] = sum(a[pt_bin,-2:,:])   # concat last set of bins
+    #    a[pt_bin,-4,:] = sum(a[pt_bin,-4:-2,:]) # concat 2nd to last set of bins
+    #    a= np.append(a[pt_bin,:-3,:], a[pt_bin,-2,:] ) # this will be flattened automatically
+    #    print(a)
+    #    return a
 
     def initialize_datacard(self):
         # creat 3 data cards , 1 per year
@@ -737,7 +678,8 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
         self.up     = up
         self.down   = down
         self.subtype = subtype
-        self.extraQC = extraQC
+        self.extraQC = False # to make smoothing before and after plots
+        #self.extraQC = extraQC 
 
     def get_shape(self):
         fun_dict = {'mcstat' :self.makeMCStatHist,
@@ -749,7 +691,8 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
         if self.subtype in fun_dict: fun_dict[self.subtype]()
         #
         if self.extraQC and __name__ == '__main__': self.handle_extraQC()
-        self.handleQC()
+        if False: # testing qc vs no qc 
+            self.handleQC()
         #
         return self.histos
 
@@ -815,7 +758,8 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
                     #    if 'mu_' in w_nom: df[w_nom] = df[f'{ud}_weight'] # to fix issue with tt_bb
                     w_var = nominal_weight*df[ud]/df[w_nom]
                     if 'norm' in self.subtype or ('tt_' in process and self.subtype == 'ps'): 
-                        p_norms_key = re.sub(r'tt_','tt', process) if 'tt_bb' in process or 'tt_2b' in process else re.sub(r'\d$','', process)
+                        #p_norms_key = re.sub(r'tt_','tt', process) if 'tt_bb' in process or 'tt_2b' in process else re.sub(r'\d$','', process)
+                        p_norms_key = re.sub(r'tt_B','ttbb', process) if 'tt_B' in process else re.sub(r'\d$','', process)
                         w_var = w_var * self.p_norms[y][p_norms_key][ud]#sum(weight)/sum(w_var) # to keep the nominal normalization
                     #
                     #if 'new_tt_' in process and ('mu_' in w_nom or self.subtype is 'ps'):
@@ -903,6 +847,6 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
 if __name__ == '__main__':
     #
     # initialize datacard making process
-    hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=False)# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
+    hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=True)# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
     MakeDataCard(isblind=isblind).makeDC()
 

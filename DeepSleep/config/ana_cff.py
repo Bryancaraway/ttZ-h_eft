@@ -33,6 +33,7 @@ elif os.path.exists('/eos/uscms/') or 'condor' in _cdir: # test to see if on lpc
 else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./config/ana_cff.py")
 
 ##
+nn                = 'withbbvl_NN'
 ZHptcut           = 200
 Years             = ['2016','2017','2018']
 ## EFT ##
@@ -164,7 +165,10 @@ ana_vars = {
                     'Jet_btagSF_deepcsv_shape_up_hfstats1','Jet_btagSF_deepcsv_shape_down_hfstats1',
                     'Jet_btagSF_deepcsv_shape_up_lfstats1','Jet_btagSF_deepcsv_shape_down_lfstats1',
                     'Jet_btagSF_deepcsv_shape_up_hfstats2','Jet_btagSF_deepcsv_shape_down_hfstats2',
-                    'Jet_btagSF_deepcsv_shape_up_lfstats2','Jet_btagSF_deepcsv_shape_down_lfstats2',],
+                    'Jet_btagSF_deepcsv_shape_up_lfstats2','Jet_btagSF_deepcsv_shape_down_lfstats2',
+                    'Jet_btagSF_deepcsv_shape_up_cferr1','Jet_btagSF_deepcsv_shape_down_cferr1',
+                    'Jet_btagSF_deepcsv_shape_up_cferr2','Jet_btagSF_deepcsv_shape_down_cferr2',
+                ],
     # 'Jet_deepFlavourlepb'+LC, 'Jet_deepFlavouruds'+LC, 'Jet_deepFlavourb'+LC, 'Jet_deepFlavourbb'+LC],
     'ak4lvec'    : {'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
                     'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass'],

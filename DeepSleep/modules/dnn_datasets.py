@@ -49,7 +49,8 @@ class DNN_datasets:
         #
         s_df = s_df[s_df['matchedGen_ZHbb'] == True]
         b_df = b_df[((b_df['tt_type'] == 'Semi') & (
-            (b_df['process'] == 'TTBar') | (b_df['process'] == 'tt_bb') | (b_df['process'] == 'tt_2b')
+            #(b_df['process'] == 'TTBar') | (b_df['process'] == 'tt_bb') | (b_df['process'] == 'tt_2b')
+            (b_df['process'] == 'TTBar') | (b_df['process'] == 'tt_B')
         ))]
         return s_df, b_df
 

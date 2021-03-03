@@ -82,6 +82,20 @@ shape_unc_norms = {
             'pdfWeight_Up'  :0.9916673881,
             'pdfWeight_Down':1.00847383
         },
+        'tt_B':
+        {
+            'mu_r_Up'       :1.36878335,
+            'mu_r_Down'     :0.7585017229,
+            'mu_f_Up'       :1.020980265,
+            'mu_f_Down'     :0.9708575015,
+            'pdfWeight_Up'  :0.9674025093,
+            'pdfWeight_Down':1.034746148,
+            'ISR_Up'        :0.982073702,
+            'ISR_Down'      :1.022854283,
+            'FSR_Up'        :0.8251420721,
+            'FSR_Down'      :1.067039519,
+            
+        },
         'tt_bb':
         {
             'mu_r_Up'       :1.36878335,
@@ -193,6 +207,19 @@ shape_unc_norms = {
             'pdfWeight_Up'  :0.9912449624,
             'pdfWeight_Down':1.008911071
         },
+        'tt_B':
+        {
+            'mu_r_Up'       :1.368920511,
+            'mu_r_Down'     :0.7582487489,
+            'mu_f_Up'       :1.020871941,
+            'mu_f_Down'     :0.9709472992,
+            'pdfWeight_Up'  :0.9675287834,
+            'pdfWeight_Down':1.034726436,
+            'ISR_Up'        :0.9817006283,
+            'ISR_Down'      :1.022594216,
+            'FSR_Up'        :0.8737961484,
+            'FSR_Down'      :1.088637231
+        },
         'tt_bb':
         {
             'mu_r_Up'       :1.368920511,
@@ -302,6 +329,19 @@ shape_unc_norms = {
             'mu_f_Down'     :0.975990606,
             'pdfWeight_Up'  :0.990834563,
             'pdfWeight_Down':1.009336585
+        },
+        'tt_B':
+        {
+            'mu_r_Up'       :1.368222738,
+            'mu_r_Down'     :0.7581770089,
+            'mu_f_Up'       :1.020928553,
+            'mu_f_Down'     :0.9708995389,
+            'pdfWeight_Up'  :0.9673913873,
+            'pdfWeight_Down':1.034883626,
+            'ISR_Up'        :0.9821609173,
+            'ISR_Down'      :1.022852083,
+            'FSR_Up'        :0.8999320604,
+            'FSR_Down'      :1.115703624
         },
         'tt_bb':
         {

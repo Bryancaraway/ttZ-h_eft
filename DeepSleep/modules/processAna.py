@@ -128,9 +128,16 @@ class processAna :
 
     def finalize_btag_w(self):
         r_ratio_json = json.load(open(cfg.dataDir+f'/btagw_r_ratio/btagw_r_ratio_{self.year}.json', 'r'))
-        if 'Up' in self.sample or 'Down' in self.sample:
+        if 'sys' in sample_cfg[self.sample]['out_name']:
             # ttbar/ttbb_sys to use nominal ttbar and ttbb
             r_ratios = r_ratio_json[sample_cfg['_'.join(self.sample.split('_')[:-1])]['out_name']] 
+        elif 'EFT' in self.sample: # dont really care about b-tag weight here, just take some dummy wieght
+            if 'TTZ' in self.sample:
+                r_ratios = r_ratio_json['ttZ'] # signal eft
+            if 'TTH' in self.sample:
+                r_ratios = r_ratio_json['tth'] # signal eft
+            else: 
+                r_ratios = r_ratio_json['ttbb'] # ttbb (perhaps ttbar) eft
         else:
             r_ratios = r_ratio_json[sample_cfg[self.sample]['out_name']]
         nj  = self.val_df['n_ak4jets'].clip(0,9)
@@ -166,6 +173,7 @@ class processAna :
         rZh_phi = self.val_df['Zh_phi'].values
         #
         gentt_bb = gentt_bb % 100
+        is_tt_C = ( (gentt_bb>=41) & (gentt_bb<50) )
         is_tt_B = gentt_bb>=51
         print(gentt_bb[is_tt_B])
 
@@ -173,6 +181,7 @@ class processAna :
         is_tt_2b = gentt_bb == 52
         is_tt_bb = gentt_bb >= 53
         # 
+        self.val_df['tt_C'] = is_tt_C
         self.val_df['tt_B'] = is_tt_B
         self.val_df['tt_b'] = is_tt_b
         self.val_df['tt_2b'] = is_tt_2b
@@ -192,32 +201,21 @@ class processAna :
         self.val_df['ttbb_genbb_pt'] = (b1+b2).pt
         #
         # calculate toppt weight for powheg only
-        if True:#'pow' in self.sample:
-            tt_pt = gen_pt[(abs(gen_ids) == 6)]
-            # Using the newer theo (NNLO QCD + NLO EW) corrections which is better for BSM analysis aspects
-            sf = (lambda x: 0.103*np.exp(-0.0118*np.clip(x,0,np.inf)) - 0.000134*np.clip(x,0,np.inf) + 0.973) #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Case_3_3_The_Effective_Field_The
+        tt_pt = gen_pt[(abs(gen_ids) == 6)]
+        # Using the newer theo (NNLO QCD + NLO EW) corrections which is better for BSM analysis aspects
+        sf = (lambda x: 0.103*np.exp(-0.0118*np.clip(x,0,np.inf)) - 0.000134*np.clip(x,0,np.inf) + 0.973) #https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopPtReweighting#Case_3_3_The_Effective_Field_The
 
-            #toppt_sys = AnaDict.read_pickle(f'{self.dataDir}toppt_sys_files/toppt_sys.pkl')
-            #https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf'
-            # the theo toppt event re-weighting unc. is based on [1, w**2] where w is the event reweighting 
-            toppt_rwgt = np.sqrt(sf(tt_pt[:,0]) * sf(tt_pt[:,1])) 
-            toppt_rwgt_up = np.where(toppt_rwgt > 1.0, toppt_rwgt**2,  1.0)
-            toppt_rwgt_dn = np.where(toppt_rwgt < 1.0, toppt_rwgt**2,  1.0)
-            self.val_df['topptWeight']      = toppt_rwgt
-            self.val_df['topptWeight_Up']   = toppt_rwgt_up
-            self.val_df['topptWeight_Down'] = toppt_rwgt_dn
+        #toppt_sys = AnaDict.read_pickle(f'{self.dataDir}toppt_sys_files/toppt_sys.pkl')
+        #https://indico.cern.ch/event/904971/contributions/3857701/attachments/2036949/3410728/TopPt_20.05.12.pdf'
+        # the theo toppt event re-weighting unc. is based on [1, w**2] where w is the event reweighting 
+        toppt_rwgt = np.sqrt(sf(tt_pt[:,0]) * sf(tt_pt[:,1])) 
+        toppt_rwgt_up = np.where(toppt_rwgt > 1.0, toppt_rwgt**2,  1.0)
+        toppt_rwgt_dn = np.where(toppt_rwgt < 1.0, toppt_rwgt**2,  1.0)
+        self.val_df['topptWeight']      = toppt_rwgt
+        self.val_df['topptWeight_Up']   = toppt_rwgt_up
+        self.val_df['topptWeight_Down'] = toppt_rwgt_dn
             
-            # old data-driven approach
-            ##wgt = (lambda x: np.exp(0.0615 - 0.0005 * np.clip(x, 0, 800))) # old data driven re-weighting
-            #up_, dn_ = toppt_sys['topPt_up'], toppt_sys['topPt_dn']
-            #tt_up = np.column_stack([self.getToppt_sys(tt_pt[:,i],up_) for i in [0,1]])
-            #tt_dn = np.column_stack([self.getToppt_sys(tt_pt[:,i],dn_) for i in [0,1]])
-            #self.val_df['Stop0l_topptWeight']      = np.sqrt(wgt(tt_pt[:,0]) * wgt(tt_pt[:,1]))
-            #self.val_df['Stop0l_topptWeight_Up']   = np.sqrt(wgt(tt_pt[:,0]) * tt_up[:,0] * wgt(tt_pt[:,1]) * tt_up[:,1])
-            #self.val_df['Stop0l_topptWeight_Down'] = np.sqrt(wgt(tt_pt[:,0]) * tt_dn[:,0] * wgt(tt_pt[:,1]) * tt_dn[:,1])
-
-
-            
+                    
     @staticmethod
     def getToppt_sys(dist, sys):
         bins=[float(bin_str.split(',')[0]) for bin_str in sys] + [float(list(sys.keys())[-1].split(',')[1])]
@@ -266,6 +264,10 @@ class processAna :
 
         #
         zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
+        zh_matchb_dR = deltaR(zh_eta,zh_phi,gen_eta[(isbb_fromZ) | (isbb_fromH)], gen_phi[(isbb_fromZ) | (isbb_fromH)])
+        zh_matchbb    = ((zh_matchb_dR <= 0.6).sum() == 2)
+        zh_matchb    = ((zh_matchb_dR <= 0.6).sum() == 1)
+        zh_nomatchb    = ((zh_matchb_dR <= 0.6).sum() == 0)
         #zh_match_dR = deltaR(zh_eta,zh_phi,ak8_eta,ak8_phi)
         #zh_match = ((ak8_pt >= self.pt_cut ) & (ak8_Zhbbtag >= 0.0) &  
         #            (zh_match_dR <= 0.8) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
@@ -280,13 +282,20 @@ class processAna :
         self.val_df['genZHeta'] = zh_eta
         self.val_df['genZHphi'] = zh_phi
         self.val_df['genZHmass'] = zh_mass
+        getTLVm = TLorentzVectorArray.from_ptetaphim
+        zh_tlv   = getTLVm(zh_pt,zh_eta,zh_phi,zh_mass)
+        self.val_df['genZHrap'] = zh_tlv.rapidity
+        self.val_df['genZHstxs'] = abs(zh_tlv.rapidity) <= 2.5
         #
         self.val_df['matchedGenZH']    = (zh_match).sum() > 0 
         self.val_df['matchedGen_Zbb']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZbb.sum() >  0))
         self.val_df['matchedGen_Hbb']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isHbb.sum() >  0))
         self.val_df['matchedGen_ZHbb'] = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & ((isZbb.sum() + isHbb.sum()) > 0))
         self.val_df['matchedGen_Zqq']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZqq.sum() >  0))
-
+        #
+        self.val_df['matchedGen_ZHbb_bb'] = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_matchbb == 1))
+        self.val_df['matchedGen_ZHbb_b'] = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_matchb == 1))
+        self.val_df['matchedGen_ZHbb_nob'] = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_nomatchb == 1))
     def match_gen_lep(self):
         lep_eta = self.val_df['Lep_eta'].to_numpy()
         lep_phi = self.val_df['Lep_phi'].to_numpy()
@@ -710,12 +719,14 @@ class processAna :
             self.val_df['process'] = 'ttH'
         def handleTTBar():
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'TTBar'
-            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_bb'
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'old_tt_B'
+            self.add_tt_C_rate_unc()
         def handleTT_bb():
-            self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'non_tt_bb'
-            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'tt_bb' 
-            self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'tt_2b' # this is a subset of tt_B 
+            self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'non_tt_B'
+            self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'tt_B' 
+            #self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'tt_2b' # this is a subset of tt_B 
             self.add_weights_to_ttbb()
+            self.add_tt_2b_rate_unc()
         def handleST():
             self.val_df['process'] = 'single_t'
         def handleTTX():
@@ -735,10 +746,12 @@ class processAna :
 
         sample_to_process = {'ttZ'                                  : handleTTZ,
                              'ttH'                                  : handleTTH,
+                             'TTZ_EFT'                              : handleTTZ,
+                             'TTH_EFT'                              : handleTTH,
                              'TTBar'                                : handleTTBar,
                              'TTJets_EFT'                           : handleTTBar,
                              'ttbb'                                 : handleTT_bb,
-                             'TTBB_EFT'                             : handleTT_bb,
+                             'TTbb_EFT'                             : handleTT_bb,
                              'single_t'                             : handleST,
                              'ttX'                                  : handleTTX,
                              'VJets'                                : handleVjets,
@@ -756,8 +769,19 @@ class processAna :
         tt_bb_nw_files = f'{cfg.dataDir}/process_norms/process_norms_ttbbw_run2.json'
         tt_bb_norm_weights =  json.load(open(tt_bb_nw_files,'r'))[self.year]
         ttbb_key = (sample_cfg[self.sample]['out_name'], self.sample)
-        self.val_df['weight'] = tt_bb_norm_weights[ttbb_key[0]][ttbb_key[1]]['weight']
+        try:
+            self.val_df['weight'] = tt_bb_norm_weights[ttbb_key[0]][ttbb_key[1]]['weight']
+        except KeyError: # defualt
+            self.val_df['weight'] = tt_bb_norm_weights['ttbb']['TTbb_SemiLeptonic']['weight']
         #print(self.val_df['weight'])
+    def add_tt_2b_rate_unc(self):
+        self.val_df['tt2bxsecWeight'] = 1
+        self.val_df['tt2bxsecWeight_Up']   = np.where((self.val_df['tt_2b']== True), 1.5, 1)
+        self.val_df['tt2bxsecWeight_Down'] = np.where((self.val_df['tt_2b']== True), 0.5, 1)
+    def add_tt_C_rate_unc(self):
+        self.val_df['ttCxsecWeight'] = 1
+        self.val_df['ttCxsecWeight_Up']   = np.where((self.val_df['tt_C']== True), 1.5, 1)
+        self.val_df['ttCxsecWeight_Down'] = np.where((self.val_df['tt_C']== True), 0.5, 1)
 
 
 if __name__ == '__main__':
@@ -776,3 +800,4 @@ if __name__ == '__main__':
     print('Processing data...')
     process_ana_dict = {'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'rtc_df':rtc_df, 'sample':sample, 'year':'2017', 'isData':False, 'isSignal': False, 'isttbar':True}
     processAna(process_ana_dict)
+

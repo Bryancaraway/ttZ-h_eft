@@ -162,35 +162,45 @@ class SkimMeta :
     def add_btagweightsf_counts(self, jets, events, geninfo):
         # need to only count certain processes/sub-processes for later
         # main things to worry about tt+bb, tt+lf, ttZbb in TTZToQQ
+        ## -- ## 
+        def btagweightsf_helper(p_mask=None, opt=None):
+            active_mask = (lambda df : df[p_mask]) is p_mask is not None else (lambda df : df)
+            opt         = f'{opt}_' if opt is not None else ''
+            n_ak4jets = np.clip(0, 12, active_mask(events['n_ak4jets']))
+            gw_np     = active_mask(np.sign(events['genWeight']))
+            n,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), weights=gw_np)
+            self.metadata[f'{opt}nj_yield'] = n
+            jetshape_sf_names = re.findall(r'Jet_btagSF_deepcsv_shape\w*' ,' '.join(jets.keys()))#Jet_btagSF_deepcsv_shape_up_cferr2
+            #btag_w_names = []
+            for sf_n in jetshape_sf_names:
+                btag_w_name = re.search(r'shape\w*', sf_n).group().replace('shape','BTagWeight')
+                #btag_w_names.append(btag_w_name)
+                events[btag_w_name] = jets[sf_n].prod() # add weight to events
+                #for btag_w_name in btag_w_names: # get yields and add to metadata
+                nbw,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), 
+                                   weights=(active_mask(events[btag_w_name])*gw_np))
+                self.metadata['{opt}btw_yield'+btag_w_name.replace('BTagWeight','')] = nbw
+                # no longer need shape sf
+                del jets[sf_n]
+        ## -- ##
+        ##### may have to add special case for tt+cc from ttjets (5FS) sample #####
         process_mask = None
         if   'TTbb'    in self.sample:
             process_mask = (geninfo['genTtbarId'] % 100 >= 51)
+            btagweightsf_helper(process_mask)
         elif 'TTTo'    in self.sample:
             process_mask = (geninfo['genTtbarId'] % 100 < 51)
+            # process_mask = [(geninfo['genTtbarId'] % 100 < 41),((geninfo['genTtbarId'] % 100 < 50) & (geninfo['genTtbarId'] % 100 >= 41))]
+            # for p_, mask_ in zip(['lf','cc'],process_mask)
+            #     btagweightsf_helper(mask_, p_)
+            btagweightsf_helper(process_mask)
         elif 'TTZToQQ' in self.sample:
             isbb_fromZ     = ((abs(geninfo['GenPart_pdgId']) == 5) & (geninfo['GenPart_pdgId'][geninfo['GenPart_genPartIdxMother']] == 23))
             isZbb  = ((geninfo['GenPart_pdgId'] == 23) & (isbb_fromZ.sum() == 2))
             process_mask = isZbb.sum() == 0
-        ## -- ## 
-        if process_mask is not None:
-            active_mask = (lambda df : df[process_mask])
-        else : active_mask = (lambda df : df)
-        n_ak4jets = np.clip(0, 12, active_mask(events['n_ak4jets']))
-        gw_np     = active_mask(np.sign(events['genWeight']))
-        n,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), weights=gw_np)
-        self.metadata['nj_yield'] = n
-        jetshape_sf_names = re.findall(r'Jet_btagSF_deepcsv_shape\w*' ,' '.join(jets.keys()))
-        #btag_w_names = []
-        for sf_n in jetshape_sf_names:
-            btag_w_name = re.search(r'shape\w*', sf_n).group().replace('shape','BTagWeight')
-            #btag_w_names.append(btag_w_name)
-            events[btag_w_name] = jets[sf_n].prod() # add weight to events
-            #for btag_w_name in btag_w_names: # get yields and add to metadata
-            nbw,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), 
-                               weights=(active_mask(events[btag_w_name])*gw_np))
-            self.metadata['btw_yield'+btag_w_name.replace('BTagWeight','')] = nbw
-            # no longer need shape sf
-            del jets[sf_n]
+            btagweightsf_helper(process_mask)
+        else:
+            btagweightsf_helper()
         
 
 if __name__ == '__main__':

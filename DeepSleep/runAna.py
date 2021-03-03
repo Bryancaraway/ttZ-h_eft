@@ -52,8 +52,8 @@ def analyzer(sample):
     sample   = sample
     isData   = 'Data' in sample
     #isSignal = re.search(r'TT[Z,H]*\w*', sample) is not None #'TTZH' in sample or 'TTZ_bb' in sample
-    isSignal = re.search(r'(tt(Z|H))', sample_cfg[sample]['out_name']) is not None
-    isttbar  = re.search(r'(TT|tt)(Bar)|(bb)', sample_cfg[sample]['out_name']) is not None
+    isSignal = re.search(r'((TT|tt)(Z|H))', sample_cfg[sample]['out_name']) is not None
+    isttbar  = re.search(r'(TT|tt)((Bar)|(bb)|(Jets))', sample_cfg[sample]['out_name']) is not None
     #isttbar  = re.search(r'TT[To,bb]', sample) is not None
     #isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
     tag      = (args.tag + args.jec if args.jec is not None else args.tag)
@@ -87,6 +87,7 @@ def analyzer(sample):
     #####
 
 def post_job(samples):
+    if 'EFT' in args.sample: return
     import pandas as pd
     import os
     out_df = pd.DataFrame()
@@ -103,5 +104,6 @@ def post_job(samples):
 if __name__ == '__main__':
     
     runAna()
+
 
 

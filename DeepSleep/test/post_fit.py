@@ -73,20 +73,23 @@ class PostFit:
                 for ch in roo[pp_dict[p]]:
                     ch_str = suf(ch)
                     self.hists[p][ch_str] = {}
+                    kill_empty = (lambda h_: h_[roo[pp_dict[p]][ch]['total'].values > 0]) # default non nnqc post fit 
                     if ch_str not in self.edges and self.t_labels is None:
-                        self.edges[ch_str]=roo[pp_dict[p]][ch]['TTBar'].edges # dummy use of TTBar
+                        self.edges[ch_str]=np.array(roo[pp_dict[p]][ch]['total'].edges) # dummy use of TTBar
+                        self.edges[ch_str]=np.append(self.edges[ch_str][0],self.edges[ch_str][1:][roo[pp_dict[p]][ch]['total'].values > 0]) # only kill empty right-most bin
                     elif self.t_labels is not None:
                         # address np.inf limit
                         t_labels = np.where(self.t_labels != np.inf, self.t_labels,
                                             2*self.t_labels[-2]-self.t_labels[-3])
                         self.edges[ch_str]=t_labels
+                        kill_empty = (lambda h_: h_) # dont drop nnqc post fit bins
                     for hist in roo[pp_dict[p]][ch]:
                         hist_str = suf(hist)
                         h = roo[pp_dict[p]][ch][hist]
                         try:
-                            self.hists[p][ch_str][hist_str] = {'values':h.values,  'err':np.sqrt(h.variances)}
+                            self.hists[p][ch_str][hist_str] = {'values':kill_empty(h.values),  'err':kill_empty(np.sqrt(h.variances))}
                         except:
-                            self.hists[p][ch_str][hist_str] = {'values':h.yvalues, 'errup':h.yerrorshigh,'errdw':h.yerrorslow}
+                            self.hists[p][ch_str][hist_str] = {'values':kill_empty(h.yvalues), 'errup':kill_empty(h.yerrorshigh),'errdw':kill_empty(h.yerrorslow)}
             #
             to_dict('prefit')
             to_dict('postfit')
@@ -182,6 +185,7 @@ class PostFit:
         fig_ax_map = {
                 '' : (lambda  : plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # 
             'pulls': (lambda  : plt.subplots(2,1, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # just 1 axes for pulls
+            'blind' : plt.subplots
         }
         #fig, axs = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
         fig, axs = fig_ax_map[opt]()
@@ -198,6 +202,9 @@ class PostFit:
         if opt == 'pulls':
             self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 10)
             self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+        elif opt == 'blind':
+            self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
+            self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
         else:
             self.fig.text(0.085,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 8)
             self.fig.text(0.55,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 8)
@@ -206,10 +213,10 @@ class PostFit:
         self.axs = np.array(axs) # [1:[t,b],2:[t,b]]
     #
     def do_stack(self, d, top_axs, ch):
-
         ycumm = None
         # stack portion
-        ordered_list = re.findall(rf'tt[H,Z]\d', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_2b','tt_bb','TTBar']
+        #ordered_list = re.findall(rf'tt[H,Z]\d', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_2b','tt_bb','TTBar']
+        ordered_list = re.findall(rf'tt[H,Z]\d', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_B','TTBar']
         #colors =  plt.cm.gist_rainbow(np.linspace(0,1,len(ordered_list)))
         colors =  plt.cm.tab20c(np.linspace(0,1,20))[:8]
         colors = np.append(colors, plt.cm.gist_rainbow(np.linspace(0,1,6)), axis=0)
@@ -302,11 +309,11 @@ class PostFit:
         axt.set_xlim(0,self.edges[ch][-1])
         axt.set_ylim(0.)
 
-        if axt.get_ylim()[1] > 1000:
-            axt.set_yscale('log')
-            axt.set_ylim(ymin=1., ymax=axt.get_ylim()[1] * 10)
-        else:
-            axt.yaxis.set_minor_locator(AutoMinorLocator())
+        #if axt.get_ylim()[1] > 1000:
+        axt.set_yscale('log')
+        axt.set_ylim(ymin=1., ymax=axt.get_ylim()[1] * 10)
+        #else:
+        #     axt.yaxis.set_minor_locator(AutoMinorLocator())
 
         axt.set_ylabel('Events / bin', fontsize=8)
         axt.set_title(rf'${p}$', y=1.0, pad=-14, fontsize=8)
@@ -337,6 +344,7 @@ class PostFit:
         leg_map = {
             ''     : (lambda : self.axs[0,1]), # defualt
             'pulls': (lambda : self.axs[0]), # pulls
+            'blind': (lambda : self.axs), # pulls
             }
         #ax = self.axs[0,1]
         ax = leg_map[opt]()

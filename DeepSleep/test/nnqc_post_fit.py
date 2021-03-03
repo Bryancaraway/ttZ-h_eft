@@ -49,7 +49,8 @@ class QCNNPostFit(PostFit):
 
         ycumm = None
         # stack portion
-        ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_2b','tt_bb','TTBar']
+        #ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_2b','tt_bb','TTBar']
+        ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_B','TTBar']
         #colors =  plt.cm.gist_rainbow(np.linspace(0,1,len(ordered_list)))
         colors =  plt.cm.tab10(np.linspace(0,1,10))[0:2]
         colors = np.append(colors, plt.cm.gist_rainbow(np.linspace(0,1,6)), axis=0)

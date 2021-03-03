@@ -52,7 +52,9 @@ def main(input_files, samples):
     for input_file, sample in zip(input_files, samples):
         norm_change[sample] = process(input_file,sample)
         #plot_overal_norm(norm_change, sample)
-    plot_overall_norm_compare(norm_change, samples)
+    #
+    plot_overall_norm(norm_change, samples)
+    #plot_overall_norm_compare(norm_change, samples)
 
 
 def process(input_file, sample):
@@ -107,14 +109,15 @@ def plot_overall_norm_compare(norm_change, samples):
         #plt.show()
 
 
-@save_pdf("ttZ_2018_incxs_impacts.pdf")
-def plot_overal_norm(norm_change, sample):
-
+@save_pdf("ttbb_2018_incxs_impacts.pdf")
+def plot_overall_norm(norm_change, samples):
+    sample = samples[0]
+    norm_change = norm_change[sample]
     for w in norm_change:
-        test_points = np.array(single_points[sample]['SM']+single_points[sample][w])
+        #test_points = np.array(single_points[sample]['SM']+single_points[sample][w])
         fig, ax = plt.subplots()
         ax.plot(wc_ranges[w],norm_change[w])
-        ax.scatter(x=test_points[:,0], y=test_points[:,1], marker='*',color='red',label='Validation')
+        #ax.scatter(x=test_points[:,0], y=test_points[:,1], marker='*',color='red',label='Validation')
         ax.axhline(1,c='r',ls='--')
         #plt.xticks([i for i in range(len(norm_change))], norm_change.keys())
         ax.set_xlabel(f'WC {w} ')
@@ -157,8 +160,10 @@ def calc_norm(v,df=None,wc=None):
 if __name__ == '__main__':
     #main("ttjets_eft.txt", 'ttjets')
     input_files = [
-        "files/ttz_eft_2018.txt",
-        "files/tth_eft_2018.txt"
+        #"files/ttz_eft_2018.txt",
+        #"files/tth_eft_2018.txt",
+        "files/ttbb_eft_2018.txt"
     ]
-    main(input_files, ['ttZ','ttH'])
+    #main(input_files, ['ttZ','ttH'])
+    main(input_files, ['ttbb'])
 

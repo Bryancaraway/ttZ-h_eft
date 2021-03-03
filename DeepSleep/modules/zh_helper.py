@@ -160,9 +160,26 @@ def reco_zh_helper_andrew(obj):
     #
     obj.val_df['Zh_closeb_invM'] = lib.invM(
         Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],b_pt_dRsort[:,0],b_eta_dRsort[:,0],b_phi_dRsort[:,0],b_mass_dRsort[:,0])
+    obj.val_df['Zh_2ndcloseb_invM'] = lib.invM(
+        Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],b_pt_dRsort[:,1],b_eta_dRsort[:,1],b_phi_dRsort[:,1],b_mass_dRsort[:,1])
     obj.val_df['Zh_closeq_invM'] = np.nan_to_num(
         lib.invM(
             Zh_pt[:,0],Zh_eta[:,0],Zh_phi[:,0], Zh_M[:,0],q_pt_dRsort[:,0],q_eta_dRsort[:,0],q_phi_dRsort[:,0],q_mass_dRsort[:,0]))
+    #
+    ind_Zh_b_dr_nocut = np.argsort(Zh_b_dr,axis=1)
+    b_pt_ncdRsort, b_eta_ncdRsort, b_phi_ncdRsort, b_mass_ncdRsort  = [
+        np.take_along_axis(fillne(b_k), ind_Zh_b_dr_nocut,axis=1) for b_k in [b_pt,b_eta,b_phi,b_mass]]
+    ind_Zh_q_dr_nocut = np.argsort(Zh_q_dr,axis=1)
+    q_pt_ncdRsort, q_eta_ncdRsort, q_phi_ncdRsort, q_mass_ncdRsort  = [
+        np.take_along_axis(fillne(q_k), ind_Zh_q_dr_nocut,axis=1) for q_k in [q_pt,q_eta,q_phi,q_mass]]
+    #
+    obj.val_df['Zh_closeb_dr'] = deltaR(
+        Zh_eta[:,0],Zh_phi[:,0],b_eta_ncdRsort[:,0],b_phi_ncdRsort[:,0])
+    obj.val_df['Zh_2ndcloseb_dr'] = deltaR(
+        Zh_eta[:,0],Zh_phi[:,0],b_eta_ncdRsort[:,1],b_phi_ncdRsort[:,1])
+    obj.val_df['Zh_closeq_dr'] = np.nan_to_num(deltaR(
+        Zh_eta[:,0],Zh_phi[:,0],q_eta_ncdRsort[:,0],q_phi_ncdRsort[:,0]))
+
     #
     obj.val_df['nBottoms']  = b_pt.counts
     obj.val_df['n_ak4jets'] = ak4_pt.counts

@@ -21,8 +21,30 @@ Script that demonstrates how wc impacts
 our expected signal in terms of pt distribution
 '''
 
+nn = cfg.nn
 
-
+kbins = {
+    'Zh_pt': [200,300,450,600],
+    'Zh_M' : [50,75,90,105,120,140,200],
+    nn     : [0.00, 0.366, 0.477,  0.548, 0.619, 0.674, 0.724, 0.772, 0.822,  0.875, 1.],
+    'reco_pt_bin': [1,2,3],
+    'reco_m_bin': [0,1,2,3,4,5],
+    'gen_pt_bin': [0,1,2,3],
+    'genZHpt': [200,300,450,550,650],
+}
+klabel = {
+    'Zh_pt': (lambda ax: (ax.set_xlabel('reco. Z/H $p_{T}$ (GeV)'), 
+                          ax.set_ylabel(r'(d$\sigma^{EFT}$$/$d$p_{T}$) $/$ (d$\sigma^{SM}$$/$d$p_{T}$)'))),
+    'Zh_M' : (lambda ax: (ax.set_xlabel('reco. Z/H $m_{sd}$ (GeV)'), 
+                          ax.set_ylabel(r'(d$\sigma^{EFT}$$/$d$m_{sd}$) $/$ (d$\sigma^{SM}$$/$d$m_{sd}$)'))),
+    nn     : (lambda ax: (ax.set_xlabel('NN'), 
+                          ax.set_ylabel(r'(d$\sigma^{EFT}$$/$d$NN$) $/$ (d$\sigma^{SM}$$/$d$NN$)'))),
+    'gen_pt_bin' : (lambda ax: (ax.set_xlabel('gen Z/H $p_{T}$ bin'), 
+                                ax.set_ylabel(r'(d$\sigma^{EFT}$$/$d$p_{T}$) $/$ (d$\sigma^{SM}$$/$d$p_{T}$)'))),
+    'genZHpt' : (lambda ax: (ax.set_xlabel('gen Z/H $p_{T}$ (GeV)'), 
+                             ax.set_ylabel(r'(d$\sigma^{EFT}$$/$d$p_{T}$) $/$ (d$\sigma^{SM}$$/$d$p_{T}$)'))),
+}
+         
 class main():
     fit_f   = 'EFT_Parameterization_test.npy'
     wc_ranges = {
@@ -65,69 +87,152 @@ class main():
         plt.show()
         exit()
     
+
+
+    def run_singles_jon(self, kinem, samples, cut, title, year='2018', sepSig=False, sepSigreco=False):
+        master_s = samples[0]
+        genpt_samples   = self.handle_sepSig(samples, year, 'gen_pt_bin')
+        recopt_samples  = self.handle_sepSig(samples, year, 'reco_pt_bin')
+        recoptm_samples = self.handle_sepSig_pt_mass(samples, year)
+        for wc, r in self.wc_ranges.items():
+            #ax2=ax.twinx()
+            bins = np.array(kbins[kinem])
+            for i in range(1,len(r)):
+                fig,ax = self.initPlot()
+                genptsc_sumw = []
+                genptsc_sumw2 = []
+                recoptsc_sumw = []
+                recoptsc_sumw2 = []
+                recoptmsc_sumw = []
+                recoptmsc_sumw2 = []
+                def get_totals(samples_,sumw_,sumw2_):
+                    for s in samples_:
+                        df = self.df[year][s]
+                        df = cut(df)
+                        try: 
+                            nsm, nsm2 = self.get_sumw_sumw2(df[kinem].clip(bins[0],bins[-1]), df['SM']*df['weight'] , bins)
+                        except ValueError:
+                            nsm, nsm2 = self.get_sumw_sumw2(df[kinem], df['SM']*df['weight'] , bins)
+                        eftw = self.get_eftw(df, wc, r[i])
+                        #print(s,nsm,sum(eftw*df['weight'])/sum(df['SM']*df['weight']) )
+                        sumw_.append(nsm   * sum(eftw*df['weight'])/sum(df['SM']*df['weight']) )
+                        sumw2_.append(nsm2 * ((sum(eftw*df['weight']))/(sum(df['SM']*df['weight'])))**2)
+                get_totals(genpt_samples, genptsc_sumw, genptsc_sumw2)
+                get_totals(recopt_samples, recoptsc_sumw, recoptsc_sumw2)
+                get_totals(recoptm_samples, recoptmsc_sumw, recoptmsc_sumw2)
+                #
+                df = self.df[year][master_s]
+                df = cut(df)
+                eftw = self.get_eftw(df, wc, r[i])
+                try:
+                    nsm, nsm2 = self.get_sumw_sumw2(df[kinem].clip(bins[0],bins[-1]), df['SM']*df['weight'] , bins)                
+                    neft, neft2 = self.get_sumw_sumw2(df[kinem].clip(bins[0],bins[-1]), eftw*df['weight'] , bins)
+                except ValueError:
+                    nsm, nsm2 = self.get_sumw_sumw2(df[kinem], df['SM']*df['weight'] , bins)
+                    neft, neft2 = self.get_sumw_sumw2(df[kinem], eftw*df['weight'] , bins)
+
+                #ax.step(
+                #    x = bins,
+                #    y = np.append(sum(genptsc_sumw)/nsm,0),
+                #    where='post', label=f'{master_s} gen pt scaled'
+                #)
+                #ax.step(
+                #    x = bins,
+                #    y = np.append(sum(recoptsc_sumw)/nsm,0),
+                #    where='post', label=f'{master_s} reco pt scaled'
+                #)
+                ax.step(
+                    x = bins,
+                    y = np.append(sum(recoptmsc_sumw)/nsm,0),
+                    where='post', label=f'{master_s} reco pt&mass scaled'
+                )
+                ax.step(
+                    x = bins,y = np.append(neft/nsm,0),
+                    where='post', label=f'{master_s} raw EFT'
+                )
+                ax.step(
+                    x = bins,y = np.append(nsm/nsm,0),
+                    where='post', label=f'{master_s} SM'
+                )
+                #ax.errorbar(**self.errbar_kwargs(nsm, nsm2, sum(genptsc_sumw), sum(genptsc_sumw2), bins))
+                #ax.errorbar(**self.errbar_kwargs(nsm, nsm2, sum(recoptsc_sumw), sum(recoptsc_sumw2), bins))
+                ax.errorbar(**self.errbar_kwargs(nsm, nsm2, sum(recoptmsc_sumw), sum(recoptmsc_sumw2), bins+.005))
+                ax.errorbar(**self.errbar_kwargs(nsm, nsm2, neft, neft2, bins-.005))
+                ax.errorbar(**self.errbar_kwargs(nsm, nsm2, nsm, nsm2, bins))
+
+                #ax2.step(x=bins, y = np.append(nsm,0), where='post',linestyle='--')
+                #ax2.errorbar(x=(bins[1:]+bins[:-1])/2, y = nsm, yerr=np.sqrt(nsm2), fmt='.')
+                
+                #for i,xy in enumerate(zip((b[1:]+b[:-1])/2,neft/nsm)):
+                #ax.text(x=xy[0],y=xy[1], s=f'{slabel} {tot_sm[i]:.1f}:{tot_eft[0][i]:.1f}:{tot_eft[1][i]:.1f}', fontsize=8)
+                #
+                fig.suptitle(title.format(wc=wc, r=r))
+                ax.legend()
+                self.endPlot(ax,title,kinem,bins)
+
     #@save_pdf('eft_bkgsig_comparison_nn09.pdf')
-    def run_singles_test(self, samples, cut, title, year='2018' ):
+    def run_singles_test(self, kinem, samples, cut, title, year='2018', sepSig=False, sepSigreco=False):
+        if sepSig or sepSigreco:
+            samples = self.handle_sepSig(samples, year, 'reco_pt_bin' if sepSigreco else 'gen_pt_bin')
         for wc, r in self.wc_ranges.items():
             fig,ax = self.initPlot()
-            dott2b = True
-            for s in samples:
-                kinem = 'Zh_pt'
-                
+            #ax2=ax.twinx()
+            #dott2b = True
+            bins = np.array(kbins[kinem])
+            for s in samples:                
                 #sam_text = f'{s}'
                 df = self.df[year][s]
                 slabel = s
                 df = cut(df)
                 if s == 'ttbb':
-                    if dott2b:
-                        df = df[df['process'] == 'tt_2b']
-                        slabel = 'tt_2b'
-                        dott2b=False
-                    else: 
-                        df = df[df['process'] == 'tt_bb']
+                    df = df[df['process'] == 'tt_B']
+                    #if dott2b:
+                    #    df = df[df['process'] == 'tt_2b']
+                    #    slabel = 'tt_2b' 
+                    #    dott2b=False # only do this for the first ttbb
+                    #else: 
+                    #    df = df[df['process'] == 'tt_bb']
                 elif s == 'ttjets':
                     df = df[df['process'] == 'TTBar']
             
-                nsm, b= np.histogram(
-                    df[kinem].clip(0,590),
-                    bins=[200,300,450,600],
-                    weights=df['SM']
-                )
+                try: 
+                    nsm, nsm2 = self.get_sumw_sumw2(df[kinem].clip(bins[0],bins[-1]), df['SM']*df['weight'] , bins)
+                except ValueError:
+                    nsm, nsm2 = self.get_sumw_sumw2(df[kinem], df['SM']*df['weight'] , bins)
                 #
-                tot_sm, _  = np.histogram(
-                    df[kinem],
-                    bins=[200,300,450,600],
-                    weights=df['SM']*df['weight']
-                )
-                print(slabel,len(df))
-                #
-                tot_eft = {0:[],1:[]}
-                #
-                for i,v in enumerate(r):
-                    eftw = self.get_eftw(df, wc, v)
-                    neft, _ = np.histogram(
-                        df[kinem].clip(0,590),
-                        bins=[200,300,450,600],
-                        weights=eftw
-                    )
-                    tot_eft[i] = (neft/nsm)*tot_sm
+                for i in range(1,len(r)):
+                    eftw = self.get_eftw(df, wc, r[i])
+                    try:
+                        neft, neft2 = self.get_sumw_sumw2(df[kinem].clip(bins[0],bins[-1]), eftw*df['weight'] , bins)
+                    except ValueError:
+                        neft, neft2 = self.get_sumw_sumw2(df[kinem], eftw*df['weight'] , bins)
+                    #tot_eft[i] = (neft/nsm)*tot_sm
                     ax.step(
-                        x = b,
+                        x = bins,
                         y = np.append(neft/nsm,0),
-                        where='post', label=f'{slabel}:{v}'
+                        where='post', label=f'{slabel}:{r[i]}'
                     )
+                    ax.errorbar(**self.errbar_kwargs(nsm, nsm2, neft, neft2, bins))
+
+                #ax2.step(x=bins, y = np.append(nsm,0), where='post',linestyle='--')
+                #ax2.errorbar(x=(bins[1:]+bins[:-1])/2, y = nsm, yerr=np.sqrt(nsm2), fmt='.')
+                
                 #for i,xy in enumerate(zip((b[1:]+b[:-1])/2,neft/nsm)):
                 #ax.text(x=xy[0],y=xy[1], s=f'{slabel} {tot_sm[i]:.1f}:{tot_eft[0][i]:.1f}:{tot_eft[1][i]:.1f}', fontsize=8)
-            ax.legend(ncol=2, fontsize='x-small')
-            ax.set_xlim(200,600)
-            ax.set_xlabel(' reco. Z/H_pt (GeV)')
-            ax.set_ylabel(r'(d$\sigma^{EFT}$$/$d${P_T}$) $/$ (d$\sigma^{SM}$$/$d${P_T}$) ')
-            #fig.suptitle(f'EFT impact, NN > 0.9, {wc}:{r}')
+            #
             fig.suptitle(title.format(wc=wc, r=r))
-            ax.xaxis.set_minor_locator(AutoMinorLocator())
-            ax.yaxis.set_minor_locator(AutoMinorLocator())
-            #plt.yscale('log')
-            #plt.show()
-            #exit()
+            self.endPlot(ax,title,kinem,bins)
+
+    def errbar_kwargs(self,nsm, nsm2, neft, neft2, bins):
+        y    = neft/nsm
+        yerr = y*np.sqrt( nsm2/np.power(nsm,2) +  neft2/np.power(neft,2) )
+        kwargs = {'x':(bins[1:]+bins[:-1])/2, 'y':y, 'yerr':yerr, 'fmt':'.'}
+        return kwargs
+
+    def get_sumw_sumw2(self,df_,w_,bins):
+        sumw, _ = np.histogram(df_, bins=bins, weights=w_)
+        sumw2, _ = np.histogram(df_, bins=bins, weights=np.power(w_,2))
+        return sumw, sumw2
             
     def initPlot(self):
         fig, ax = plt.subplots(1,1, sharey=True)
@@ -140,6 +245,17 @@ class main():
             wspace=0.0
         )
         return fig,ax
+
+    def endPlot(self,ax,title,kinem, bins):
+        ax.legend(ncol=2, fontsize='x-small')
+        ax.set_xlim(bins[0],bins[-1])
+        klabel[kinem](ax)
+        #ax2.set_ylabel('SM yield')
+        #ax2.set_yscale('log')
+        #ax2.set_ylim(.1)
+        #fig.suptitle(f'EFT impact, NN > 0.9, {wc}:{r}')
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
 
     def get_eftw(self, df, wc, v):
         p = df[f'{wc}_{wc}']*v*v
@@ -162,16 +278,66 @@ class main():
         yerr = np.sqrt(yerr)
         y = n
         return x,xerr,y,yerr
+
+    def handle_sepSig(self,samples, year, pt_bin):
+        sigs = re.findall(r'(ttZ|ttH)', ' '.join(samples))
+        r_o_g = pt_bin.split('_')[0]
+        bin_range = range(kbins[pt_bin][0],kbins[pt_bin][-1]+1)
+        out_  = []
+        for sig in sigs:
+            out_ += [f'{sig}{r_o_g}pt{i}' for i in bin_range]
+            sub_df = (lambda df_, i : df_[year][sig][df_[year][sig][pt_bin] == i])
+            self.df[year].update({f'{sig}{r_o_g}pt{i}': sub_df(self.df, i) for i in bin_range})
+        return out_
+    def handle_sepSig_pt_mass(self,samples,year):
+        sigs = re.findall(r'(ttZ|ttH)', ' '.join(samples))
+        pt_bin = 'reco_pt_bin'
+        m_bin = 'reco_m_bin'
+        pt_bin_range = range(kbins[pt_bin][0],kbins[pt_bin][-1]+1)
+        m_bin_range = range(kbins[m_bin][0],kbins[m_bin][-1]+1)
+        out_  = []
+        for sig in sigs:
+            out_ += [f'{sig}reco{i}{j}' for i in pt_bin_range for j in m_bin_range]
+            sub_df = (lambda df_, i,j : df_[year][sig][(df_[year][sig][pt_bin] == i) & (df_[year][sig][m_bin] == j)])
+            self.df[year].update({f'{sig}reco{i}{j}': sub_df(self.df, i, j) for i in pt_bin_range for j in m_bin_range})
+        #
+        return out_
     
 if __name__=='__main__':
     _ = main()
     #_.run_singles()
-    cut_nntight = (lambda x : x[(x['NN'] > .9)])
-    cut_nnloose = (lambda x : x[(x['NN'] > 0)])
+    cut_nntight = (lambda x : x[(x[nn] > .8)])
+    cut_nnloose = (lambda x : x[(x[nn] > 0)])
+    cut_nnloose_rapid =  (lambda x : x[(x[nn] > 0) & (x['genZHstxs']==1)])
     #_.run_singles_test(['ttH','ttZ','ttbb','ttbb'],cut)
     #@save_pdf('eft_bkgsig_comparison_nn09.pdf')
-    save_pdf('eft_bkgsig_comparison_nn09.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.9, {wc}:{r}')
-    save_pdf('eft_bkgsig_comparison_nn00.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
-    save_pdf('eft_bkg_comparison_nn09.pdf')(_.run_singles_test)(['ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.9, {wc}:{r}')
-    save_pdf('eft_bkg_comparison_nn00.pdf')(_.run_singles_test)(['ttbb','ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
+    #save_pdf('eft_ttZ_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_nncomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_nncomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
     
+    # ---- Jons study
+    save_pdf('eft_ttZ_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    save_pdf('eft_ttH_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    save_pdf('eft_ttZ_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    save_pdf('eft_ttH_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    save_pdf('eft_ttZ_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    save_pdf('eft_ttH_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    # ---- Jons study
+
+
+    #save_pdf('eft_ttZ_pt_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttH_pt_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttZ_mass_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttH_mass_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttZ_nn_nocomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttH_nn_nocomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttZ_genptcomparison_nn00.pdf')(_.run_singles_test)('gen_pt_bin', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_genptcomparison_nn00.pdf')(_.run_singles_test)('gen_pt_bin', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_bkgsig_masscomparison_nn08.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
+    #save_pdf('eft_bkgsig_masscomparison_nn00.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
+    #save_pdf('eft_bkg_masscomparison_nn08.pdf')(_.run_singles_test)(['ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
+
+    #save_pdf('eft_ttbb_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb','ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_ptcomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttbb','ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_nncomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttbb','ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    

@@ -6,6 +6,7 @@ process_cfg = {
                     'TTH_EFT'],
     'Bkg_EFT'    : ['TTJets_EFT',
                     'TTbb_EFT'],
+    
     'ttH'        : ['ttHTobb',
                     'ttHToNonbb'],
     'ttZ'        : ['TTZToLLNuNu',
@@ -86,10 +87,10 @@ process_cfg = {
 
 sample_cfg = {                 
     # EFT Samples              
-    'TTZ_EFT' : {     'out_name'  : 'Signal_EFT', 'xs' : 0.7826,  'kf' : 1.0,},                                              
-    'TTH_EFT' : {     'out_name'  : 'Signal_EFT', 'xs' : 0.5084,  'kf' : 1.0,},                                              
-    'TTJets_EFT' : {  'out_name'  : 'Bkg_EFT',    'xs' : 832.40,  'kf' : 1.0,},                                              
-    'TTbb_EFT'   : {  'out_name'  : 'Bkg_EFT',    'xs' : 1.0,     'kf' : 1.0,},                                              
+    'TTZ_EFT' : {     'out_name'  : 'TTZ_EFT', 'xs' : 0.7826,  'kf' : 1.0,},                                              
+    'TTH_EFT' : {     'out_name'  : 'TTH_EFT', 'xs' : 0.5084,  'kf' : 1.0,},                                              
+    'TTJets_EFT' : {  'out_name'  : 'TTJets_EFT',    'xs' : 832.40,  'kf' : 1.0,},                                              
+    'TTbb_EFT'   : {  'out_name'  : 'TTbb_EFT',    'xs' : 1.0,     'kf' : 1.0,},                                              
     # ttH                                           
     'ttHTobb'    : {  'out_name'  : 'ttH',        'xs' : .2934,   'kf' : 1.0,},                                              
     'ttHToNonbb' : {  'out_name'  : 'ttH',        'xs' : .215,    'kf' : 1.0,},                                              

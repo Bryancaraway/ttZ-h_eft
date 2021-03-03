@@ -33,7 +33,7 @@ class main():
     sig_p   = ['ttH','ttZ']
     #
     f_dir   = f'{sys.path[1]}/Higgs-Combine-Tool/'
-    fit_f   = 'EFT_Parameterization_v2.npy' 
+    fit_f   = 'EFT_Parameterization_v3.npy' 
     fit     = np.load(f_dir+fit_f, allow_pickle=True)
 
     wc_ranges = { 

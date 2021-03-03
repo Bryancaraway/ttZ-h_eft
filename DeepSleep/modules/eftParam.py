@@ -36,6 +36,7 @@ import numpy as np
 import pandas as pd
 #import matplotlib.pyplot as plt
 
+nn = cfg.nn
 
 class EFTFitParams():
     '''
@@ -43,36 +44,66 @@ class EFTFitParams():
     of tth/z 0-3 in this class to be accessible
     in EFTParam
     '''
-    file_dir = './files/'   # format files/year/mc_files/TT[Z,H]_EFT_val.pkl
+    aux_dict = {
+        'ttbb':'aux_eft_TTZ.pkl', # use to be TTH
+        'ttH' :'aux_eft_TTH.pkl',
+        'ttZ' :'aux_eft_TTZ.pkl',
+        'ttjets'  :'aux_eft_TTH.pkl' # fix the file that it opens
+    }
+    val_dict = {
+        'ttbb': 'TTbb',
+        'ttjets': 'TTJets',
+        'ttZ'  : 'TTZ',
+        'ttH'  : 'TTH'
+    }
+    file_dir = f'{sys.path[1]}/files/'   # format files/year/mc_files/TT[Z,H]_EFT_val.pkl
     years = cfg.Years
     mc_dir   = 'mc_files/'
     aux_dir = f'{sys.path[1]}/data/EFT/'
     #
+    #sig     = ['ttZ','ttH','ttbb']
     sig     = ['ttZ','ttH']
     pt_bins = [0,200,300,450,500] # clip at 500
+    m_bins  = [50,75,90,105,120,140,200] # clip at 500
     
     def __init__(self):
         # seperate aux for different signals
-        self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}/aux_eft_{s.upper()}.pkl') for s in self.sig }
+        self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}{self.aux_dict[s]}') for s in self.sig }
         self.__worker()
 
     def __worker(self):
         # assemble eft_df dictionary here by year, signal process, and genZHpt bin
         self.eft_df = {y:{s:{} for s in self.sig} for y in self.years} 
-        cut_for_fit = (lambda x: ((x['NN']>=0.0) & (x['EFT183'] < 100)) )
         for y in self.years:
-            for s in self.sig:
-                if not os.path.exists(f'{self.file_dir}{y}/{self.mc_dir}{s.upper()}_EFT_val.pkl'): continue
-                df = pd.read_pickle(f'{self.file_dir}{y}/{self.mc_dir}{s.upper()}_EFT_val.pkl').filter( regex="EFT|genZHpt|NN", axis='columns')
+            cut_for_fit = (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100)) )
+            for s in ['ttZ','ttH']: # hardcoded to break processes up by signal
+                eft_file = f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl'
+                if not os.path.exists(eft_file): continue
+                df = pd.read_pickle(  eft_file).filter( regex=f"EFT|genZHpt|{nn}", axis='columns')
                 df['pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]-1), bins=self.pt_bins,
                                       labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
-                #df = self.calcBeta(df[df['NN']>=0.0], s)
+                #df = self.calcBeta(df[df[nn]>=0.0], s)
                 df = self.calcBeta(df[cut_for_fit(df)], s)
                 # store SM normalized PQR parameters per
-                self.eft_df[y][s] = {f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index')
-                                     for i in range(len(self.pt_bins)-1)}
+                self.eft_df[y][s] = {
+                    f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index') for i in range(len(self.pt_bins)-1)}
             #
+            #handle ttbb
+            if 'ttbb' in self.sig:
+                self.__ttbb_worker(y)
+            
         #
+    def __ttbb_worker(self,year):
+        ttbb_eft_file = f'{self.file_dir}{year}/{self.mc_dir}TTbb_EFT_val.pkl'
+        if not os.path.exists(ttbb_eft_file): return 0
+        df = pd.read_pickle(  ttbb_eft_file).filter( regex=f"EFT|process|{nn}", axis='columns')
+        #for sub_s in ['tt_bb','tt_2b']: # hardcoded ttbb processes 
+        for sub_s in ['tt_B']: # hardcoded ttbb processes 
+            cut_for_fit = (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['process'] == sub_s)))
+            #df = self.calcBeta(df[df[nn]>=0.0], s)
+            s_df = self.calcBeta(df[cut_for_fit(df)], 'ttbb')
+            # store SM normalized PQR parameters per
+            self.eft_df[year]['ttbb'][sub_s] = s_df.filter(regex=r'(?<!pro)c|SM').sum(axis='index')/s_df['SM'].sum(axis='index')
 
     def calcBeta(self,df, sample):
         # taken from Jon's code  
@@ -96,22 +127,12 @@ class EFTFitParams():
 class TestEFTFitParams(EFTFitParams):
     # copy the functionality from EFTFItParams
     #bkg = ['ttbb']
-    aux_dict = {'ttbb':'aux_eft_TTH.pkl',
-                'ttH' :'aux_eft_TTH.pkl',
-                'ttZ' :'aux_eft_TTZ.pkl',
-                'ttjets'  :'aux_eft_TTH.pkl' # fix the file that it opens
-            }
-    val_dict = {'ttbb': 'TTBB',
-                'ttjets': 'TTJets',
-                'ttZ'  : 'TTZ',
-                'ttH'  : 'TTH'
-    }
-
 
     def __init__(self, sample, kinem=None):
         self.sample = sample
         self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}/{self.aux_dict[s]}') for s in self.sample}
         self.kinem = kinem
+        #self.pt_bins = [0,200,300,450,550,650]
         self.__worker()
 
     def __worker(self, kinem=['weight','Zh_M','Zh_pt','ttbb_genbb_pt','ttbb_genbb_invm','process'], k_bins=[-np.inf,np.inf]):
@@ -119,16 +140,25 @@ class TestEFTFitParams(EFTFitParams):
         #self.eft_df = {y:{s:{} for s in self.bkg} for y in self.years} 
         kinem = [self.kinem] if self.kinem else kinem
         self.eft_df = {y: {s:{} for s in self.sample}  for y in self.years} 
-        cut_for_fit = (lambda x: ((x['NN']>=0.0)) )
+        cut_for_fit = (lambda x: ((x[nn]>=0.0)) )
         #cut_for_fit = (lambda x: x )
         for y in self.years:
             for s in self.sample:
                 #s = self.sample
-                if not os.path.exists(f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl'): continue
-                df = pd.read_pickle(f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl').filter( regex=f"EFT|{'|'.join(kinem)}|NN", axis='columns')
-                #df['pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]-1), bins=self.pt_bins,
-                #labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
-                #df = self.calcBeta(df[df['NN']>=0.0], s)
+                eft_file = f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl'
+                if not os.path.exists(eft_file): continue
+                if s == 'ttZ' or s == 'ttH': 
+                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|genZHstxs|genZHpt|{nn}", axis='columns')
+                    df['gen_pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+.0001,self.pt_bins[-1]-.0001), bins=self.pt_bins,
+                                              labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
+                else:
+                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|{nn}", axis='columns')
+
+                df['reco_pt_bin'] = pd.cut(df['Zh_pt'].clip(self.pt_bins[1]+.0001,self.pt_bins[-1]-.0001), bins=self.pt_bins[1:],
+                                           labels=[i_bin for i_bin in range(1,len(self.pt_bins)-1)])
+                df['reco_m_bin']  = pd.cut(df['Zh_M'].clip(self.m_bins[0]+.0001,self.m_bins[-1]-.0001), bins=self.m_bins,
+                                           labels=[i_bin for i_bin in range(0,len(self.m_bins)-1)])
+                #df = self.calcBeta(df[df[nn]>=0.0], s)
                 df = self.calcBeta(df[cut_for_fit(df)], s)
                 # store SM normalized PQR parameters per
                 #self.eft_df[y][s] = {f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index')
@@ -227,18 +257,18 @@ class EFTParam():
 
     def save_to_dict(self, year=None, pt_bins=[1,2,3], force_year=None): # construct dictionary based on datacard channels
         if force_year is None: force_year = year
-        self.wc = None
+        #self.wc = None
         out_dict  = {}
         for k in self.eft_fit[force_year]: # (ttZ,ttH)
             for p,df in self.eft_fit[force_year][k].items(): # (ttZ0,ttZ1,ttZ2,ttZ3)
                 wc_dict = {}
-                for wc in df.keys():
+                for wc in df.keys(): # iterate over all P,Q,R terms
                     pqr = wc.split('_')
-                    if len(pqr) > 1:
+                    if len(pqr) > 1: # P terms 
                         wc_dict[tuple(pqr)] = df[wc]
-                    elif 'SM' in wc:
+                    elif 'SM' in wc: # SM 
                         wc_dict[('sm','sm')] = df[wc]
-                    else:
+                    else: # Q terms
                         wc_dict[('sm',wc)] = df[wc]
                 for pt in pt_bins:
                     out_dict[(p,f'y{year}_Zhpt{pt}')] = wc_dict
@@ -252,20 +282,27 @@ def forTesting():
     pickle.dump(out_dict, open(out_path+out_file,'wb'), protocol=2) 
     
 
-if __name__ == '__main__':
-    #eft = EFTParam()
-    #eft.save_to_dict(year='2016', force_year='2018')
-    #eft.save_to_dict(year='2017', force_year='2018')
-    #eft.save_to_dict(year='2018', force_year='2018')
-    import pickle
-    #np.save(sys.path[1]+'Higgs-Combine-Tool/EFT_Parameterization_v1.npy', eft.out_dict, allow_pickle=True, fix_imports=True) # save to Higgs-Combine-Tool dir
+def forDatacard():
     out_path = sys.path[1]+'Higgs-Combine-Tool/'
-    out_file = 'EFT_Parameterization_v2.npy'
+    out_file = 'EFT_Parameterization_v5.npy'
+    eft = EFTParam()
+    eft.save_to_dict(year='2016', force_year='2018')
+    eft.save_to_dict(year='2017', force_year='2018')
+    eft.save_to_dict(year='2018', force_year='2018')
+    print(eft.out_dict.keys())
+    #
+    pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
+
+if __name__ == '__main__':
+    import pickle
+    # -- to test different eft samples w/o channel binning
+
     forTesting()
-    #pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
-    # for ttbb testing
-    #out_path = sys.path[1]+'test/'
-    #out_file = 'EFT_Parameterization_ttbb.npy'
-    #pickle.dump(eft.eftbkg_fit, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
+
+    # -- to make parameterizations for datacard workspace
+    
+    #forDatacard()
+
+    # -- end
     
     

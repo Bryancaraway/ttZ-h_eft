@@ -58,7 +58,7 @@ if len(sys.argv) > 2: # means do nn cuts
     doNNcuts = True
 
 #nn = 'NN'
-nn = 'withbbvl_NN'
+nn = cfg.nn
     
 # only targets listed here may be used
 tbins_map = {

@@ -364,11 +364,11 @@ class Calc_LepEffSF :
         
 
 if __name__ == '__main__':
-    Calc_LepEffSF('Electron','2016')
-    Calc_LepEffSF('Electron','2017')
+    #Calc_LepEffSF('Electron','2016')
+    #Calc_LepEffSF('Electron','2017')
     Calc_LepEffSF('Electron','2018')
     #
-    Calc_LepEffSF('Muon','2016')
-    Calc_LepEffSF('Muon','2017')
+    #Calc_LepEffSF('Muon','2016')
+    #Calc_LepEffSF('Muon','2017')
     Calc_LepEffSF('Muon','2018')
     

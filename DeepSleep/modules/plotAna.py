@@ -199,18 +199,33 @@ class Plotter :
 
         
     def sepGenMatchedSig(self):
-        df = self.data 
-        df['TTZH_genZbb'] = (lambda x : x[x['matchedGen_Zbb'] == True])(df['TTZH'])
-        df['TTZH_genHbb'] = (lambda x : x[x['matchedGen_Hbb'] == True])(df['TTZH'])
-        df['TTZH_genZqq'] = (lambda x : x[x['matchedGen_Zqq'] == True])(df['TTZH'])
-        df['TTZH_noGenMatch'] = (lambda x : x[(x['matchedGen_Zqq'] == False) & 
-                                                          (x['matchedGen_ZHbb'] == False)])(df['TTZH'])
+        df = self.data
+        if '++' not in self.sepGenOpt:
+            df['ttZ_genm_Zbb'] = (lambda x : x[x['matchedGen_Zbb'] == True])(df['ttZ'])
+            df['ttH_genm_Hbb'] = (lambda x : x[x['matchedGen_Hbb'] == True])(df['ttH'])
+            df['ttZ_notgenm_Zbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttZ'])
+            df['ttH_notgenm_Hbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttH'])
+        else:
+            df['ttZ_genm_Zbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttZ'])
+            df['ttZ_genm_Zbb_b'] = (lambda x : x[x['matchedGen_ZHbb_b'] == True])(df['ttZ'])
+            df['ttZ_genm_Zbb_nob'] = (lambda x : x[x['matchedGen_ZHbb_nob'] == True])(df['ttZ'])
+            df['ttH_genm_Hbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttH'])
+            df['ttH_genm_Hbb_b'] = (lambda x : x[x['matchedGen_ZHbb_b'] == True])(df['ttH'])
+            df['ttH_genm_Hbb_nob'] = (lambda x : x[x['matchedGen_ZHbb_nob'] == True])(df['ttH'])
+            df['ttZ_notgenm_Zbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttZ'])
+            df['ttH_notgenm_Hbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttH'])
+        #df['TTZH_genZqq'] = (lambda x : x[x['matchedGen_Zqq'] == True])(df['ttZ'])
+        #df['TTZH_noGenMatch'] = (lambda x : x[(x['matchedGen_Zqq'] == False) & 
+        #                                                  (x['matchedGen_ZHbb'] == False)])(df['tt'])
+
+        
         self.data.update(df) 
-        self.data.pop('TTZH')
-        if 'TTZ_bb' in self.data:
-            df['TTZ_genZbb'] = (lambda x : x[x['matchedGen_Zbb'] == True])(df['TTZ_bb'])
-            self.data.update(df)
-            self.data.pop('TTZ_bb')
+        self.data.pop('ttZ')
+        self.data.pop('ttH')
+        #if 'TTZ_bb' in self.data:
+        #    df['TTZ_genZbb'] = (lambda x : x[x['matchedGen_Zbb'] == True])(df['TTZ_bb'])
+        #    self.data.update(df)
+        #    self.data.pop('TTZ_bb')
 
     def sepGenMatchedBkg(self):
         df = self.data

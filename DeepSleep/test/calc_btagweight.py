@@ -26,7 +26,7 @@ class Calc_BTagWeightSF :
     def __init__(self, year) : 
         self.year       = year
         self.processes  = cfg.All_MC
-        self.btw_yields = None
+        #self.btw_yields = None
         self.r_ratio    = {} # by process
         #
         self.concat_btw_meta()
@@ -37,8 +37,14 @@ class Calc_BTagWeightSF :
             bty = None
             for mc in process_cfg[p]:
                 mD = AnaDict.read_pickle(f'{self.SkimDir}/{self.year}/{p}/{mc}.pkl')['metaData']
-                if self.btw_yields is None: self.btw_yields = re.findall(r'\w*_yield\w*', ' '.join(mD.keys()))
-                bty = self.update_dict(mD,bty,self.btw_yields) # in, out, keys
+                #if self.btw_yields is None: self.btw_yields = re.findall(r'\w*_yield\w*', ' '.join(mD.keys()))
+                bty_names = re.findall(r'\w*_yield\w*', ' '.join(mD.keys()))
+                bty = self.update_dict(mD,bty,bty_names) # in, out, keys
+            #
+            #if p == 'TTBar': # do tt+cc and tt+lf seperately
+            #    self.r_ratio[f'{p}_lf'] = self.calc_r_ratio(bty, opt='lf')
+            #    self.r_ratio[f'{p}_cc'] = self.calc_r_ratio(bty, opt='cc')
+            #else:
             self.r_ratio[p] = self.calc_r_ratio(bty)
 
     def write_to_json(self):
@@ -53,15 +59,17 @@ class Calc_BTagWeightSF :
         return {k_ : in_[k_]*in_['weight']+out_[k_] for k_ in keys_}
     
     @staticmethod
-    def calc_r_ratio(yields_):
+    def calc_r_ratio(yields_, opt=None):
         # clip at 9 
+        opt      = f'{opt}_' if opt is not None else ''
         arr_clip =  (lambda arr,i: np.append(arr[:i],sum(arr[i:]))) 
-        nj_yield = yields_.pop('nj_yield')
+        nj_yield = yields_.pop(f'{opt}nj_yield')
         nj_yield = arr_clip(nj_yield, 9)
         r_ratio = {}
         for y_ in yields_:
+            if opt not in y_: continue
             bty_ = arr_clip(yields_[y_],9)
-            r_ratio[y_.replace('btw_yield','r_ratio')] = np.where(bty_ == 0 , 0., nj_yield/bty_).tolist()
+            r_ratio[y_.replace(f'{opt}btw_yield','r_ratio')] = np.where(bty_ == 0 , 0., nj_yield/bty_).tolist()
         #print(r_ratio)
         return r_ratio
 

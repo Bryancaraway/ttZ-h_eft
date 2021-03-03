@@ -121,7 +121,8 @@ class PlotsFromDC(MakeDataCard):
 def initDF():
     data = PlotsFromDC().getData()
     #processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','ttX','VJets','other']
-    processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','single_t','ttX','VJets']
+    #processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','single_t','ttX','VJets']
+    processes = ['ttZ','ttH','TTBar','tt_B','single_t','ttX','VJets']
     #rare_p = {'ttX','VJets','other'}    
     k_list = ['Zh_M','Zh_pt',nn,'process']
     df = pd.DataFrame()
@@ -137,7 +138,8 @@ def initDF():
     # organize by process
     cuts = (lambda df_: df_[(df_[nn] > 0.80) & (df_['Zh_pt'] > 450)])
     df = cuts(df)
-    ordered_p = ['ttZ','ttH','tt_bb','tt_2b','TTBar','single_t','ttX','VJets']
+    #ordered_p = ['ttZ','ttH','tt_bb','tt_2b','TTBar','single_t','ttX','VJets']
+    ordered_p = ['ttZ','ttH','tt_B','TTBar','single_t','ttX','VJets']
     getv = (lambda k: [df[k][df['process'] == p].values for p in ordered_p])
     #
     h = getv('Zh_M')

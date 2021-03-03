@@ -57,12 +57,16 @@ class AnaVars:
                 'Jet_mass'         : f"Jet_mass{self.jec_dict[self.jec_sys]}" ,
                 'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}",
                 'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}",
+                "FatJet_pt"        : f"FatJet_pt_nom",        #new  
+                "FatJet_msoftdrop" : f"FatJet_msoftdrop_nom", #new
             },
             'ak8jer': {
                 'FatJet_pt'        : f"FatJet_pt{self.jec_dict[self.jec_sys]}" ,
                 'FatJet_msoftdrop' : f"FatJet_msoftdrop{self.jec_dict[self.jec_sys]}" , 
                 'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}",
                 'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}",
+                "Jet_pt"           : f"Jet_pt_nom",   #new
+                "Jet_mass"         : f"Jet_mass_nom", #new
             },
             'both' : {
                 'Jet_pt'           : f"Jet_pt{self.jec_dict[self.jec_sys]}" ,
@@ -74,8 +78,15 @@ class AnaVars:
             },
             'ak8jmsr' : {
                 'FatJet_msoftdrop' : f"FatJet_msoftdrop{self.jec_dict[self.jec_sys]}" , 
+                "FatJet_pt"        : f"FatJet_pt_nom", #new
+                "Jet_pt"           : f"Jet_pt_nom",    #new
+                "Jet_mass"         : f"Jet_mass_nom",  #new
             },
             '': {
+                "Jet_pt"           : f"Jet_pt_nom"           if not self.isData else "Jet_pt",   #new
+                "Jet_mass"         : f"Jet_mass_nom"         if not self.isData else "Jet_mass", #new
+                "FatJet_pt"        : f"FatJet_pt_nom"        , # data has these stored
+                "FatJet_msoftdrop" : f"FatJet_msoftdrop_nom" , # data has these stored
                 'MET_pt' :'MET_pt'  if not self.isData else 'MET_pt',
                 'MET_phi':'MET_phi' if not self.isData else 'MET_phi',
             }

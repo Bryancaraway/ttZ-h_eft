@@ -32,9 +32,7 @@ sample_dict = {'all' :process_cfg.keys(),
                'data': cfg.Data_samples,
                'tt'   : process_cfg['TTBar'],
                'ttsys': process_cfg['TTBar_sys'],
-               #'tt_bb' : process_cfg['ttbb'],
-               #'ttbbsys': process_cfg['ttbb_sys']}
-               }
+}
 
 def submit_jobs():
     
@@ -43,7 +41,7 @@ def submit_jobs():
         samples = sample_dict[args.samples]
     else:
         samples = [args.samples]
-    years = [args.year] if args.year != 'all' else cfg.Years
+    years = [args.year] if args.year != 'all' else cfg.Years[::-1]
     #jecs  = [args.jec]  if args.jec != 'all' else ['JESUp','JESDown','JERUp','JERDown']
     jecs    = cfg.jec_variations if args.jec == 'all' else [args.jec]
     func = submit_runAna if args.script == 'runAna' else submit_runSkim
@@ -87,7 +85,8 @@ def execute_runAna(samples, year, jec):
         print(command)
         os.system(command)
         num_jobs_running = lambda: int(sb.check_output(
-            f"qstat -u $USER -w -f | grep 'Job_Name = {args.samples}_{args.year}_{sample}{year}{tag}' | wc -l", shell=True).decode())
+            #f"qstat -u $USER -w -f | grep 'Job_Name = {args.samples}_{args.year}_{sample}{year}{tag}' | wc -l", shell=True).decode())
+            f"qstat -u $USER -w -f | grep 'Job_Name = {args.samples}_{args.year}_{sample}{year}' | wc -l", shell=True).decode())
         # allow qsub to catch up?
         time.sleep(5)
         while num_jobs_running() > 40:

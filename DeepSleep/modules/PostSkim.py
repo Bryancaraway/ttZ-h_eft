@@ -68,17 +68,7 @@ class PostSkim :
         self.final_pkl['metaData'] = {var: self.final_pkl['metaData'][var] + di[var] for var in di}
     def concat_other(self,awk,k):
         self.final_pkl[k] = {var: self.try_concatenate([self.final_pkl[k][var],awk[var]]) for var in awk}
-    # == #
-    #def handle_btag_weight(self):
-    #    df = self.final_pkl['events'].filter(like='BTagWeight', axis='columns')
-    #    nj = self.final_pkl['events']['n_ak4jets'].clip(0,12)
-    #    for k in df.keys():
-    #        bty = 'btw_yield'+k.replace('BTagWeight','')
-    #        opp = np.where(self.final_pkl['metaData']['nj_yield'] == 0 , 0.,
-    #                       self.final_pkl['metaData']['nj_yield']/self.final_pkl['metaData'][bty])
-    #        self.final_pkl['events'].loc[:,k] = df[k]*nj.apply((lambda i : opp[int(i)]))
-        
-    # -- #
+
     @staticmethod
     def open_and_del(pkl):
         pkl_dict = AnaDict.read_pickle(pkl)
