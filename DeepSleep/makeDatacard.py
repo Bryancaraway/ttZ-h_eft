@@ -118,8 +118,8 @@ class MakeDataCard:
         'BTagWeight_up_lfstats2','BTagWeight_down_lfstats2',# non-corr
         'BTagWeight_up_hfstats1','BTagWeight_down_hfstats1',# non-corr
         'BTagWeight_up_hfstats2','BTagWeight_down_hfstats2',# non-corr
-        #'BTagWeight_up_cferr1','BTagWeight_down_cferr1',# non-corr
-        #'BTagWeight_up_cferr2','BTagWeight_down_cferr2',# non-corr
+        'BTagWeight_up_cferr1','BTagWeight_down_cferr1',# non-corr
+        'BTagWeight_up_cferr2','BTagWeight_down_cferr2',# non-corr
         #'puWeight_Up','puWeight_Down',
         'puWeightUp','puWeightDown',
         'pdfWeight_Up','pdfWeight_Down',
@@ -417,8 +417,9 @@ class MakeDataCard:
         #self.histos = ShapeSystematic(f'btglf', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_lf', 'BTagWeight_down_lf').get_shape()
         self.histos = ShapeSystematic(f'btghf', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_hf', 'BTagWeight_down_hf').get_shape()
         self.histos = ShapeSystematic(f'btgjes', 'shape', 'up/down', all_mc, 1,'BTagWeight_up_jes','BTagWeight_down_jes').get_shape()
-        #self.histos = ShapeSystematic(f'btgcferr1', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_cferr1','BTagWeight_down_cferr1').get_shape()
-        #self.histos = ShapeSystematic(f'btgcferr2', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_cferr2','BTagWeight_down_cferr2').get_shape()
+        self.histos = ShapeSystematic(f'btgcferr1', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_cferr1','BTagWeight_down_cferr1').get_shape()
+        self.histos = ShapeSystematic(f'btgcferr2', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_cferr2','BTagWeight_down_cferr2').get_shape()
+        #self.histos = ShapeSystematic(f'lepsf', 'shape', 'up/down', all_mc, 1, 'lep_sf_up','lep_sf_down').get_shape()
         self.histos = ShapeSystematic(f'pref_2016', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'pref_2017', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'topptWeight_Up' ,'topptWeight_Down').get_shape() # using hacky unc.
@@ -678,8 +679,8 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
         self.up     = up
         self.down   = down
         self.subtype = subtype
-        self.extraQC = False # to make smoothing before and after plots
-        #self.extraQC = extraQC 
+        #self.extraQC = False # to make smoothing before and after plots
+        self.extraQC = extraQC 
 
     def get_shape(self):
         fun_dict = {'mcstat' :self.makeMCStatHist,
@@ -831,7 +832,7 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
                 # shape (3, 4, 4) pt,nn,sdm
 
                 #if 'JES' in self.name or 'JEC' in self.name: # sum across NN per pt,sdM
-                if False:
+                if True:
                     for i in range(nom.shape[-1]): # for sdM
                         for j in range(nom.shape[0]): # for pt
                             up[j,:,i]   = nom[j,:,i] * np.nansum(up[j,:,i])/np.nansum(nom[j,:,i])

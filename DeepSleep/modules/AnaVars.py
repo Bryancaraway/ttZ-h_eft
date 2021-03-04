@@ -55,16 +55,16 @@ class AnaVars:
             'ak4jer': {
                 'Jet_pt'           : f"Jet_pt{self.jec_dict[self.jec_sys]}" ,
                 'Jet_mass'         : f"Jet_mass{self.jec_dict[self.jec_sys]}" ,
-                'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}",
-                'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}",
+                'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}"  if self.year != '2017' else 'MET_pt' ,
+                'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}" if self.year != '2017' else 'MET_phi',
                 "FatJet_pt"        : f"FatJet_pt_nom",        #new  
                 "FatJet_msoftdrop" : f"FatJet_msoftdrop_nom", #new
             },
             'ak8jer': {
                 'FatJet_pt'        : f"FatJet_pt{self.jec_dict[self.jec_sys]}" ,
                 'FatJet_msoftdrop' : f"FatJet_msoftdrop{self.jec_dict[self.jec_sys]}" , 
-                'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}",
-                'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}",
+                'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}"  if self.year != '2017' else 'MET_pt',
+                'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}" if self.year != '2017' else 'MET_phi',
                 "Jet_pt"           : f"Jet_pt_nom",   #new
                 "Jet_mass"         : f"Jet_mass_nom", #new
             },
@@ -73,8 +73,8 @@ class AnaVars:
                 'Jet_mass'         : f"Jet_mass{self.jec_dict[self.jec_sys]}" ,
                 'FatJet_pt'        : f"FatJet_pt{self.jec_dict[self.jec_sys]}" ,
                 'FatJet_msoftdrop' : f"FatJet_msoftdrop{self.jec_dict[self.jec_sys]}" , 
-                'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}",
-                'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}",
+                'MET_pt'           : f"MET_T1_pt{self.jec_dict[self.jec_sys]}"  if self.year != '2017' else 'MET_pt',
+                'MET_phi'          : f"MET_T1_phi{self.jec_dict[self.jec_sys]}" if self.year != '2017' else 'MET_phi',
             },
             'ak8jmsr' : {
                 'FatJet_msoftdrop' : f"FatJet_msoftdrop{self.jec_dict[self.jec_sys]}" , 

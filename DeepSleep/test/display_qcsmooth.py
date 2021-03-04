@@ -31,15 +31,17 @@ sys_to_plot = ['jesRelativeSample{y}','jesHF{y}','jesAbsolute{y}','jesEC2{y}',
                'jesRelativeBal', 'jesFlavorQCD', 'jesHF', 'jesAbsolute', 'jesEC2', 
                'jesBBEC1', 'fsr', 'UE', 'hdamp']
 
+sample = 'TTBar'
+year   = '2017'
 
-@save_pdf('qcsmooth_before_after.pdf')
+@save_pdf(f'qcsmooth_before_after_{sample}_{year}.pdf')
 def main():
     # can set qcsmooth to 'qc' or 'smooth'
-    qcsmooth = PlotQCSmooth('TTBar','Zhpt1','2017', qcsmooth='smooth')
+    qcsmooth = PlotQCSmooth(sample,'Zhpt1',year, qcsmooth='smooth')
     qcsmooth.makeplots()
-    qcsmooth = PlotQCSmooth('TTBar','Zhpt2','2017', qcsmooth='smooth')
+    qcsmooth = PlotQCSmooth(sample,'Zhpt2',year, qcsmooth='smooth')
     qcsmooth.makeplots()
-    qcsmooth = PlotQCSmooth('TTBar','Zhpt3','2017', qcsmooth='smooth')
+    qcsmooth = PlotQCSmooth(sample,'Zhpt3',year, qcsmooth='smooth')
     qcsmooth.makeplots()
 
     
@@ -71,16 +73,20 @@ class PlotQCSmooth:
             if self.edges is None : self.edges = np.array(roo[pre].edges)
             for sys in self.sys_to_plot:
                 for ud in ['Up','Down']:
-                    self.hists[sys+ud] = np.array(roo[pre+f'_{sys}'+ud].values)/self.hists['nom']
-                    if 'hdamp' in sys or 'UE' in sys:
-                        self.hists[sys+ud+'_err'] = (np.sqrt(roo[pre+f'_{sys}'+ud].variances)+np.array(roo[pre+f'_{sys}'+ud].values))/np.array(roo[pre+f'_{sys}'+ud].values)
+                    try:
+                        self.hists[sys+ud] = np.array(roo[pre+f'_{sys}'+ud].values)/self.hists['nom']
+                        if 'hdamp' in sys or 'UE' in sys:
+                            self.hists[sys+ud+'_err'] = (np.sqrt(roo[pre+f'_{sys}'+ud].variances)+np.array(roo[pre+f'_{sys}'+ud].values))/np.array(roo[pre+f'_{sys}'+ud].values)
+                    except KeyError: pass # for sys not in root file
 
     def makeplots(self):
         for sys in self.sys_to_plot:
-            fig, axs = self.initPlt()
-            for ax,sm in zip(axs,self.hist_dict):
-                self.make_step(sys,ax,sm)
-            self.endPlt(fig,axs)
+            try:
+                fig, axs = self.initPlt()
+                for ax,sm in zip(axs,self.hist_dict):
+                    self.make_step(sys,ax,sm)
+                self.endPlt(fig,axs)
+            except KeyError: pass # for sys not in root file    
 
     def make_step(self, sys, ax, opt):
         ax.set_title(rf'${opt}$', y=1.0, pad=-14, fontsize=10)

@@ -164,7 +164,7 @@ class SkimMeta :
         # main things to worry about tt+bb, tt+lf, ttZbb in TTZToQQ
         ## -- ## 
         def btagweightsf_helper(p_mask=None, opt=None):
-            active_mask = (lambda df : df[p_mask]) is p_mask is not None else (lambda df : df)
+            active_mask = (lambda df : df[p_mask]) if p_mask is not None else (lambda df : df)
             opt         = f'{opt}_' if opt is not None else ''
             n_ak4jets = np.clip(0, 12, active_mask(events['n_ak4jets']))
             gw_np     = active_mask(np.sign(events['genWeight']))

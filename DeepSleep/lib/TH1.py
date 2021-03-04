@@ -29,7 +29,8 @@ def export1d(histo, name):
     sumw = np.clip(np.pad(np.nan_to_num(histo['sumw']), 1, 'constant', constant_values=0), 0.,np.inf)
     if 'sumw2' in histo:
         sumw2 = np.pad(np.nan_to_num(histo['sumw2']), 1, 'constant', constant_values=0).astype(">f8")
-        sumw2 = np.where( np.sqrt(sumw2) > sumw , np.power(sumw,2) , sumw2 )
+        if 'Up' not in name and 'Down' not in name:
+            sumw2 = np.where( np.sqrt(sumw2) > sumw , np.power(sumw,2) , sumw2 )
     else:
         sumw2 = sumw.astype(">f8")
     edges = np.linspace(0, len(sumw[1:-1]), len(sumw[1:-1])+1)
