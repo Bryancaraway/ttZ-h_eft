@@ -31,7 +31,8 @@ def main():
     #PostFit("fitDiagnostics_test_2016.root").makeplots()
     #f_list = [f"fitDiagnostics_blind_{i}.root" for i in ['2016','2017','2018','run2']] # test
     f_list = ['fitDiagnostics_partblind_run2.root']
-    #f_list = ['fitDiagnostics_partblind_uncorbtaglfhf_run2.root']
+    #f_list = ['fitDiagnostics_corrlf_run2.root']
+    
     for f in f_list:
         postfit = PostFit(f)
         save_pdf(f.replace('root','pdf'))(postfit.makeplots)() # decorator
@@ -115,23 +116,27 @@ class PostFit:
 
     def plot_1dpulls(self):
         fig, ax = plt.subplots()
-        #print(self.pulls)
+        print(self.pulls)
         self.pulls = self.pulls[(~np.isnan(self.pulls)) & (self.pulls != 0)]
         mu, std = norm.fit(self.pulls.flatten())
-        #h = ax.hist(self.pulls.flatten(), 
-        #            histtype='step',
-        #            #bins=[-4,-3.5,-3.0,-2.5,-2.0,-1.25,-0.75,-0.25,
-        #            #0.25,0.75,1.25,2.0,2.5,3,3.5,4])#[-4,-3,-2,-1,1,2,3,4])
-        #            bins = 40,
-        #            density=True)
         #xmin, xmax = ax.get_xlim()
         xmin, xmax = np.min(self.pulls), np.max(self.pulls)
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mu, std)
         ax.plot(x, p, 'k', linewidth=2)
+        h = ax.hist(self.pulls.flatten(), 
+                    histtype='step',
+                    #bins=[-4,-3.5,-3.0,-2.5,-2.0,-1.25,-0.75,-0.25,
+                    #0.25,0.75,1.25,2.0,2.5,3,3.5,4])#[-4,-3,-2,-1,1,2,3,4])
+                    bins = 20,
+                    density=True)
+        fig.text(x=.60,
+                 y=.75,
+                 s=f'mean:{mu:7.3f}\nstd:{std:9.3f}')
         fig.text(x=.75,
                  y=.75,
-                 s=f'Mean: {np.nanmean(self.pulls.flatten()):.3f}\nStd   : {np.nanstd(self.pulls.flatten()):.3f}')
+                 color='tab:blue',
+                 s=f'mean:{np.nanmean(self.pulls.flatten()):7.3f}\nrms:{np.sqrt(np.nanmean(self.pulls.flatten()**2)):9.3f}')
         self.end_pullsgof(fig, ax, title='Pulls')
         #ax.set_xlabel('Pull'+('' if self.kinem is None else f' ({self.kinem})'))
         #ax.set_ylabel('Norm. / bin')
@@ -289,8 +294,15 @@ class PostFit:
         num = np.subtract(d['data']['values'], d['total']['values'])
         #den = np.sqrt( np.subtract( d['total']['values'], np.power( d['total']['err'] ,2) ))
         den = np.sqrt( abs(np.subtract( d['total']['values'], np.power( d['total']['err'] ,2) )))
+        #print('\n')
+        #print('Data: ', d['data']['values'])
+        #print('Pred: ', d['total']['values'])
+        #print('Sys: ',d['total']['err'])
+        #print('Sys^2: ',np.power( d['total']['err'] ,2))
+
         #y = (d['data']['values'] - d['total']['values']) / np.sqrt( d['total']['values'] - np.power( d['total']['err'] ,2))
         y = num/den
+        #print('Pull: ',y)
         #print(y)
         self.pulls = np.append(self.pulls, y)
         #yerrdw  =  (d['data']['errdw'] ) / np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2))

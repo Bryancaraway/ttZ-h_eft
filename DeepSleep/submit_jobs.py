@@ -15,7 +15,7 @@ import config.ana_cff as cfg
 # add parsargs at some point for year, rundata, minibatch
 parser = argparse.ArgumentParser(description='Run analysis over many samples and years using batch system')
 parser.add_argument('-s', dest='samples', type=str, 
-                    choices=list(process_cfg.keys())+['all','data','mc', 'tt','ttsys'],
+                    choices=list(process_cfg.keys())+['all','data','mc', 'jec', 'tt','ttsys'],
                     required=True, help='analyze all, mc only, or data only')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years+['all'],
                     required=True, help='year or all years')
@@ -27,8 +27,10 @@ args = parser.parse_args()
 log_dir = f'log/{args.year}/'
 job_script = f'scripts/{args.script}.sh'
 
-sample_dict = {'all' :process_cfg.keys(),
-               'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
+sample_dict = {'all' : [k for k in process_cfg.keys() if 'Data' not in k]+cfg.Data_samples,
+               #'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
+               'mc'  : [k for k in process_cfg.keys() if 'Data' not in k],
+               'jec' : ['ttZ','ttH','ttbb','single_t','TTBar'],
                'data': cfg.Data_samples,
                'tt'   : process_cfg['TTBar'],
                'ttsys': process_cfg['TTBar_sys'],

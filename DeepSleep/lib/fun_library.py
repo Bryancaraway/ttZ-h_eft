@@ -189,8 +189,9 @@ def getZhbbBaseCuts(df_):
     import config.ana_cff as cfg
     base_cuts = (
         (df_['n_b_outZh']   >= 2)             &
+        (df_['n_ak4jets']   >= 5)             & # new addition
         (df_['Zh_bbvLscore'] >= 0.8)          &
-        ( (df_['isEleE']==True) | (df_['isMuonE']==True)) &
+        ( (df_['isEleE']==True) | (df_['isMuonE']==True)) & # pass sim trigger
         #(df_['n_ak8_Zhbb']  >  0)          &
         (df_['Zh_pt']       >= cfg.ZHptcut)& # 200
         (df_['MET_pt']      >= 20)            &

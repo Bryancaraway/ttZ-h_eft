@@ -24,7 +24,7 @@ class DeepAk8_fakeSF:
         self.mc_dict   = Plotter.data_dict
         # seperate between mc 1 and mc 2 
         self.initial_datamc_cuts = (lambda df_:( ( (df_['isEleE']==True) | (df_['isMuonE']==True) ) &
-                                                 (df_['Zh_bbvLscore'] >= 0.0) & (df_['n_b_outZh']>=2)))
+                                                 (df_['Zh_bbvLscore'] >= 0.0) & (df_['n_b_outZh']>=2) & (df_['n_ak4jets'] >= 5)))
         self.mc1_df, self.mc2_df = self.seperate_mc_dict()
         self.data_df = self.get_data_df()
         # get f_sf
@@ -100,7 +100,7 @@ class DeepAk8_fakeSF:
         hbb = self.mc_dict['ttH'].drop(nonhbb.index).copy()
         nonzbb = self.mc_dict['ttZ'].loc[self.mc_dict['ttZ']['Zbb']==False,:].copy()
         zbb = self.mc_dict['ttZ'].drop(nonzbb.index).copy()
-        mc2_df = pd.concat([self.mc_dict[k] for k in ['TTBar','other','VJets','ttX','single_t']]+[nonzbb,nonhbb],axis='rows',ignore_index=True)
+        mc2_df = pd.concat([self.mc_dict[k] for k in ['TTBar','VJets','ttX','single_t']]+[nonzbb,nonhbb],axis='rows',ignore_index=True)
         #mc1_df = pd.concat([self.mc_dict[k] for k in ['tt_bb','tt_2b']]+[zbb,hbb],axis='rows',ignore_index=True)
         mc1_df = pd.concat([self.mc_dict[k] for k in ['tt_B']]+[zbb,hbb],axis='rows',ignore_index=True)
         del self.mc_dict

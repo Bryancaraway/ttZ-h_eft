@@ -20,7 +20,7 @@ class DataCardShapes():
     #
     ref_samples = ['ttZ','ttH']
     #
-    nn = 'NN'
+    nn = cfg.nn
     hist_dict = {}
     #
     def __init__(self, recopt_bins, recosdM_bins, n_NN_bins=10, isblind=True): # will have to change isblind for final fit
@@ -36,7 +36,8 @@ class DataCardShapes():
         for y in self.years:
             get_pickle= (lambda s: pd.read_pickle(f'{self.file_dir}{y}/mc_files/{s}_val.pkl'))
             df = pd.concat([get_pickle(s) for s in self.ref_samples], axis='rows', ignore_index=True)
-            df = df[((df[self.nn]>=0.0) & ((df['Hbb']==True) | (df['Zbb'] == True)))]
+            #df = df[((df[self.nn]>=0.0) & ((df['Hbb']==True) | (df['Zbb'] == True)))]
+            df = df[((df[self.nn]>=0.0) & (df['matchedGen_ZHbb_bb']==True))]
             #if y != '2018':
             #    df = df[(df[self.nn] >= 0.0) & (df['process'] != 'ttX')]
             #else:
@@ -50,7 +51,8 @@ class DataCardShapes():
             self.hist_dict[y] = {}
             for i in range(1,len(self.pt_bins[:-1])):
                 sub_df = df[df['pt_bin'] == f'Zhpt{i}']
-                quantiles = np.linspace(0,1,self.n_NN_bins+1) # actual quantiles, 10% intervals
+                #quantiles = np.linspace(0,1,self.n_NN_bins+1) # actual quantiles, 10% intervals
+                quantiles = [0.0, .05, .25, .35, .50, .70, 1.0] # actual quantiles, 10% intervals
                 #if self.isblind:
                 nn_df = sub_df[self.nn] 
                 #else:
@@ -59,8 +61,10 @@ class DataCardShapes():
                 nn_bins = weighted_quantile(nn_df,
                                             quantiles, 
                                             getZhbbWeight(sub_df,y))
+                nn_bins[0], nn_bins[-1] = 0,1 # explicity set bin edges to 0 and 1
                 if self.isblind == False:
-                    nn_bins = nn_bins[:8] # first 4 bins to first 6
+                    #nn_bins = nn_bins[:2] # only %5 percent of gen-matched signal
+                    nn_bins = nn_bins[:-1] # up to last bin but mass-side bands
                 
                 #nn_bins = nn_bins[1:] # drop first background dominated bin
                 print(nn_bins)

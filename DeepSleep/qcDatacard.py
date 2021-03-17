@@ -103,6 +103,8 @@ tbins_map = {
     'n_Zh_btag_sj':[-0.5,0.5,1.5,np.inf],
     'Zh_bestb_sj':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
     'Zh_worstb_sj':[0,.25,.5,.75,1.0],
+    'ak4_bestb_inZH':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'ak4_worstb_inZH':[0,.25,.5,.75,1.0],
     'nonZhbb_b1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
     'nonZhbb_q1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
     'inZhb_outZhb_dr': [0.0, 0.8, 1.2, 1.6, 2.0, 2.4, np.inf], 
@@ -204,7 +206,7 @@ class MakeQCDataCard(MakeDataCard):
         
     def updatedict(self, p, v, y=''):
         if doNNcuts:
-            v = v +[nn]
+            v = v +[nn] + ([] if 'n_ak4jets' in v else ['n_ak4jets'])
         sub_f_dir = 'data_files' if 'Data' in p else 'mc_files'
         if not os.path.exists(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl'): return 
         if p in cfg.all_sys_samples:
@@ -222,7 +224,8 @@ class MakeQCDataCard(MakeDataCard):
         #df['pt_bin'] = pd.cut(df['Zh_pt'], bins=pt_bins+[500],
         #                      labels=[i_bin for i_bin in range(len(pt_bins))])
         if doNNcuts:
-            group = df[df[nn] >= 0.0].groupby(by='process')
+            #group = df[df[nn] >= 0.0].groupby(by='process')
+            group = df[(df[nn] >= 0.0) & (df['n_ak4jets'] >= 5)].groupby(by='process') # trying >= 5 cut
         else:
             group = df.groupby(by='process')
         if 'Data' not in p:

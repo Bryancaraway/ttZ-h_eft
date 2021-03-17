@@ -25,7 +25,8 @@ import config.ana_cff as cfg
 from lib.fun_library import t2Run, save_pdf, getZhbbWeight, getLaLabel
 from makeDatacard import MakeDataCard
 
-nn = 'withbbvl_NN'
+#nn = 'withbbvl_NN'
+nn = 'NN'
 
 target = ['Zh_M','Zh_pt']
 doNNcuts = True

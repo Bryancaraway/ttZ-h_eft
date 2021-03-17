@@ -35,6 +35,7 @@ class Calc_BTagWeightSF :
     def concat_btw_meta(self):
         for p in self.processes:
             bty = None
+            if p not in process_cfg: continue
             for mc in process_cfg[p]:
                 mD = AnaDict.read_pickle(f'{self.SkimDir}/{self.year}/{p}/{mc}.pkl')['metaData']
                 #if self.btw_yields is None: self.btw_yields = re.findall(r'\w*_yield\w*', ' '.join(mD.keys()))

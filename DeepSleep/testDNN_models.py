@@ -19,7 +19,7 @@ parser.add_argument('--jnum', dest='job_number', type=int, required=False, help=
 args = parser.parse_args()
 json_dir = f'{sys.path[1]}/log/nn/'
 
-from modules.dnn_model import * # just grab the whole thing
+from modules.dnn_model import * # just grab the whole thing, sorry future Bryan
 
 def main():
     if args.mode == 'exe':
@@ -34,7 +34,7 @@ def main():
                 #[['Dense', 256],['Dense', 128],['Dropout',d]],
             ]
             for seq in sequences:
-                for n_epoch in [100]:
+                for n_epoch in [100,150]:
                     for batch in [5128*2]:
                         for lr in [0.0003]:
                             for g in [.25,.5,.75,1]:
@@ -116,6 +116,8 @@ def run():
     plt.title(out_name)
     #plt.show()
     plt.savefig(cfg.dnn_ZH_dir+'/test_archs/'+out_name+'.pdf')
+
+    
 
 if __name__ == '__main__':
     main()

@@ -1,4 +1,4 @@
-##### Plotter code for analysis ######
+##### PlotterA code for analysis ######
 import pandas as pd
 import numpy as np
 import re
@@ -43,7 +43,8 @@ class Plotter :
                  xlabel=None, n_bins=20, bins=None,
                  doLog=True, doNorm=False, 
                  doShow = True, doSave = False,
-                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
+                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,
+                 alt_weight=None):
 
         self.samples    = samples
         self.kinem      = kinem
@@ -57,10 +58,12 @@ class Plotter :
         self.doShow     = doShow
         self.doSave     = doSave
         self.addData    = addData
+        self.addSoB     = addSoB
         self.doCuts     = doCuts
         self.add_cuts   = add_cuts if add_cuts is not None else ''
         self.add_d_cuts = add_d_cuts if add_d_cuts is not None else ''
         self.sepGenOpt  = sepGenOpt
+        self.alt_weight = alt_weight
         #
         self.prepData()
 
@@ -76,18 +79,22 @@ class Plotter :
         
         self.sepData()
         #
-        self.w_dict = {k: v['weight']* np.sign(v['genWeight']) 
-                       #* (np.where(v['weight']>300,0,1))
-                       #* (self.lumi/cfg.Lumi[self.year])
-                       * v['topptWeight']
-                       * (v['HEM_weight'] if self.year+self.HEM_opt == '2018' else 1.0)
-                       * (v['lep_trigeffsf'])
-                       * v['lep_sf']
-                       * v['dak8md_bbvl_sf']
-                       * v['BTagWeight'] 
-                       * v['puWeight']  
-                       * (v['PrefireWeight'] if self.year != '2018' else 1.0)
-                       for k,v in self.data.items()}
+        if self.alt_weight is None:
+            default_weight = (lambda v_, obj: 
+                              v_['weight']* np.sign(v_['genWeight'])
+                              * v_['topptWeight']
+                              * (v_['HEM_weight'] if obj.year+obj.HEM_opt == '2018' else 1.0)
+                              * (v_['lep_trigeffsf'])
+                              * v_['lep_sf']
+                              * v_['dak8md_bbvl_sf']
+                              * v_['BTagWeight'] 
+                              * v_['puWeight']  
+                              * (v_['PrefireWeight'] if obj.year != '2018' else 1.0))
+        else:
+            default_weight = self.alt_weight
+
+        
+        self.w_dict = {k: default_weight(v,self) for k,v in self.data.items()}
 
 
         self.i_dict     = {k: sum(v) for k,v in self.w_dict.items()}
@@ -248,7 +255,7 @@ class Plotter :
 
     @property
     def beginPlt(self):
-        if self.addData:
+        if self.addData or self.addSoB:
             self.fig, (self.ax, self.ax2) = plt.subplots(2,1, sharex=True, gridspec_kw={'height_ratios':[3,1]})
             #self.fig.subplots_adjust(hspace=0)
 
@@ -259,7 +266,7 @@ class Plotter :
             bottom=0.11,
             left=0.11,
             right=0.88,
-            hspace=0.0 if self.addData else 0.2,
+            hspace=0.0 if self.addData or self.addSoB else 0.2,
             wspace=0.2
         )
 
@@ -284,7 +291,7 @@ class Plotter :
         handles = handles + [hatch_patch]
         labels  = labels + ['Stat Unc.']
         self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize='xx-small')
-        self.ax.set_ylim(ymin=self.ax.get_ylim()[0],ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
+        self.ax.set_ylim(ymin=(0 if not self.doLog else .1),ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: 
             plt.show()
@@ -358,9 +365,10 @@ class StackedHist(Plotter) :
                  xlabel=None, n_bins=20, bins=None,
                  doLog=True, doNorm=False,
                  doShow = True, doSave = False,
-                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
+                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,
+                 alt_weight=None):
         super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
-                         doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData)
+                         doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData,addSoB,alt_weight)
         #
         self.makePlot()
 
@@ -471,10 +479,10 @@ class Hist (Plotter) :
                  xlabel=None, n_bins=20, bins=None,
                  doLog=False, doNorm=True, doBinRatio=False, 
                  doShow = True, doSave = False,
-                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False):
+                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,alt_weight=None):
 
         super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
-                         doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData)
+                         doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData,addSoB,alt_weight)
 
         if dropNoGenM: [self.data.pop(k) for k in re.findall(r'\w*_no\w*GenMatch',' '.join(self.data)) if k in self.data]
         if droptt    : [self.data.pop(k) for k in re.findall(r'TTBar{Had|Semi|Di}_\w*nobb', ' '.join(self.data)) if k in self.data]
@@ -507,9 +515,33 @@ class Hist (Plotter) :
                     x = self.bins,
                     y = y[_],
                     where='post', color=c[_], label=l[_])
+        if self.addSoB:
+            self.addSoverBplot()
         # need to plot mc stats error 
         #
         self.endPlt
+
+    def addSoverBplot(self):
+        sig = ['ttZ','ttH']
+        k, h, w, i, c, l = self.retData 
+        
+        bkg_hist, _ = np.histogram(np.concatenate([h_ for k_,h_ in zip(k,h) if k_ not in sig]).ravel(), bins=self.bins, 
+                                weights=np.concatenate([w_ for k_,w_ in zip(k,w) if k_ not in sig]).ravel())
+        sig_hist, edges = np.histogram(np.concatenate([h_ for k_,h_ in zip(k,h) if k_ in sig]).ravel(), bins=self.bins, 
+                                weights=np.concatenate([w_ for k_,w_ in zip(k,w) if k_ in sig]).ravel())
+        bin_c = (edges[1:]+edges[:-1])/2
+        self.ax2.errorbar(x=bin_c, y = sig_hist/np.sqrt(bkg_hist),
+                          xerr=(edges[1:]-edges[:-1])/2,
+                          fmt='.', color='k', label=r'S/$\sqrt{\mathrm{B}}$')
+        self.ax2.xaxis.set_minor_locator(AutoMinorLocator())
+        self.ax2.yaxis.set_major_formatter(FormatStrFormatter('%g'))
+        self.ax2.yaxis.set_major_locator(FixedLocator([.50,1]))
+        self.ax2.yaxis.set_minor_locator(AutoMinorLocator())
+        self.ax2.tick_params(which='both', direction='in', top=True, right=True)
+        self.ax2.set_ylim(0.0,1.25)
+        self.ax2.set_ylabel(r'S/$\sqrt{\mathrm{B}}$')
+        self.ax2.grid(True)
+
 
     def addMCStat(self,h,n,w,i,c,bins):
         bin_c = (bins[1:]+bins[:-1])/2

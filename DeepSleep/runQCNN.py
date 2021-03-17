@@ -15,15 +15,16 @@ from modules.AnaDict     import AnaDict
 parser = argparse.ArgumentParser(description='Run qc datacard script for nn inputs')
 parser.add_argument('--nn_inputs', dest='nn_inputs', type=str, 
                     choices=['nodak8md_dnn_ZH_vars','withbbvl_dnn_ZH_vars','allvars_dnn_ZH_vars'],
-                    required=False, help='model input set', default='withbbvl_dnn_ZH_vars')
+                    required=False, help='model input set', default='withbbvl_dnn_ZHgenm_vars')
 
 args = parser.parse_args()
 
 def runQC():
     input_dict = {
-        'nodak8md_dnn_ZH_vars': cfg.nodak8md_dnn_ZH_vars,
+        #'nodak8md_dnn_ZH_vars': cfg.nodak8md_dnn_ZH_vars,
         'withbbvl_dnn_ZH_vars': cfg.withbbvl_dnn_ZH_vars,
-        'allvars_dnn_ZH_vars': cfg.allvars_dnn_ZH_vars,
+        'withbbvl_dnn_ZHgenm_vars' : cfg.withbbvl_dnn_ZHgenm_vars,
+        #'allvars_dnn_ZH_vars': cfg.allvars_dnn_ZH_vars,
     }
     for nn_input in input_dict[args.nn_inputs]:
         command = f"qsub -l nodes=1:ppn=4 -N runQCNN_{nn_input} "

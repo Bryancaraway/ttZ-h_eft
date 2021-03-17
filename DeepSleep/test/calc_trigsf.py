@@ -78,8 +78,8 @@ class Calc_LepEffSF :
         self.get_total_weight()
         #
         self.alpha = self.get_alpha()
-        self.sf, self.sf_up, self.sf_down, self.sf_bins = self.calc_trig_eff_sf()
-        #self.store_sf()
+        self.sf, self.sf_up, self.sf_down, self.sf_stat_up, self.sf_stat_down, self.sf_sys, self.sf_bins = self.calc_trig_eff_sf()
+        self.store_sf()
         save_pdf(f'{self.channel}_trigeff_{self.year}.pdf')(self.plot_datamc_eff)()
         #self.plot_test('nBottoms',[-.5,0.5,1.5,2.5,3.5,4.5])
         #self.plot_test(f'{self.of_lep[channel]}_pt',[30,  40,  50,  60, 120, 200, 500])
@@ -97,6 +97,9 @@ class Calc_LepEffSF :
                                    'pt_eta_sf': self.sf.tolist(),
                                    'pt_eta_sf_Up': self.sf_up.tolist(),
                                    'pt_eta_sf_Down': self.sf_down.tolist(),
+                                   'pt_eta_sf_stat_Up': self.sf_stat_up.tolist(),
+                                   'pt_eta_sf_stat_Down': self.sf_stat_down.tolist(),
+                                   'pt_eta_sf_sys': self.sf_sys.tolist(),
         }}
         out_name = f"trigeffSF_{self.channel}_{self.year}.json"
         with open(cfg.dataDir+'/lep_effsf_files/'+out_name, 'w') as jsf:
@@ -133,12 +136,12 @@ class Calc_LepEffSF :
         num_mc, den_mc, eff_mc_up, eff_mc_down, edges = get_eff(self.mc_df[self.mc_df['ttype'] == '2L']) # for SF measurement 
         num_mc_sys, den_mc_sys, *_ = get_eff(self.mc_df) # for systematic
         eff_mc     = num_mc/den_mc
-        self.eff_mc, self.eff_mc_up, self.eff_mc_down = eff_mc,eff_mc_up,eff_mc_down
+        self.eff_mc, self.eff_mc_up, self.eff_mc_down = eff_mc, eff_mc_up-eff_mc, eff_mc-eff_mc_down
         eff_mc_sys = num_mc_sys/den_mc_sys
         #
         num_data, den_data, eff_data_up, eff_data_down, _ = get_eff(self.data_df)
         eff_data = num_data/den_data
-        self.eff_data, self.eff_data_up, self.eff_data_down = eff_data,eff_data_up,eff_data_down
+        self.eff_data, self.eff_data_up, self.eff_data_down = eff_data, eff_data_up-eff_data, eff_data-eff_data_down
         print("MC eff per pt/eta bin",  num_mc/den_mc)
         print("Data eff per pt/eta bin",num_data/den_data)
         #SF
@@ -159,11 +162,12 @@ class Calc_LepEffSF :
         #print("\n")
         sf_nom_totalunc_up   = np.sqrt(sf_nom_stat_up**2   + corr_sys**2 + semittbar_sys**2)
         sf_nom_totalunc_down = np.sqrt(sf_nom_stat_down**2 + corr_sys**2 + semittbar_sys**2)
+        sf_nom_sys        = np.sqrt(corr_sys**2 + semittbar_sys**2)
         #print("SF:", sf_nom)
         #print("Total SF unc up",sf_nom_totalunc_up)
         #print("Total SF unc down",sf_nom_totalunc_down)
         #print("\n")
-        return sf_nom, sf_nom_totalunc_up, sf_nom_totalunc_down, edges
+        return sf_nom, sf_nom_totalunc_up, sf_nom_totalunc_down, sf_nom_stat_up, sf_nom_stat_down, sf_nom_sys,  edges
         
         #plt.errorbar(x=(edges[1:]+edges[:-1])/2, y=eff_pt_data, xerr=(edges[1:]-edges[:-1])/2, yerr=[eff_pt_data - eff_pt_data_down, eff_pt_data_up - eff_pt_data], fmt='.', color='k',label='Data Eff.')
         #plt.errorbar(x=(edges[1:]+edges[:-1])/2, y=eff_pt_mc,   xerr=(edges[1:]-edges[:-1])/2, yerr=[eff_pt_mc - eff_pt_mc_down,  eff_pt_mc_up - eff_pt_mc], fmt='.', color='red',label='MC Eff.')
@@ -193,7 +197,7 @@ class Calc_LepEffSF :
         for i in range(len(eta_bins)-1):
             for j in range(len(pt_bins)-1):
                 ax.text( pt_bins[j] + (pt_bins[j+1]-pt_bins[j])/2, eta_bins[i] + (eta_bins[i+1]-eta_bins[i])/2, 
-                         f"{eff[j][i]:.3f}"+r"${{}}^{{+{0:.3f}}}_{{-{1:.3f}}}$".format(eff_up[j][i],eff_down[j][i]), horizontalalignment='center', verticalalignment='center', fontsize=5.5)
+                         f"{eff[j][i]:.3f}\n"+r"${{}}^{{+{0:.3f}}}_{{-{1:.3f}}}$".format(eff_up[j][i],eff_down[j][i]), horizontalalignment='center', verticalalignment='center', fontsize=5.5)
         ax.set_xscale("Log")
         ax.set_xticks(pt_bins)
         ax.set_xticklabels([str(i) for i in pt_bins])
@@ -364,11 +368,11 @@ class Calc_LepEffSF :
         
 
 if __name__ == '__main__':
-    #Calc_LepEffSF('Electron','2016')
-    #Calc_LepEffSF('Electron','2017')
+    Calc_LepEffSF('Electron','2016')
+    Calc_LepEffSF('Electron','2017')
     Calc_LepEffSF('Electron','2018')
     #
-    #Calc_LepEffSF('Muon','2016')
-    #Calc_LepEffSF('Muon','2017')
+    Calc_LepEffSF('Muon','2016')
+    Calc_LepEffSF('Muon','2017')
     Calc_LepEffSF('Muon','2018')
     

@@ -25,10 +25,10 @@ nn = cfg.nn
 
 kbins = {
     'Zh_pt': [200,300,450,600],
-    'Zh_M' : [50,75,90,105,120,140,200],
-    nn     : [0.00, 0.366, 0.477,  0.548, 0.619, 0.674, 0.724, 0.772, 0.822,  0.875, 1.],
+    'Zh_M' : cfg.sdm_bins,
+    nn     : [0, 6.81604801e-01, 8.48783434e-01, 9.09884561e-01, 9.44903812e-01, 1],
     'reco_pt_bin': [1,2,3],
-    'reco_m_bin': [0,1,2,3,4,5],
+    'reco_m_bin': [0,1,2,3,4],
     'gen_pt_bin': [0,1,2,3],
     'genZHpt': [200,300,450,550,650],
 }
@@ -131,11 +131,11 @@ class main():
                     nsm, nsm2 = self.get_sumw_sumw2(df[kinem], df['SM']*df['weight'] , bins)
                     neft, neft2 = self.get_sumw_sumw2(df[kinem], eftw*df['weight'] , bins)
 
-                #ax.step(
-                #    x = bins,
-                #    y = np.append(sum(genptsc_sumw)/nsm,0),
-                #    where='post', label=f'{master_s} gen pt scaled'
-                #)
+                ax.step(
+                    x = bins,
+                    y = np.append(sum(genptsc_sumw)/nsm,0),
+                    where='post', label=f'{master_s} gen pt scaled'
+                )
                 #ax.step(
                 #    x = bins,
                 #    y = np.append(sum(recoptsc_sumw)/nsm,0),
@@ -154,7 +154,7 @@ class main():
                     x = bins,y = np.append(nsm/nsm,0),
                     where='post', label=f'{master_s} SM'
                 )
-                #ax.errorbar(**self.errbar_kwargs(nsm, nsm2, sum(genptsc_sumw), sum(genptsc_sumw2), bins))
+                ax.errorbar(**self.errbar_kwargs(nsm, nsm2, sum(genptsc_sumw), sum(genptsc_sumw2), bins))
                 #ax.errorbar(**self.errbar_kwargs(nsm, nsm2, sum(recoptsc_sumw), sum(recoptsc_sumw2), bins))
                 ax.errorbar(**self.errbar_kwargs(nsm, nsm2, sum(recoptmsc_sumw), sum(recoptmsc_sumw2), bins+.005))
                 ax.errorbar(**self.errbar_kwargs(nsm, nsm2, neft, neft2, bins-.005))
@@ -179,13 +179,14 @@ class main():
             #ax2=ax.twinx()
             #dott2b = True
             bins = np.array(kbins[kinem])
-            for s in samples:                
+            for j,s in enumerate(samples):                
                 #sam_text = f'{s}'
                 df = self.df[year][s]
                 slabel = s
                 df = cut(df)
                 if s == 'ttbb':
                     df = df[df['process'] == 'tt_B']
+                    slabel = 'tt_B'
                     #if dott2b:
                     #    df = df[df['process'] == 'tt_2b']
                     #    slabel = 'tt_2b' 
@@ -194,13 +195,14 @@ class main():
                     #    df = df[df['process'] == 'tt_bb']
                 elif s == 'ttjets':
                     df = df[df['process'] == 'TTBar']
+                    slabel = 'tt_lf'
             
                 try: 
                     nsm, nsm2 = self.get_sumw_sumw2(df[kinem].clip(bins[0],bins[-1]), df['SM']*df['weight'] , bins)
                 except ValueError:
                     nsm, nsm2 = self.get_sumw_sumw2(df[kinem], df['SM']*df['weight'] , bins)
                 #
-                for i in range(1,len(r)):
+                for i in range(0,len(r)):
                     eftw = self.get_eftw(df, wc, r[i])
                     try:
                         neft, neft2 = self.get_sumw_sumw2(df[kinem].clip(bins[0],bins[-1]), eftw*df['weight'] , bins)
@@ -212,7 +214,7 @@ class main():
                         y = np.append(neft/nsm,0),
                         where='post', label=f'{slabel}:{r[i]}'
                     )
-                    ax.errorbar(**self.errbar_kwargs(nsm, nsm2, neft, neft2, bins))
+                    ax.errorbar(**self.errbar_kwargs(nsm, nsm2, neft, neft2, bins+j*5))
 
                 #ax2.step(x=bins, y = np.append(nsm,0), where='post',linestyle='--')
                 #ax2.errorbar(x=(bins[1:]+bins[:-1])/2, y = nsm, yerr=np.sqrt(nsm2), fmt='.')
@@ -336,6 +338,7 @@ if __name__=='__main__':
     #save_pdf('eft_ttH_genptcomparison_nn00.pdf')(_.run_singles_test)('gen_pt_bin', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
     #save_pdf('eft_bkgsig_masscomparison_nn08.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
     #save_pdf('eft_bkgsig_masscomparison_nn00.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
+    #save_pdf('eft_bkg_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
     #save_pdf('eft_bkg_masscomparison_nn08.pdf')(_.run_singles_test)(['ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
 
     #save_pdf('eft_ttbb_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb','ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    

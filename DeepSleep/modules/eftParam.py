@@ -64,7 +64,7 @@ class EFTFitParams():
     #sig     = ['ttZ','ttH','ttbb']
     sig     = ['ttZ','ttH']
     pt_bins = [0,200,300,450,500] # clip at 500
-    m_bins  = [50,75,90,105,120,140,200] # clip at 500
+    m_bins  = cfg.sdm_bins # clip at 500
     
     def __init__(self):
         # seperate aux for different signals
@@ -298,7 +298,7 @@ if __name__ == '__main__':
     # -- to test different eft samples w/o channel binning
 
     forTesting()
-
+    
     # -- to make parameterizations for datacard workspace
     
     #forDatacard()

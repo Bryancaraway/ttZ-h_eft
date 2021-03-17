@@ -166,10 +166,25 @@ class SkimMeta :
         def btagweightsf_helper(p_mask=None, opt=None):
             active_mask = (lambda df : df[p_mask]) if p_mask is not None else (lambda df : df)
             opt         = f'{opt}_' if opt is not None else ''
-            n_ak4jets = np.clip(0, 12, active_mask(events['n_ak4jets']))
+            n_ak4jets = np.clip(0, 9, active_mask(events['n_ak4jets']))
+            ht        = np.clip(0,1500, active_mask(jets['Jet_pt']).sum())
+            b_score   = np.clip(0,1, active_mask(jets['Jet_btagDeepB'])[:,0])
             gw_np     = active_mask(np.sign(events['genWeight']))
-            n,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), weights=gw_np)
+            #print(n_ak4jets.shape, ht.shape, b_score.shape, gw_np.shape)
+            n,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,10.5,1), weights=gw_np)
+            ht_vs_n,*_ = np.histogram2d(x=n_ak4jets, y=ht, bins=[np.arange(-0.5,10.5,1),np.arange(0,1550,50)], weights=gw_np)
+            b_vs_n, *_ = np.histogram2d(x=n_ak4jets, y=b_score, bins=[np.arange(-0.5,10.5,1),np.arange(0,1.05,0.05)], weights=gw_np)
             self.metadata[f'{opt}nj_yield'] = n
+            # for closure
+            self.metadata[f'{opt}htvsn_2d'] = ht_vs_n 
+            self.metadata[f'{opt}bvsn_2d'] = b_vs_n
+            ht_vs_n_bw,*_ = np.histogram2d(x=n_ak4jets, y=ht, bins=[np.arange(-0.5,10.5,1),np.arange(0,1550,50)], 
+                                          weights=active_mask(jets['Jet_btagSF_deepcsv_shape'].prod())*gw_np)
+            b_vs_n_bw, *_ = np.histogram2d(x=n_ak4jets, y=b_score, bins=[np.arange(-0.5,10.5,1),np.arange(0,1.05,0.05)], 
+                                          weights=active_mask(jets['Jet_btagSF_deepcsv_shape'].prod())*gw_np)
+            self.metadata[f'{opt}htvsn_2dsf'] = ht_vs_n_bw
+            self.metadata[f'{opt}bvsn_2dsf'] = b_vs_n_bw
+            # 
             jetshape_sf_names = re.findall(r'Jet_btagSF_deepcsv_shape\w*' ,' '.join(jets.keys()))#Jet_btagSF_deepcsv_shape_up_cferr2
             #btag_w_names = []
             for sf_n in jetshape_sf_names:
@@ -177,11 +192,13 @@ class SkimMeta :
                 #btag_w_names.append(btag_w_name)
                 events[btag_w_name] = jets[sf_n].prod() # add weight to events
                 #for btag_w_name in btag_w_names: # get yields and add to metadata
-                nbw,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,13.5,1), 
+                nbw,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,10.5,1), 
                                    weights=(active_mask(events[btag_w_name])*gw_np))
-                self.metadata['{opt}btw_yield'+btag_w_name.replace('BTagWeight','')] = nbw
+                self.metadata[f'{opt}btw_yield'+btag_w_name.replace('BTagWeight','')] = nbw
                 # no longer need shape sf
                 del jets[sf_n]
+
+
         ## -- ##
         ##### may have to add special case for tt+cc from ttjets (5FS) sample #####
         process_mask = None

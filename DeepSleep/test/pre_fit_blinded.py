@@ -29,7 +29,7 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 
 
 
-@save_pdf('blinded_prefit.pdf')
+@save_pdf('blind_prefit.pdf')
 def main():
     froo = f'fitDiagnostics_blind_run2.root'
     prefit= PreFit(froo)

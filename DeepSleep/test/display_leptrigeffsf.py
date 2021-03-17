@@ -28,8 +28,15 @@ def make_2deffsfplot(lep,year): # "Electron/Muon"
     #c = ax.pcolor(eff_dict['pt_eta_sf'])
     for i in range(len(eff_dict['eta_bins'])-1):
         for j in range(len(eff_dict['pt_bins'])-1):
-            ax.text( eff_dict['pt_bins'][j] + (eff_dict['pt_bins'][j+1]-eff_dict['pt_bins'][j])/2, eff_dict['eta_bins'][i] + (eff_dict['eta_bins'][i+1]-eff_dict['eta_bins'][i])/2, 
-                     f"{eff_dict['pt_eta_sf'][j][i]:.3f}"+r"${{}}^{{+{0:.3f}}}_{{-{1:.3f}}}$".format(eff_dict['pt_eta_sf_Up'][j][i],eff_dict['pt_eta_sf_Down'][j][i]), horizontalalignment='center', verticalalignment='center', fontsize=5.5)
+            ax.text( 
+                eff_dict['pt_bins'][j] + (eff_dict['pt_bins'][j+1]-eff_dict['pt_bins'][j])/2, 
+                eff_dict['eta_bins'][i] + (eff_dict['eta_bins'][i+1]-eff_dict['eta_bins'][i])/2, 
+                f"{eff_dict['pt_eta_sf'][j][i]:.3f}\n"+r"${{}}^{{+{0:.3f} ({1:.3f},{4:.3f})}}_{{-{2:.3f} ({3:.3f},{4:.3f})}}$".format(
+                    eff_dict['pt_eta_sf_Up'][j][i],eff_dict['pt_eta_sf_stat_Up'][j][i],
+                    eff_dict['pt_eta_sf_Down'][j][i],eff_dict['pt_eta_sf_stat_Down'][j][i],
+                    eff_dict['pt_eta_sf_sys'][j][i]),
+                horizontalalignment='center', verticalalignment='center', fontsize=4.0)
+    #
     ax.set_xscale("Log")
     ax.set_xticks(eff_dict['pt_bins'])
     ax.set_xticklabels([str(i) for i in eff_dict['pt_bins']])

@@ -33,7 +33,9 @@ elif os.path.exists('/eos/uscms/') or 'condor' in _cdir: # test to see if on lpc
 else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./config/ana_cff.py")
 
 ##
-nn                = 'withbbvl_NN'
+#nn                = 'withbbvl_NN'
+nn                = 'NN'
+sdm_bins          = [50,80,115,155,200]     # new format
 ZHptcut           = 200
 Years             = ['2016','2017','2018']
 ## EFT ##
@@ -41,8 +43,10 @@ Sig_EFT_MC        = ['TTZ_EFT','TTH_EFT']
 tt_eft_samples    = ['TTJets_EFT','TTBB_EFT']
 #########
 Sig_MC            = ['ttH','ttZ']
-Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VV','VVV','VJets']
-All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VV','VVV','VJets']
+Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VJets']
+#Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VV','VVV','VJets']
+#All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VV','VVV','VJets']
+All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VJets']
 
 # Handle systematic sample docs
 #tt_sys_samples    = ['TTBar_UEUp','TTBar_UEDown','TTBar_hdampUp','TTBar_hdampDown',
@@ -181,10 +185,11 @@ ana_vars = {
                     #'FatJet_deepTagMD_H4qvsQCD'+LC, 'FatJet_deepTagMD_HbbvsQCD'+LC, 'FatJet_deepTagMD_TvsQCD'+LC, 
                     #'FatJet_deepTagMD_ZbbvsQCD'+LC, 'FatJet_deepTagMD_ZvsQCD'+LC, 'FatJet_deepTagMD_bbvsLight'+LC, 'FatJet_deepTagMD_ccvsLight'+LC,     
                     'FatJet_msoftdrop'+LC,'FatJet_btagDeepB'+LC,'FatJet_btagHbb'+LC,
+                    'FatJet_n2b1','FatJet_n3b1','FatJet_tau1','FatJet_tau2','FatJet_tau3','FatJet_tau4',
                     'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC],
     'ak8lvec'    : {'TLVarsLC' :['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC],
                     'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass']},
-    'ak8sj'      : ['SubJet_pt', 'SubJet_btagDeepB'],
+    'ak8sj'      : ['SubJet_pt','SubJet_mass','SubJet_n2b1','SubJet_n3b1','SubJet_tau1','SubJet_tau2','SubJet_tau3','SubJet_tau4','SubJet_btagDeepB'],
 #
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 
                     'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother','genTtbarId'], # event level identifier for ttbar+bb
@@ -229,6 +234,8 @@ ana_vars = {
 dnn_ZH_dir  = dataDir+'/NN_files/'
 # only event level variables
 nodak8md_dnn_ZH_vars = [
+    # may have to get rid of due to bad p-score:
+    # n_q_outZh, l_b2_dr, n_ak4jets
     'outZH_b1_pt','outZH_b2_pt',
     'outZH_b1_score','outZH_b2_score',
     'outZh_q1_pt','outZh_q2_pt',
@@ -237,29 +244,22 @@ nodak8md_dnn_ZH_vars = [
     'outZH_b1_q_mindr','outZH_b2_q_mindr',
     'outZH_q_q_dr_nearb1','outZH_q_q_dr_nearb2',
     'outZH_qq_M_nearb1','outZH_qq_M_nearb2',
-    'outZH_b1q_M',#'outZH_b2q_M',
+    #'outZH_b1q_M', bad p-score!
+    #'outZH_b2q_M',
     'outZH_b1_qq_dr','outZH_b2_qq_dr',
     'outZH_b1qq_M','outZH_b2qq_M',
     'ZH_b1qq_dr','ZH_b2qq_dr',
     'ZH_lbb1qq_dr','ZH_lbb2qq_dr',
-    #'l_b1_mtb',
     'l_b2_mtb',
     #
-    #'HT',
     'Zh_closeb_invM',#'Zh_closeq_invM',
     'n_ak8jets', 'n_ak4jets','n_ak8_Zhbb',
-    #'Zh_Wscore', 'Zh_Tscore', 
-    #'outZh_max_Wscore', 'outZh_max_Tscore',
-    #'Zh_bbvLscore', 'outZh_max_bbvLscore',
-    #'outZh_max_ak8pt',
     'outZh_max_ak8sdM',
     'outZh_b12_m', 'outZh_b12_dr', 
     'ht_b', 'ht_outZh',
     #
-    'n_Zh_btag_sj',
-    'Zh_bestb_sj', 
-    'Zh_worstb_sj',
-    #'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
+    'ak4_bestb_inZH',
+    'ak4_worstb_inZH',
     #
     'nonZhbb_q1_dr', 
     'nonZhbb_b1_dr',
@@ -267,15 +267,15 @@ nodak8md_dnn_ZH_vars = [
     #
     'Zh_l_dr', 'Zh_l_invM_sd', 
     'l_b1_invM','l_b2_invM',
-    'l_b1_dr','l_b2_dr',
+    'l_b1_dr','l_b2_dr', 
     #
     'spher','aplan',
     'n_b_inZh', 'n_q_inZh',
     'n_b_outZh', 'n_q_outZh'
 ]
-withbbvl_dnn_ZH_vars = nodak8md_dnn_ZH_vars+['Zh_bbvLscore']
-
-allvars_dnn_ZH_vars = [
+nodak8md_old_ZH_vars = [
+    # may have to get rid of due to bad p-score:
+    # n_q_outZh, l_b2_dr, n_ak4jets
     'outZH_b1_pt','outZH_b2_pt',
     'outZH_b1_score','outZH_b2_score',
     'outZh_q1_pt','outZh_q2_pt',
@@ -284,21 +284,16 @@ allvars_dnn_ZH_vars = [
     'outZH_b1_q_mindr','outZH_b2_q_mindr',
     'outZH_q_q_dr_nearb1','outZH_q_q_dr_nearb2',
     'outZH_qq_M_nearb1','outZH_qq_M_nearb2',
-    'outZH_b1q_M',#'outZH_b2q_M',
+    'outZH_b1q_M', #bad p-score!
+    #'outZH_b2q_M',
     'outZH_b1_qq_dr','outZH_b2_qq_dr',
     'outZH_b1qq_M','outZH_b2qq_M',
     'ZH_b1qq_dr','ZH_b2qq_dr',
     'ZH_lbb1qq_dr','ZH_lbb2qq_dr',
-    #'l_b1_mtb',
     'l_b2_mtb',
     #
-    #'HT',
     'Zh_closeb_invM',#'Zh_closeq_invM',
     'n_ak8jets', 'n_ak4jets','n_ak8_Zhbb',
-    'Zh_Wscore', 'Zh_Tscore', 
-    'outZh_max_Wscore', 'outZh_max_Tscore',
-    'Zh_bbvLscore', 'outZh_max_bbvLscore',
-    #'outZh_max_ak8pt',
     'outZh_max_ak8sdM',
     'outZh_b12_m', 'outZh_b12_dr', 
     'ht_b', 'ht_outZh',
@@ -306,7 +301,6 @@ allvars_dnn_ZH_vars = [
     'n_Zh_btag_sj',
     'Zh_bestb_sj', 
     'Zh_worstb_sj',
-    #'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
     #
     'nonZhbb_q1_dr', 
     'nonZhbb_b1_dr',
@@ -314,86 +308,27 @@ allvars_dnn_ZH_vars = [
     #
     'Zh_l_dr', 'Zh_l_invM_sd', 
     'l_b1_invM','l_b2_invM',
-    'l_b1_dr','l_b2_dr',
+    'l_b1_dr',
+    'l_b2_dr', 
     #
     'spher','aplan',
     'n_b_inZh', 'n_q_inZh',
     'n_b_outZh', 'n_q_outZh'
 ]
 
-selvars_dnn_ZH_vars = [
-    'outZH_b1_pt','outZH_b2_pt',
-    'outZH_b1_score',#'outZH_b2_score',
-    #'outZh_q1_pt','outZh_q2_pt',
-    'outZh_q1_btag',#'outZh_q2_btag',
-    #
-    'outZH_b1_q_mindr','outZH_b2_q_mindr',
-    'outZH_q_q_dr_nearb1',#'outZH_q_q_dr_nearb2',
-    #'outZH_qq_M_nearb1','outZH_qq_M_nearb2',
-    'outZH_b1q_M',#'outZH_b2q_M',
-    #'outZH_b1_qq_dr','outZH_b2_qq_dr',
-    #'outZH_b1qq_M','outZH_b2qq_M',
-    'ZH_b1qq_dr',#'ZH_b2qq_dr',
-    'ZH_lbb1qq_dr','ZH_lbb2qq_dr',
-    #'l_b1_mtb',
-    'l_b2_mtb',
-    #
-    #'HT',
-    'Zh_closeb_invM',#'Zh_closeq_invM',
-    'n_ak8jets', 'n_ak4jets','n_ak8_Zhbb',
-    'Zh_Wscore', #'Zh_Tscore', 
-    'outZh_max_Wscore', 'outZh_max_Tscore',
-    'Zh_bbvLscore', 'outZh_max_bbvLscore',
-    #'outZh_max_ak8pt',
-    'outZh_max_ak8sdM',
-    'outZh_b12_m', 'outZh_b12_dr', 
-    'ht_b', #'ht_outZh',
-    #
-    'n_Zh_btag_sj',
-    #'Zh_bestb_sj', 
-    'Zh_worstb_sj',
-    #'sjpt1_over_Zhpt','sjpt2_over_Zhpt',
-    #
-    #'nonZhbb_q1_dr', 
-    'nonZhbb_b1_dr',
-    'inZhb_outZhb_dr',
-    #
-    'Zh_l_dr', 'Zh_l_invM_sd', 
-    'l_b1_invM','l_b2_invM',
-    'l_b1_dr','l_b2_dr',
-    #
-    'spher','aplan',
-    'n_b_inZh', 'n_q_inZh',
-    'n_b_outZh',# 'n_q_outZh',
-]
 
-old_dnn_ZH_vars = [
-    'max_lb_dr',
-    #'max_lb_invM','best_Zh_b_invM_sd',
-    'n_Zh_btag_sj', 'Zh_bbvLscore', 'outZh_max_bbvLscore',#'best_rt_score',
-    'n_b_outZh','n_Zh_sj',  'Zh_bestb_sj', #'Zh_worstb_sj',
-    #'Zh_eta', 'Zh_l_dr','n_q_outZh', 
-    'Zh_deepB','b1_outZh_score', 'b2_outZh_score', 'Zh_b1_invM_sd', 'Zh_b2_invM_sd','Zh_l_invM_sd',
-    'Zh_Wscore', 'Zh_Tscore', 'outZh_max_Wscore', 'outZh_max_Tscore', 
-    'max_farl_b_q_dr',
-    'ht_b', 'ht_outZh', 'min_farl_b_q_dr', 'outZh_bqq_mass', 
-    'outZh_bb_dr', 'outZh_qq_dr',
-    #'Zh_bqq_dr', 
-    'Zh_lbbqq_dr',
-    #'n_ak8_Zhbb', 
-    'n_ak8jets', 'n_ak4jets',  
-    'nonZhbb_b1_dr', 'nonZhbb_b2_dr', 
-    #'sjpt1_over_Zhpt', 'sjpt2_over_Zhpt',
-    #'Zh_bbscore_sj', 
-    #'b1_over_Zhpt', 'bb_over_Zhpt',
-    'spher','aplan','n_b_inZh', 'n_q_inZh']
+withbbvl_dnn_ZH_vars = nodak8md_old_ZH_vars+['Zh_bbvLscore']
+withbbvl_dnn_ZHgenm_vars = nodak8md_dnn_ZH_vars+['Zh_bbvLscore']
+
+
+
 #
-dnn_ZH_alpha      = 0.00003 # 200: 0.0003 # 300 : 0.00003
-dnn_ZH_batch_size = 512
-fl_gamma          = .2 # 200: .1    , 300: 1.5 / .4
-fl_alpha          = .85 # 200: .85 , 300: .80 /.85
-dnn_ZH_epochs     = 0 #210 ### 200: 120, 300: 100
+#dnn_ZH_alpha      = 0.00003 # 200: 0.0003 # 300 : 0.00003
+#dnn_ZH_batch_size = 512
+#fl_gamma          = .2 # 200: .1    , 300: 1.5 / .4
+#fl_alpha          = .85 # 200: .85 , 300: .80 /.85
+#dnn_ZH_epochs     = 0 #210 ### 200: 120, 300: 100
 DNNoutputDir      = dataDir+'/NN_files/'
-DNNoutputName     = 'corr_noweight_noM.h5'
-DNNmodelName      = 'corr_noweight_model_noM.h5' 
-DNNuseWeights     = True
+#DNNoutputName     = 'corr_noweight_noM.h5'
+#DNNmodelName      = 'corr_noweight_model_noM.h5' 
+#DNNuseWeights     = True

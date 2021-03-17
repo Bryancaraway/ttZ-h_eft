@@ -29,7 +29,8 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 
 @save_pdf('qc_nn_postfits.pdf')
 def main():
-    dnn_vars = cfg.withbbvl_dnn_ZH_vars
+    #dnn_vars = cfg.withbbvl_dnn_ZH_vars
+    dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
     print(len(dnn_vars))
     for v in dnn_vars:
         froo = f'fitDiagnostics_{v}_NNcuts_run2.root'

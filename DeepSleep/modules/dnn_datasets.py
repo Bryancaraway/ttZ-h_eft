@@ -17,6 +17,9 @@ from lib.fun_library import getZhbbBaseCuts as dnn_cut
 from keras.utils import np_utils
 from sklearn.preprocessing import LabelEncoder
 
+genmatchreq = 'matchedGen_ZHbb_bb'
+#genmatchreq = 'matchedGen_ZHbb_nn'
+
 class DNN_datasets:
     '''
     prepare data for 
@@ -29,7 +32,8 @@ class DNN_datasets:
     sb_loc = cfg.master_file_path+'/*/mc_files/'
     #dnn_vars = cfg.dnn_ZH_vars 
     #dnn_vars = cfg.nodak8md_dnn_ZH_vars
-    dnn_vars = cfg.withbbvl_dnn_ZH_vars
+    #dnn_vars = cfg.withbbvl_dnn_ZH_vars
+    dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
     cut_vars =  ['process','Zh_pt','MET_pt','Zh_M', 'isEleE', 'isMuonE','Zh_bbvLscore']
     test_train_dir = cfg.dnn_ZH_dir
 
@@ -43,11 +47,13 @@ class DNN_datasets:
     def get_sigbkg(self):
         pre_vars = self.dnn_vars + [v for v in self.cut_vars if v not in self.dnn_vars]
         s_df = pd.concat([
-            pd.read_pickle(b).loc[:,pre_vars+['matchedGen_ZHbb']] for b in self.sig_files], ignore_index=True)
+            #pd.read_pickle(b).loc[:,pre_vars+['matchedGen_ZHbb']] for b in self.sig_files], ignore_index=True)
+            pd.read_pickle(b).loc[:,pre_vars+[genmatchreq]] for b in self.sig_files], ignore_index=True)
         b_df = pd.concat([
             pd.read_pickle(b).loc[:,pre_vars+['tt_type']] for b in self.bkg_files], ignore_index=True)
         #
-        s_df = s_df[s_df['matchedGen_ZHbb'] == True]
+        #s_df = s_df[s_df['matchedGen_ZHbb'] == True]
+        s_df = s_df[s_df[genmatchreq] == True]
         b_df = b_df[((b_df['tt_type'] == 'Semi') & (
             #(b_df['process'] == 'TTBar') | (b_df['process'] == 'tt_bb') | (b_df['process'] == 'tt_2b')
             (b_df['process'] == 'TTBar') | (b_df['process'] == 'tt_B')
@@ -57,7 +63,7 @@ class DNN_datasets:
     def prep_class(self):
         self.s_df['label'] = 2
         self.b_df['label'] = np.where(self.b_df['process']=='TTBar', 0, 1)
-        del self.s_df['matchedGen_ZHbb'], self.b_df['tt_type']
+        del self.s_df[genmatchreq], self.b_df['tt_type']
         sb_df = pd.concat([self.s_df,self.b_df])
         encoder = LabelEncoder()
         encoder.fit(sb_df['label'])

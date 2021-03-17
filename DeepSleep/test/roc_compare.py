@@ -9,7 +9,8 @@ from matplotlib.ticker import AutoMinorLocator
 from lib.fun_library import getZhbbBaseCuts as zh_cuts
 import config.ana_cff as cfg
 
-nn = 'withbbvl_NN'
+#nn = 'withbbvl_NN'
+nn = 'NN'
 
 def get_val_info(sample):
     s_dict = {}
@@ -21,7 +22,8 @@ def get_val_info(sample):
 def signal_wrapper(sig):
     for y in sig:
         x = sig[y].copy()
-        sig[y] = x[((x['Zbb']==True) | (x['Hbb']==True))]
+        #sig[y] = x[((x['Zbb']==True) | (x['Hbb']==True))]
+        sig[y] = x[x['matchedGen_ZHbb_bb'] == True]
     return sig
 
 def prep_for_roc(sig,bkg):

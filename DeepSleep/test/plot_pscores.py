@@ -29,7 +29,8 @@ gof_dir = 'fitdiag_roots/gof'
 
 @save_pdf("qcnn_pscores.pdf")
 def main():
-    dnn_vars = cfg.withbbvl_dnn_ZH_vars
+    #dnn_vars = cfg.withbbvl_dnn_ZH_vars
+    dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
     p_df = pd.DataFrame.from_dict({v:calc_p(v) for v in dnn_vars},orient='index',columns=['pscore'])
     fig, ax = initplt()
     ax.errorbar(

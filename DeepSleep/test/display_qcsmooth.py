@@ -32,7 +32,7 @@ sys_to_plot = ['jesRelativeSample{y}','jesHF{y}','jesAbsolute{y}','jesEC2{y}',
                'jesBBEC1', 'fsr', 'UE', 'hdamp']
 
 sample = 'TTBar'
-year   = '2017'
+year   = '2018'
 
 @save_pdf(f'qcsmooth_before_after_{sample}_{year}.pdf')
 def main():
@@ -56,6 +56,7 @@ class PlotQCSmooth:
         self.hists     = {}
         self.edges     =  None
         self.sys_to_plot = [sys.replace('{y}',f'{self.year}')  for sys in sys_to_plot]
+        self.sys_names = []
         self.hist_dict = {}
         self.load_hists()
 
@@ -68,19 +69,25 @@ class PlotQCSmooth:
     def hists_getter(self,roofile):
         with uproot.open(roofile) as roo:
             pre = f'{self.channel}_{self.process}'
+            sys_names = [k.decode().replace('Up','').replace('Down','') for k in roo.keys()]
+            self.sys_names = list(dict.fromkeys(re.findall(rf'{pre}_\w*' ,' '.join(sys_names))))
             self.hists['nom'] = np.array(roo[pre].values)   # sumw
             self.hists['err'] = (np.sqrt(roo[pre].variances)+self.hists['nom'])/self.hists['nom'] # sumw2
             if self.edges is None : self.edges = np.array(roo[pre].edges)
-            for sys in self.sys_to_plot:
+            #for sys in self.sys_to_plot:
+            for sys in self.sys_names:
                 for ud in ['Up','Down']:
-                    try:
-                        self.hists[sys+ud] = np.array(roo[pre+f'_{sys}'+ud].values)/self.hists['nom']
-                        if 'hdamp' in sys or 'UE' in sys:
-                            self.hists[sys+ud+'_err'] = (np.sqrt(roo[pre+f'_{sys}'+ud].variances)+np.array(roo[pre+f'_{sys}'+ud].values))/np.array(roo[pre+f'_{sys}'+ud].values)
-                    except KeyError: pass # for sys not in root file
+                    #try:
+                    #self.hists[sys+ud] = np.array(roo[pre+f'_{sys}'+ud].values)/self.hists['nom']
+                    self.hists[sys+ud] = np.array(roo[sys+ud].values)/self.hists['nom']
+                    if 'hdamp' in sys or 'UE' in sys:
+                        #self.hists[sys+ud+'_err'] = (np.sqrt(roo[pre+f'_{sys}'+ud].variances)+np.array(roo[pre+f'_{sys}'+ud].values))/np.array(roo[pre+f'_{sys}'+ud].values)
+                        self.hists[sys+ud+'_err'] = (np.sqrt(roo[sys+ud].variances)+np.array(roo[sys+ud].values))/np.array(roo[sys+ud].values)
+                    #except KeyError: pass # for sys not in root file
 
     def makeplots(self):
-        for sys in self.sys_to_plot:
+        #for sys in self.sys_to_plot:
+        for sys in self.sys_names:
             try:
                 fig, axs = self.initPlt()
                 for ax,sm in zip(axs,self.hist_dict):

@@ -29,11 +29,12 @@ from lib.fun_library import t2Run, save_pdf, getZhbbWeight, getLaLabel
 from anrun2plot import PlotsFromDC
 
 nn = cfg.nn
+#nn = 'NN' # just to test
 
 target = ['Zh_M','Zh_pt']
 doNNcuts = True
 tbins_map = {
-    'Zh_M' : np.arange(50,200+10,10), # new format
+    'Zh_M' : np.arange(50,200+5,5), # new format
     #'Zh_M' :[50,75,90,105,120,140,200], # new format
     'Zh_pt':[200,300,450,np.inf],
     'Zh_score':[0,.25,.50,1.0],
@@ -174,7 +175,7 @@ def endplt(fig,ax,pt_cut):
     labels  = labels + ['Stat Unc.']
     ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize='small')
 
-@save_pdf(f'pas_zhm_80nn_ptcut_run2.pdf')
+@save_pdf(f'pas_zhm_80newnn_ptcut_run2.pdf')
 def main():
     data = PlotsFromDC().getData()
     initDF(data,200)

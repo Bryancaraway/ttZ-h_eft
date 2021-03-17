@@ -96,10 +96,11 @@ class processAna :
                 self.match_gen_sig() 
         #
         self.passHLT_by_year()
-        self.applyDNN(model_file='withdak8md_model.h5')
-        self.applyDNN(model_file='noak8md_model.h5')
+        #self.applyDNN(model_file='withdak8md_model.h5')
+        #self.applyDNN(model_file='noak8md_model.h5')
         self.applyDNN(model_file='withbbvl_model.h5')
-        self.val_df['NN'] = self.val_df['withdak8md_NN'] # hard-coded to not break anythin
+        self.applyDNN(model_file='withbbvlnewgenm_model.h5')
+        self.val_df['NN'] = self.val_df['withbbvlnewgenm_NN'] # hard-coded to not break anythin
 
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
@@ -135,7 +136,7 @@ class processAna :
             if 'TTZ' in self.sample:
                 r_ratios = r_ratio_json['ttZ'] # signal eft
             if 'TTH' in self.sample:
-                r_ratios = r_ratio_json['tth'] # signal eft
+                r_ratios = r_ratio_json['ttH'] # signal eft
             else: 
                 r_ratios = r_ratio_json['ttbb'] # ttbb (perhaps ttbar) eft
         else:
@@ -143,8 +144,10 @@ class processAna :
         nj  = self.val_df['n_ak4jets'].clip(0,9)
         for r_key  in r_ratios:
             btw_name = r_key.replace('r_ratio','BTagWeight')
-            r_ = nj.apply((lambda i : r_ratios[r_key][int(i)]))
-            self.val_df.loc[:,btw_name] = r_*self.val_df[btw_name]
+            if btw_name in self.val_df:
+                r_ = nj.apply((lambda i : r_ratios[r_key][int(i)]))
+                self.val_df[btw_name+'_nocorr'] = self.val_df[btw_name]
+                self.val_df.loc[:,btw_name] = r_*self.val_df[btw_name]
 
     def lepCleaned_v2(self):
         # Clean ak4 and ak8 jets within dR of 0.4 and 0.8 of Lepton
@@ -264,10 +267,10 @@ class processAna :
 
         #
         zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
-        zh_matchb_dR = deltaR(zh_eta,zh_phi,gen_eta[(isbb_fromZ) | (isbb_fromH)], gen_phi[(isbb_fromZ) | (isbb_fromH)])
-        zh_matchbb    = ((zh_matchb_dR <= 0.6).sum() == 2)
-        zh_matchb    = ((zh_matchb_dR <= 0.6).sum() == 1)
-        zh_nomatchb    = ((zh_matchb_dR <= 0.6).sum() == 0)
+        rzh_matchb_dR = deltaR(rZh_eta,rZh_phi,gen_eta[(isbb_fromZ) | (isbb_fromH)], gen_phi[(isbb_fromZ) | (isbb_fromH)])
+        zh_matchbb    = ((rzh_matchb_dR <= 0.6).sum() == 2)
+        zh_matchb    = ((rzh_matchb_dR <= 0.6).sum() == 1)
+        zh_nomatchb    = ((rzh_matchb_dR <= 0.6).sum() == 0)
         #zh_match_dR = deltaR(zh_eta,zh_phi,ak8_eta,ak8_phi)
         #zh_match = ((ak8_pt >= self.pt_cut ) & (ak8_Zhbbtag >= 0.0) &  
         #            (zh_match_dR <= 0.8) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
@@ -293,9 +296,12 @@ class processAna :
         self.val_df['matchedGen_ZHbb'] = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & ((isZbb.sum() + isHbb.sum()) > 0))
         self.val_df['matchedGen_Zqq']  = (((zh_match).sum() > 0) & (self.val_df['matchedGenLep']) & (isZqq.sum() >  0))
         #
-        self.val_df['matchedGen_ZHbb_bb'] = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_matchbb == 1))
-        self.val_df['matchedGen_ZHbb_b'] = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_matchb == 1))
+        self.val_df['matchedGen_ZHbb_bb']  = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_matchbb  == 1))
+        self.val_df['matchedGen_ZHbb_b']   = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_matchb   == 1))
         self.val_df['matchedGen_ZHbb_nob'] = ((self.val_df['matchedGen_ZHbb'] == 1) & (zh_nomatchb == 1))
+        #
+        self.val_df['matchedGen_ZHbb_nn']  = ((self.val_df['matchedGen_ZHbb'] == 1) & ((zh_matchbb  == 1)|(zh_matchb   == 1)))
+        #
     def match_gen_lep(self):
         lep_eta = self.val_df['Lep_eta'].to_numpy()
         lep_phi = self.val_df['Lep_phi'].to_numpy()
@@ -556,10 +562,12 @@ class processAna :
 
         nn_dir    = cfg.dnn_ZH_dir 
         dnn_vars = {
-            'withdak8md_model.h5' :cfg.allvars_dnn_ZH_vars,
-            'noak8md_model.h5'     :cfg.nodak8md_dnn_ZH_vars,
-            'selvars_ttzh_model.h5':cfg.selvars_dnn_ZH_vars,
+            #'withdak8md_model.h5' :cfg.allvars_dnn_ZH_vars,
+            #'noak8md_model.h5'     :cfg.nodak8md_dnn_ZH_vars,
+            #'selvars_ttzh_model.h5':cfg.selvars_dnn_ZH_vars,
             'withbbvl_model.h5':    cfg.withbbvl_dnn_ZH_vars,
+            #'ttzh_newgenm.h5':      cfg.withbbvl_dnn_ZHgenm_vars,
+            'withbbvlnewgenm_model.h5':      cfg.withbbvl_dnn_ZHgenm_vars,
         }
         resetIndex = (lambda df: df.reset_index(drop=True).copy())
         #open json nn settings

@@ -13,7 +13,7 @@ import config.ana_cff as cfg
 from lib.fun_library import save_pdf, getLaLabel
 
 
-def make_1d_r_ratio_plot(r_ratio,process,year,ax): # "Electron/Muon"
+def make_1d_r_ratio_plot(r_ratio,process,year,ax): 
 
     edges = list(range(4,4+len(r_ratio)))
     label,c = getLaLabel(process)
