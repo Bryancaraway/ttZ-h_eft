@@ -26,9 +26,9 @@ nn = cfg.nn
 kbins = {
     'Zh_pt': [200,300,450,600],
     'Zh_M' : cfg.sdm_bins,
-    nn     : [0, 6.81604801e-01, 8.48783434e-01, 9.09884561e-01, 9.44903812e-01, 1],
+    nn     : [0.,    0.3036, 0.6231, 0.7201, 0.80863, 0.8897, 1],
     'reco_pt_bin': [1,2,3],
-    'reco_m_bin': [0,1,2,3,4],
+    'reco_m_bin': [0,1,2,3],
     'gen_pt_bin': [0,1,2,3],
     'genZHpt': [200,300,450,550,650],
 }
@@ -48,17 +48,26 @@ klabel = {
 class main():
     fit_f   = 'EFT_Parameterization_test.npy'
     wc_ranges = {
-        'ctW'  :[-2.44, 2.40]  ,
-        'ctZ'  :[-2.33, 2.31]  ,
-        'ctp'  :[-11.64, 41.58],
-        'cpQM' :[-12.33, 16.04],
-        'ctG'  :[-0.50, 0.48]  ,
-        'cbW'  :[-7.40, 7.40]  ,
-        'cpQ3' :[-6.94, 7.20]  ,
-        'cptb' :[-16.67, 16.67],
-        'cpt'  :[-20.35, 16.53]
+        #old'ctW'  :[-2.44, 2.40]  ,
+        #old'ctZ'  :[-2.33, 2.31]  ,
+        #old'ctp'  :[-11.64, 41.58],
+        #old'cpQM' :[-12.33, 16.04],
+        #old'ctG'  :[-0.50, 0.48]  ,
+        #old'cbW'  :[-7.40, 7.40]  ,
+        #old'cpQ3' :[-6.94, 7.20]  ,
+        #old'cptb' :[-16.67, 16.67],
+        #old'cpt'  :[-20.35, 16.53]
+        'ctW'  :[-1.36, 1.30]  ,
+        'ctZ'  :[-1.39, 1.42]  ,
+        'ctp'  :[-9.84, 39.43],
+        'cpQM' :[-8.81, 11.72],
+        #'ctG'  :[-0.50, 0.48]  ,
+        'cbW'  :[-5.88, 5.88]  ,
+        'cpQ3' :[-5.21, 5.15]  ,
+        'cptb' :[-15.12, 15.12],
+        'cpt'  :[-15.64, 11.37]
         }
-    samples=['ttbb','ttjets','ttZ','ttH']
+    samples=['ttbb','ttbbjet','ttjets','ttZ','ttH']
     df = pd.read_pickle(fit_f)
 
     @save_pdf('ttbb_wc_single_effect.pdf')
@@ -184,9 +193,9 @@ class main():
                 df = self.df[year][s]
                 slabel = s
                 df = cut(df)
-                if s == 'ttbb':
+                if 'ttbb' in s:
                     df = df[df['process'] == 'tt_B']
-                    slabel = 'tt_B'
+                    slabel = s
                     #if dott2b:
                     #    df = df[df['process'] == 'tt_2b']
                     #    slabel = 'tt_2b' 
@@ -251,6 +260,7 @@ class main():
     def endPlot(self,ax,title,kinem, bins):
         ax.legend(ncol=2, fontsize='x-small')
         ax.set_xlim(bins[0],bins[-1])
+        ax.set_ylim(0.4)
         klabel[kinem](ax)
         #ax2.set_ylabel('SM yield')
         #ax2.set_yscale('log')
@@ -319,12 +329,12 @@ if __name__=='__main__':
     #save_pdf('eft_ttH_nncomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
     
     # ---- Jons study
-    save_pdf('eft_ttZ_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    save_pdf('eft_ttH_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    save_pdf('eft_ttZ_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    save_pdf('eft_ttH_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    save_pdf('eft_ttZ_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    save_pdf('eft_ttH_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
     # ---- Jons study
 
 
@@ -341,6 +351,10 @@ if __name__=='__main__':
     #save_pdf('eft_bkg_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
     #save_pdf('eft_bkg_masscomparison_nn08.pdf')(_.run_singles_test)(['ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
 
-    #save_pdf('eft_ttbb_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb','ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    #save_pdf('eft_ttbb_ptcomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttbb','ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    #save_pdf('eft_ttbb_nncomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttbb','ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_ptcomparison_nn00.pdf')(_.run_singles_test)('Zh_pt',  ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_nncomparison_nn00.pdf')(_.run_singles_test)(nn,       ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #
+    save_pdf('eft_ttbb_jet_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    save_pdf('eft_ttbb_jet_ptcomparison_nn00.pdf')(_.run_singles_test)('Zh_pt',  ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    save_pdf('eft_ttbb_jet_nncomparison_nn00.pdf')(_.run_singles_test)(nn,       ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    

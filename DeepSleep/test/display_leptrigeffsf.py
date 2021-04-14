@@ -10,8 +10,10 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 import json
 import numpy as np
 import config.ana_cff as cfg
-from lib.fun_library import save_pdf
+from lib.fun_library import getZhbbBaseCuts, getZhbbWeight, save_pdf
 
+mfp = cfg.master_file_path
+ana_cuts = getZhbbBaseCuts
 
 def make_2deffsfplot(lep,year): # "Electron/Muon"
     eff_dict = json.load(open(cfg.dataDir+'/lep_effsf_files/'+f"trigeffSF_{lep}_{year}.json", 'r'))[lep]

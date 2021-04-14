@@ -231,8 +231,8 @@ class processAna :
     def match_gen_sig(self):
         # match tt or ttZ/h gen particles to recontructed objects
         g = 'GenPart_' 
-        gen_ids, gen_mom, gen_pt, gen_eta, gen_phi, gen_mass = self.gen_df.loc(
-            [g+'pdgId',g+'genPartIdxMother',g+'pt',g+'eta',g+'phi',g+'mass']
+        gen_ids, gen_mom, gen_st, gen_pt, gen_eta, gen_phi, gen_mass = self.gen_df.loc(
+            [g+'pdgId',g+'genPartIdxMother',g+'status',g+'pt',g+'eta',g+'phi',g+'mass']
         ).values()
         #
         #fj= 'FatJet_'
@@ -264,7 +264,9 @@ class processAna :
         zh_eta = fill1e(gen_eta[isZH]).flatten()
         zh_phi = fill1e(gen_phi[isZH]).flatten()
         zh_mass = fill1e(gen_mass[isZH]).flatten()
-
+        #
+        zh_st  = fill1e(gen_st [isZH]).flatten()
+        #print(np.unique(zh_st,return_counts=True))
         #
         zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
         rzh_matchb_dR = deltaR(rZh_eta,rZh_phi,gen_eta[(isbb_fromZ) | (isbb_fromH)], gen_phi[(isbb_fromZ) | (isbb_fromH)])

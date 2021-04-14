@@ -18,7 +18,7 @@ import config.ana_cff as cfg
 
 #pull_txt = f'{sys.path[1]}/test/fitdiag_roots/partblind_pull_4.txt'
 #name = 'partblind_uncorrbtaglfhf_pull_'
-name = 'partblind_pull_8'
+name = 'partblind_pull_final'
 pull_txt = f'{sys.path[1]}/test/fitdiag_roots/{name}.txt'
 
 def main():

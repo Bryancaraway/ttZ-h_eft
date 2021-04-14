@@ -83,7 +83,10 @@ process_cfg = {
                              '2018':['Data_SingleMuon']},
 }
 
-
+signal_xsec = {
+    'ttZ': 0.7826,
+    'ttH': 0.5084
+}
 
 sample_cfg = {                 
     # EFT Samples              

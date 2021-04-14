@@ -49,6 +49,21 @@ class PostFit:
     fit_dir = 'fitdiag_roots/'
     gof_dir = 'fitdiag_roots/gof'
 
+    ch_dict = {
+        'y2016': '2016',
+        'y2017': '2017',
+        'y2018': '2018',
+        'y2016_Zhpt1': r'2016, $200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'y2016_Zhpt2': r'2016, $300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'y2016_Zhpt3': r'2016, ${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
+        'y2017_Zhpt1': r'2017, $200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'y2017_Zhpt2': r'2017, $300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'y2017_Zhpt3': r'2017, ${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
+        'y2018_Zhpt1': r'2018, $200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'y2018_Zhpt2': r'2018, $300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'y2018_Zhpt3': r'2018, ${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
+    }
+
     def __init__(self,fitroo, kinem=None, t_labels=None):
         self.fitroo     = fitroo
         self.name       = '_'.join(fitroo.replace('.root','').split('_')[1:])
@@ -102,7 +117,7 @@ class PostFit:
         self.pulls = np.array([])
         for ch in self.hists['prefit']: # 'prefit is just a placeholder to loop over pt'
             self.init_axes(channel=ch)
-            self.fig.suptitle(ch, fontsize=10)
+            self.fig.suptitle(self.ch_dict[ch], fontsize=10)
             self.make_stackhist(ch)
             if doPull:
                 self.init_axes(opt='pulls',channel=ch)
@@ -365,6 +380,7 @@ class PostFit:
         handles = handles + [hatch_patch]
         labels  = labels + ['stat+sys.']
         ax.legend(handles,labels, bbox_to_anchor=(1.00,1), 
+                  handlelength=0.7, handletextpad=0.25, handleheight=0.7,
                   fontsize='xx-small', framealpha = 0, loc='upper left')
 
 

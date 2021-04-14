@@ -26,9 +26,9 @@ from lib.fun_library import t2Run, save_pdf, getZhbbWeight, getLaLabel
 from makeDatacard import MakeDataCard
 
 #nn = 'withbbvl_NN'
-nn = 'NN'
+nn = cfg.nn
 
-target = ['Zh_M','Zh_pt']
+target = ['Zh_M','Zh_pt','n_ak4jets']
 doNNcuts = True
 tbins_map = {
     'Zh_M' :[50,75,90,105,120,140,200], # new format

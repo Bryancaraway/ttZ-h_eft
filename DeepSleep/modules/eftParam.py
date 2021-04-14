@@ -34,6 +34,7 @@ import config.ana_cff as cfg
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
+from lib.datacard_shapes import DataCardShapes
 #import matplotlib.pyplot as plt
 
 nn = cfg.nn
@@ -46,12 +47,14 @@ class EFTFitParams():
     '''
     aux_dict = {
         'ttbb':'aux_eft_TTZ.pkl', # use to be TTH
+        'ttbbjet':'aux_eft_TTZ.pkl', # use to be TTH
         'ttH' :'aux_eft_TTH.pkl',
         'ttZ' :'aux_eft_TTZ.pkl',
         'ttjets'  :'aux_eft_TTH.pkl' # fix the file that it opens
     }
     val_dict = {
         'ttbb': 'TTbb',
+        'ttbbjet': 'TTbbjet',
         'ttjets': 'TTJets',
         'ttZ'  : 'TTZ',
         'ttH'  : 'TTH'
@@ -63,11 +66,17 @@ class EFTFitParams():
     #
     #sig     = ['ttZ','ttH','ttbb']
     sig     = ['ttZ','ttH']
-    pt_bins = [0,200,300,450,500] # clip at 500
+    pt_bins = {
+        'genZHpt':[0,200,300,450,500], # clip at 500
+        'Zh_pt':[200,300,450,500], # clip at 500
+    }
     m_bins  = cfg.sdm_bins # clip at 500
     
-    def __init__(self):
+    def __init__(self, doReco=False):
         # seperate aux for different signals
+        self.doReco = doReco
+        self.ptKinem = 'genZHpt' if not doReco else 'Zh_pt'
+        self.sig = self.sig if not doReco else ['ttZ','ttH','ttbb']
         self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}{self.aux_dict[s]}') for s in self.sig }
         self.__worker()
 
@@ -75,31 +84,36 @@ class EFTFitParams():
         # assemble eft_df dictionary here by year, signal process, and genZHpt bin
         self.eft_df = {y:{s:{} for s in self.sig} for y in self.years} 
         for y in self.years:
-            cut_for_fit = (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100)) )
-            for s in ['ttZ','ttH']: # hardcoded to break processes up by signal
+            cut_dict = {
+                'ttH': (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5)) ),
+                'ttZ': (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5)) ),
+                'ttbb':(lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5) & (x['process'] == 'tt_B')) ),
+            }
+            #cut_for_fit = 
+            for s in self.sig: # hardcoded to break processes up by signal
                 eft_file = f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl'
                 if not os.path.exists(eft_file): continue
-                df = pd.read_pickle(  eft_file).filter( regex=f"EFT|genZHpt|{nn}", axis='columns')
-                df['pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]-1), bins=self.pt_bins,
-                                      labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
+                df = pd.read_pickle(  eft_file).filter( regex=f"EFT|process|{self.ptKinem}|{nn}|n_ak4jets", axis='columns')
+                df['pt_bin'] = pd.cut(df[self.ptKinem].clip(self.pt_bins[self.ptKinem][0]+1,self.pt_bins[self.ptKinem][-1]-1), bins=self.pt_bins[self.ptKinem],
+                                      labels=[i_bin for i_bin in range(len(self.pt_bins[self.ptKinem])-1)])
                 #df = self.calcBeta(df[df[nn]>=0.0], s)
-                df = self.calcBeta(df[cut_for_fit(df)], s)
+                df = self.calcBeta(df[cut_dict[s](df)], s)
                 # store SM normalized PQR parameters per
                 self.eft_df[y][s] = {
-                    f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index') for i in range(len(self.pt_bins)-1)}
+                    f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'(?<!pro)c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index') for i in range(len(self.pt_bins[self.ptKinem])-1)}
             #
             #handle ttbb
-            if 'ttbb' in self.sig:
-                self.__ttbb_worker(y)
+            #if 'ttbb' in self.sig:
+            #    self.__ttbb_worker(y)
             
         #
     def __ttbb_worker(self,year):
         ttbb_eft_file = f'{self.file_dir}{year}/{self.mc_dir}TTbb_EFT_val.pkl'
         if not os.path.exists(ttbb_eft_file): return 0
-        df = pd.read_pickle(  ttbb_eft_file).filter( regex=f"EFT|process|{nn}", axis='columns')
+        df = pd.read_pickle(  ttbb_eft_file).filter( regex=f"EFT|process|{nn}|n_ak4jets", axis='columns')
         #for sub_s in ['tt_bb','tt_2b']: # hardcoded ttbb processes 
         for sub_s in ['tt_B']: # hardcoded ttbb processes 
-            cut_for_fit = (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['process'] == sub_s)))
+            cut_for_fit = (lambda x: ((x[nn]>=0.0) & (x['n_ak4jets'] >=5) & (x['EFT183'] < 100) & (x['process'] == sub_s)))
             #df = self.calcBeta(df[df[nn]>=0.0], s)
             s_df = self.calcBeta(df[cut_for_fit(df)], 'ttbb')
             # store SM normalized PQR parameters per
@@ -132,6 +146,10 @@ class TestEFTFitParams(EFTFitParams):
         self.sample = sample
         self.aux_df = {s : pd.read_pickle(f'{self.aux_dir}/{self.aux_dict[s]}') for s in self.sample}
         self.kinem = kinem
+        self.pt_bins = self.pt_bins['Zh_pt']
+        m_bin_dict = {1: self.m_bins[:-2] + [self.m_bins[-1]], 2:self.m_bins, 3:self.m_bins}
+        self.hist2d  = DataCardShapes([0]+self.pt_bins[:-1], m_bin_dict, isblind=True)
+        self.out_dict = {}
         #self.pt_bins = [0,200,300,450,550,650]
         self.__worker()
 
@@ -140,7 +158,14 @@ class TestEFTFitParams(EFTFitParams):
         #self.eft_df = {y:{s:{} for s in self.bkg} for y in self.years} 
         kinem = [self.kinem] if self.kinem else kinem
         self.eft_df = {y: {s:{} for s in self.sample}  for y in self.years} 
-        cut_for_fit = (lambda x: ((x[nn]>=0.0)) )
+        cut_for_fit = (lambda x: ((x[nn]>=0.0) & (x['n_ak4jets']>=5)) )
+        cut_dict = {
+            'ttH'   : (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5) & (x['genZHstxs']==1)) ),
+            'ttZ'   : (lambda x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5) & (x['genZHstxs']==1)) ),
+            'ttbb'  :(lambda  x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5) & (x['process'] == 'tt_B')) ),
+            'ttbbjet'  :(lambda  x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5) & (x['process'] == 'tt_B')) ),
+            'ttjets':(lambda  x: ((x[nn]>=0.0) & (x['EFT183'] < 100) & (x['n_ak4jets'] >=5) & (x['process'] == 'TTBar')) ),
+        }
         #cut_for_fit = (lambda x: x )
         for y in self.years:
             for s in self.sample:
@@ -148,26 +173,49 @@ class TestEFTFitParams(EFTFitParams):
                 eft_file = f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl'
                 if not os.path.exists(eft_file): continue
                 if s == 'ttZ' or s == 'ttH': 
-                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|genZHstxs|genZHpt|{nn}", axis='columns')
+                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|genZHstxs|genZHpt|{nn}|n_ak4jets", axis='columns')
                     df['gen_pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+.0001,self.pt_bins[-1]-.0001), bins=self.pt_bins,
                                               labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
                 else:
-                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|{nn}", axis='columns')
+                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|{nn}|n_ak4jets", axis='columns')
 
-                df['reco_pt_bin'] = pd.cut(df['Zh_pt'].clip(self.pt_bins[1]+.0001,self.pt_bins[-1]-.0001), bins=self.pt_bins[1:],
-                                           labels=[i_bin for i_bin in range(1,len(self.pt_bins)-1)])
+                df['reco_pt_bin'] = pd.cut(df['Zh_pt'].clip(self.pt_bins[0]+.0001,self.pt_bins[-1]-.0001), bins=self.pt_bins,
+                                           labels=[i_bin for i_bin in range(0,len(self.pt_bins)-1)])
                 df['reco_m_bin']  = pd.cut(df['Zh_M'].clip(self.m_bins[0]+.0001,self.m_bins[-1]-.0001), bins=self.m_bins,
                                            labels=[i_bin for i_bin in range(0,len(self.m_bins)-1)])
                 #df = self.calcBeta(df[df[nn]>=0.0], s)
-                df = self.calcBeta(df[cut_for_fit(df)], s)
+                df = self.calcBeta(df[cut_dict[s](df)], s)
                 # store SM normalized PQR parameters per
                 #self.eft_df[y][s] = {f'{s}{i}': df[df['pt_bin'] == i].filter(regex=r'c|SM').sum(axis='index')/df[df['pt_bin'] == i]['SM'].sum(axis='index')
                 #                     for i in range(len(self.pt_bins)-1)}
                 self.eft_df[y][s] = df.filter(regex=r'^(?!EFT)')
                 #
         #
-
-        
+    def save_helper(self, year=None, force_year=None):
+        if force_year is None: force_year = year
+        out_dict = {}
+        pqr_s = re.findall(r'(?<!pro)(?<!re)c\w*',' '.join(self.eft_df[force_year]['ttH'].keys()))
+        p_dict = {'ttZ':'ttZ','ttH':'ttH','ttbb':'tt_B','ttbbjet':'tt_B'}
+        #print(self.eft_df.keys()) # 2016, 2017, 2018
+        #print(self.eft_df['2018'].keys()) # ttbb, ttZ, ttH
+        for k in self.eft_df[force_year]:
+            df = self.eft_df[force_year][k]
+            for i in range(len(self.pt_bins)-1): # pt_bin
+                pt_cut = (lambda df_: df_[df_['reco_pt_bin']==i])
+                #print(k,i,pt_cut(df))
+                eft_sm = self.hist2d[year][i+1]( pt_cut(df)[nn].to_numpy(), pt_cut(df)['Zh_M'].to_numpy(), weights=pt_cut(df)['SM'])[0]
+                wc_dict = {tuple(['sm','sm']): (eft_sm/eft_sm).flatten()}
+                for pqr in pqr_s: # pq and not r
+                    eft_w = self.hist2d[year][i+1]( pt_cut(df)[nn].to_numpy(), pt_cut(df)['Zh_M'].to_numpy(), weights=pt_cut(df)[pqr])[0]
+                    wc_key = pqr.split('_')
+                    if len(wc_key) > 1: # P terms 
+                        wc_dict[tuple(wc_key)] = (eft_w/eft_sm).flatten()
+                    else: # Q terms
+                        wc_dict[('sm',pqr)] = (eft_w/eft_sm).flatten()
+                for j in range(len(wc_dict[('sm','sm')])):
+                    out_dict[(p_dict[k],f'y{year}_Zhpt{int(i)+1}_{int(j)}')] = {pqr : wc_dict[pqr][j] for pqr in wc_dict}
+        self.out_dict.update(out_dict)
+                
 
 class EFTParam():
     '''
@@ -198,9 +246,10 @@ class EFTParam():
                 'ctp'  :[-35,65]}
 
 
-    def __init__(self):
+    def __init__(self,doReco=False):
         #
-        self.eft_fit = EFTFitParams().eft_df
+        self.doReco = doReco
+        self.eft_fit = EFTFitParams(doReco).eft_df
         #self.eftbkg_fit  = BkgEFTFitParams().eft_df
         #print(BkgEFTFitParams().eft_df['2018']['ttbb'].keys())
 
@@ -255,7 +304,34 @@ class EFTParam():
         o_str += f'({f_str}1.0) {a_str}'
         lines.append(o_str)
 
-    def save_to_dict(self, year=None, pt_bins=[1,2,3], force_year=None): # construct dictionary based on datacard channels
+    def save_helper(self, **kwargs):
+        if self.doReco:
+            self.save_to_dict_reco(**kwargs)
+        else:
+            self.save_to_dict_gen(**kwargs)
+
+    def save_to_dict_reco(self, year=None, pt_bins=[1,2,3], force_year=None): # construct dictionary based on datacard channels
+        if force_year is None: force_year = year
+        #self.wc = None
+        out_dict  = {}
+        p_dict = {'ttZ':'ttZ','ttH':'ttH','ttbb':'tt_B'}
+        for k in self.eft_fit[force_year]: # (ttZ,ttH)
+            for p,df in self.eft_fit[force_year][k].items(): # (ttZ0,ttZ1,ttZ2,ttZ3)
+                wc_dict = {}
+                for wc in df.keys(): # iterate over all P,Q,R terms
+                    pqr = wc.split('_')
+                    if len(pqr) > 1: # P terms 
+                        wc_dict[tuple(pqr)] = df[wc]
+                    elif 'SM' in wc: # SM 
+                        wc_dict[('sm','sm')] = df[wc]
+                    else: # Q terms
+                        wc_dict[('sm',wc)] = df[wc]
+                pt_bin = re.search(r'\d',p).group()
+                out_dict[(p_dict[p.replace(pt_bin,'')],f'y{year}_Zhpt{int(pt_bin)+1}')] = wc_dict
+        self.out_dict.update(out_dict)
+    
+            
+    def save_to_dict_gen(self, year=None, pt_bins=[1,2,3], force_year=None): # construct dictionary based on datacard channels
         if force_year is None: force_year = year
         #self.wc = None
         out_dict  = {}
@@ -277,21 +353,25 @@ class EFTParam():
 def forTesting():
     out_path = sys.path[1]+'test/'
     out_file = 'EFT_Parameterization_test.npy'
-    out_dict = TestEFTFitParams(['ttbb','ttjets','ttZ','ttH']).eft_df
-    print(out_dict)
+    out_dict = TestEFTFitParams(['ttbb','ttbbjet','ttjets','ttZ','ttH']).eft_df
     pickle.dump(out_dict, open(out_path+out_file,'wb'), protocol=2) 
     
 
-def forDatacard():
+def forDatacard(doReco):
     out_path = sys.path[1]+'Higgs-Combine-Tool/'
-    out_file = 'EFT_Parameterization_v5.npy'
-    eft = EFTParam()
-    eft.save_to_dict(year='2016', force_year='2018')
-    eft.save_to_dict(year='2017', force_year='2018')
-    eft.save_to_dict(year='2018', force_year='2018')
-    print(eft.out_dict.keys())
+    #out_file = 'EFT_Parameterization_v5.npy' # gen pt sep ttH, ttZ .... no tt+bb
+    out_file = 'EFT_Parameterization_v7.npy' # reco pt sep ttH, ttZ, and tt+bb
+    eft = EFTParam(doReco=False) if not doReco else TestEFTFitParams(['ttbb','ttZ','ttH'])
+    eft.save_helper(year='2016', force_year='2018')
+    eft.save_helper(year='2017', force_year='2018')
+    eft.save_helper(year='2018', force_year='2018')
+    for k in eft.out_dict:
+        for i in eft.out_dict[k]:
+                print(k,i, eft.out_dict[k][i])
+    #print(eft.out_dict.keys())
     #
     pickle.dump(eft.out_dict, open(out_path+out_file,'wb'), protocol=2) # save to Higgs-Combine-Tool dir
+            
 
 if __name__ == '__main__':
     import pickle
@@ -301,7 +381,7 @@ if __name__ == '__main__':
     
     # -- to make parameterizations for datacard workspace
     
-    #forDatacard()
+    #forDatacard(doReco=True)
 
     # -- end
     

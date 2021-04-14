@@ -19,13 +19,17 @@ class TAxis(object):
         self._fXmax = fXmax
 
 
-def export1d(histo, name):
+def export1d(histo, name, z_to_e=False):
     '''
     must pass a dict with key 'sumw'
     and optionally sumw2
     and must pass edges and name of hist
     '''
     label = name
+    if z_to_e: # protect against completely zero yield bins
+        if 0 in histo['sumw']:
+            histo['sumw']  = np.where(histo['sumw'] == 0., 0.000001,             histo['sumw'])
+            histo['sumw2'] = np.where(histo['sumw'] == 0., np.power(0.000001,2), histo['sumw2'])
     sumw = np.clip(np.pad(np.nan_to_num(histo['sumw']), 1, 'constant', constant_values=0), 0.,np.inf)
     if 'sumw2' in histo:
         sumw2 = np.pad(np.nan_to_num(histo['sumw2']), 1, 'constant', constant_values=0).astype(">f8")

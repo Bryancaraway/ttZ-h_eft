@@ -68,9 +68,10 @@ class DataCardShapes():
                 
                 #nn_bins = nn_bins[1:] # drop first background dominated bin
                 print(nn_bins)
+                
                 self.hist_dict[y][i] = functools.partial(
                     np.histogram2d,
-                    bins=[nn_bins,self.sdM_bins])
+                    bins=[nn_bins,(self.sdM_bins[i] if type(self.sdM_bins) is dict else self.sdM_bins)])
                 #
             #
         #
@@ -116,12 +117,17 @@ if __name__ == '__main__':
     ax.set_xlim(.1,1.1)
     ax.set_ylim(0,y_i+.5)
     ax.grid(True)
-    ax.set_xlabel('NN bin edge')
-    ax.set_ylabel('DC Ch.')
+    ax.set_xlabel('DNN bin edge')
+    ax.set_ylabel('Datacard Channel')
     ax.set_xticks(np.cumsum([.1]*10))
     ax.set_yticks(np.cumsum([.5]*9))
-    ax.set_yticklabels([f'{y}_Zhpt{i}' for y in ['2016','2017','2018'] for i in [1,2,3]])
-    fig.suptitle('DC. quantile-defined NN bins')
+    ch_dict = {
+        1: r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        2: r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        3: r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$'
+    }
+    ax.set_yticklabels([f'{y}\n{ch_dict[i]}' for y in ['2016','2017','2018'] for i in [1,2,3]], fontsize='xx-small')
+    fig.suptitle('Analysis quantile-defined DNN bins')
     plt.show()
     #sig_df = pd.read_pickle(f'./files/2017/mc_files/TTZH_val.pkl')
     #sub_df = sig_df[(((sig_df['Zh_pt'] >= 300) & (sig_df['Zh_pt']<450)) & ((sig_df['genZHpt'] >= 300)&(sig_df['genZHpt'] < 450)))]

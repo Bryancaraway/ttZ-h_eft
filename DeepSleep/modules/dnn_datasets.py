@@ -79,8 +79,8 @@ class DNN_datasets:
     def sep_test_train(self):
         train_df = self.sb_df.sample(frac=.75, random_state=1)
         test_df  = self.sb_df.drop(train_df.index).copy().sample(frac=1).reset_index(drop=True) 
-        train_df.to_pickle(self.test_train_dir+'/trainXY.pkl')
-        test_df.to_pickle(self.test_train_dir+'/testXY.pkl')
+        #train_df.to_pickle(self.test_train_dir+'/trainXY.pkl')
+        #test_df.to_pickle(self.test_train_dir+'/testXY.pkl')
 
 if __name__ == '__main__':
     _ = DNN_datasets()

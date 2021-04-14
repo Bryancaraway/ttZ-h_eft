@@ -10,13 +10,13 @@ from matplotlib import rc
 from matplotlib.ticker import AutoMinorLocator, FixedLocator, FormatStrFormatter
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Patch, Rectangle
-rc("savefig",dpi=250)
-rc("figure", figsize=(6, 6*(6./8.)), dpi=200)
+rc("savefig",dpi=200)
+#rc("figure", figsize=(6, 6*(6./8.)), dpi=200)
 #rc("text.latex", preamble=r"\usepackage{amsmath}")                                                             
 #rc('font',**{'family':'serif','serif':['Times']})
 rc("hatch", linewidth=0.2, color='r') 
 #
-from lib.fun_library import getZhbbBaseCuts, getLaLabel
+from lib.fun_library import getZhbbBaseCuts, getLaLabel, import_mpl_settings, CMSlabel
 import config.ana_cff as cfg
 
 class Plotter :
@@ -26,7 +26,7 @@ class Plotter :
     setup plotting dpendencies
     '''
     cut_func = staticmethod(getZhbbBaseCuts) # M 50-200, pt 200, b_out_Zh 2
-    fontsize = 12
+    fontsize = 10
     saveDir  = cfg.pdfDir
     pklDir   = cfg.master_file_path
     data_samples = ['Data_SingleMuon','Data_SingleElectron']
@@ -45,6 +45,8 @@ class Plotter :
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,
                  alt_weight=None):
+
+        import_mpl_settings(2)
 
         self.samples    = samples
         self.kinem      = kinem
@@ -207,12 +209,17 @@ class Plotter :
         
     def sepGenMatchedSig(self):
         df = self.data
-        if '++' not in self.sepGenOpt:
+        if '+' not in self.sepGenOpt:
             df['ttZ_genm_Zbb'] = (lambda x : x[x['matchedGen_Zbb'] == True])(df['ttZ'])
             df['ttH_genm_Hbb'] = (lambda x : x[x['matchedGen_Hbb'] == True])(df['ttH'])
             df['ttZ_notgenm_Zbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttZ'])
             df['ttH_notgenm_Hbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttH'])
-        else:
+        elif '++' not in self.sepGenOpt:
+            df['ttZ_genm_Zbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttZ'])
+            df['ttH_genm_Hbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttH'])
+            df['ttZ_notgenm_Zbb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == False])(df['ttZ'])
+            df['ttH_notgenm_Hbb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == False])(df['ttH'])
+        elif '++' in self.sepGenOpt:
             df['ttZ_genm_Zbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttZ'])
             df['ttZ_genm_Zbb_b'] = (lambda x : x[x['matchedGen_ZHbb_b'] == True])(df['ttZ'])
             df['ttZ_genm_Zbb_nob'] = (lambda x : x[x['matchedGen_ZHbb_nob'] == True])(df['ttZ'])
@@ -270,14 +277,15 @@ class Plotter :
             wspace=0.2
         )
 
-    @property
-    def endPlt(self):
+    
+    def endPlt(self, dostat=True):
         self.ax.xaxis.set_minor_locator(AutoMinorLocator())
         self.ax.yaxis.set_minor_locator(AutoMinorLocator())
         self.ax.tick_params(which='both', direction='in', top=True, right=True)
         #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
-        self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary $", fontsize = self.fontsize)
-        self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
+        #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary $", fontsize = self.fontsize)
+        #self.fig.text(0.635,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = self.fontsize)
+        CMSlabel(self.fig, self.ax, lumi=self.lumi)
         plt.xlabel(self.xlabel+self.tag, fontsize = self.fontsize)
         self.ax.set_ylabel(f"{'fraction of yield' if self.doNorm else 'Events'} / {(np.round(self.bin_w[0],2) if len(set(self.bin_w)) == 1 else 'bin')}")#fontsize = self.fontsize)
         #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )
@@ -287,11 +295,13 @@ class Plotter :
         #plt.grid(True)
         #plt.setp(patches_, linewidth=0)
         handles, labels = self.ax.get_legend_handles_labels()
-        hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w')
-        handles = handles + [hatch_patch]
-        labels  = labels + ['Stat Unc.']
-        self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize='xx-small')
-        self.ax.set_ylim(ymin=(0 if not self.doLog else .1),ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
+        if dostat:
+            hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w')
+            handles = handles + [hatch_patch]
+            labels  = labels + ['Stat Unc.']
+        self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=10)
+        self.ax.set_ylim(ymin=(0 if not self.doLog else (.1 if not self.doNorm else .001)),
+                         ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: 
             plt.show()
@@ -402,7 +412,7 @@ class StackedHist(Plotter) :
             #print(yerr)
             self.make_error_boxes(self.ax2, x, np.ones_like(x), xerr, yerr/y, label='Stat unc.')
             
-        self.endPlt
+        self.endPlt()
 
     def getMCStat_info(self,n, h, w):
         x = (self.bins[1:]+self.bins[:-1])/2
@@ -519,7 +529,7 @@ class Hist (Plotter) :
             self.addSoverBplot()
         # need to plot mc stats error 
         #
-        self.endPlt
+        self.endPlt(False)
 
     def addSoverBplot(self):
         sig = ['ttZ','ttH']

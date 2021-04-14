@@ -293,15 +293,16 @@ def getLaLabel(str_):
                              'blue'],
         'ttHbb':            [r't$\mathregular{\bar{t}}$Htobb',
                              'gold'],
-        'ttX':              [r't($\mathregular{\bar{t}}$)X',
+        #'ttX':              [r't($\mathregular{\bar{t}}$)X',
+        'ttX':              [r't$\mathregular{\bar{t}}$t$\mathregular{\bar{t}}$, t$\mathregular{\bar{t}}\gamma$, t$\mathregular{\bar{t}}$W',
                              'tab:red'],
-        'single_t':         [r'single-t',
+        'single_t':         [r'single top',
                              'tab:brown'],
-        'TTBar':            [r't$\mathregular{\bar{t}}+\mathregular{lf}$',
+        'TTBar':            [r't$\mathregular{\bar{t}}+\mathregular{LF}$, t$\mathregular{\bar{t}}+$c$\mathregular{\bar{c}}$',
                              'tab:orange'],
-        'ttbb':        [r't$\mathregular{\bar{t}}+$B',
+        'ttbb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
                          'tab:green'],
-        'tt_B':        [r't$\mathregular{\bar{t}}+$B',
+        'tt_B':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
                              'tab:green'],
         'tt_bb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
                              'tab:green'],
@@ -316,24 +317,24 @@ def getLaLabel(str_):
         #
         'ttZ_genm_Zbb':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb',
                             'blue'],
-        'ttZ_genm_Zbb_bb':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb&bb',
-                            'blue'],
+        'ttZ_genm_Zbb_bb':    [r't$\mathregular{\bar{t}}$Z$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{GEN\;matched}}$',
+                            'tab:blue'],
         'ttZ_genm_Zbb_b':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb&b',
                             'purple'],
         'ttZ_genm_Zbb_nob':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb&nob',
                             'tab:brown'],
         'ttH_genm_Hbb':    [r't$\mathregular{\bar{t}}$H_genm_Hbb',
                             'gold'],
-        'ttH_genm_Hbb_bb':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&bb',
-                           'gold'],
+        'ttH_genm_Hbb_bb':    [r't$\mathregular{\bar{t}}$H$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{GEN\;matched}}$',
+                           'magenta'],
         'ttH_genm_Hbb_b':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&b',
                            'tab:red'],
         'ttH_genm_Hbb_nob':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&nob',
                             'black'],
-        'ttZ_notgenm_Zbb':    [r't$\mathregular{\bar{t}}$Z_notgenm_Zbb',
+        'ttZ_notgenm_Zbb':    [r't$\mathregular{\bar{t}}$Z${}_\mathrm{other}$',
                             'cyan'],
-        'ttH_notgenm_Hbb':    [r't$\mathregular{\bar{t}}$H_notgenm_Hbb',
-                            'tab:orange'],
+        'ttH_notgenm_Hbb':    [r't$\mathregular{\bar{t}}$H${}_\mathrm{other}$',
+                            'tab:red'],
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
                             'blue'],
         'TTZ_bb':          [r't$\mathregular{\bar{t}}$Ztobb_ded',
@@ -420,6 +421,63 @@ def t2Run(func):
 
 # decorator to save figures to given pdf
 
+
+def import_mpl_settings(i=1):
+    import matplotlib.pyplot as plt
+    plt.rc("font", size=10, family="sans-serif", **{"sans-serif" : [u'TeX Gyre Heros', u'Helvetica', u'Arial']})
+    plt.rc("xaxis", labellocation='right')
+    plt.rc("yaxis", labellocation='top')
+    plt.rc("legend", fontsize=10, scatterpoints=2, numpoints=1, borderpad=0.15, labelspacing=0.3,
+           handlelength=0.7, handletextpad=0.25, handleheight=0.7, columnspacing=0.6,
+           fancybox=False, edgecolor='none', borderaxespad=1)
+    plt.rc("savefig", dpi=200)
+    plt.rc("figure", figsize=(3.375*i, 3.375*(6./8.)*i), dpi=200)
+    plt.rc("text.latex", preamble='\n'.join([r"\usepackage{amsmath}",
+                                             r"\usepackage{helvet}",
+                                             r"\usepackage{sansmath}",
+                                             r"\sansmath"]))
+    
+
+def upperlefttext(s):
+    trans = gca().transAxes + matplotlib.transforms.ScaledTranslation(3/72, -3/72, gcf().dpi_scale_trans)
+    return text(0, 1, s, transform=trans, ha='left', va='top')
+
+def CMSlabel(fig=None, ax=None, opt=None, altax=None, lumi=None):
+    import matplotlib.pyplot as plt
+    from matplotlib import transforms
+    if fig is None:
+        fig = plt.gcf()
+    if ax is None:
+        ax = plt.gca()
+    if altax is None:
+        ax0 = ax1 = ax
+    else:
+        ax0 = ax
+        ax1 = altax
+    if opt is None:
+        opt = 'Preliminary'
+    if lumi is None:
+        lumi = 137
+    lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
+    trans = ax0.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
+    ax0.text(0, 1, rf'\textbf{{CMS}} {{\footnotesize \textit{{{opt}}}}}', usetex=True,
+             transform=trans, ha='left', va='baseline')
+    trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
+    ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
+             transform=trans, ha='right', va='baseline')
+
+def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',
+                     edgecolor='None', alpha=0.0, hatch=10*'X', label=''):
+    from matplotlib.collections import PatchCollection
+    from matplotlib.patches import Rectangle
+    errorboxes = []
+    for x, y, xe, ye in zip(xdata, ydata, xerror.T, yerror.T):
+        rect = Rectangle((x - xe, y - ye), 2*xe, 2*ye) if type(ye) is not np.ndarray else Rectangle((x - xe, y - ye[0]), 2*xe, ye[0]+ye[1])
+        errorboxes.append(rect)
+    pc = PatchCollection(errorboxes, facecolor=facecolor, alpha=alpha,
+                         edgecolor=edgecolor, hatch=hatch, label=label, zorder=1.5)
+    # Add collection to axes
+    ax.add_collection(pc)
 
 def save_pdf(pdf_name = 'dummy.pdf'):
     import matplotlib.backends.backend_pdf as matpdf 

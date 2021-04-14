@@ -12,7 +12,8 @@ import re
 import uproot
 import seaborn as sns
 import config.ana_cff as cfg
-from lib.fun_library import save_pdf, getLaLabel
+#from lib.fun_library import save_pdf, getLaLabel
+from lib.fun_library import t2Run, save_pdf, getZhbbBaseCuts, getZhbbWeight, getLaLabel, import_mpl_settings, upperlefttext, CMSlabel
 from qcDatacard import tbins_map
 from post_fit import PostFit
 import matplotlib.pyplot as plt
@@ -24,7 +25,7 @@ from matplotlib import rc
 
 rc("savefig",dpi=250)
 rc("figure", max_open_warning=600)
-rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
+#rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 
 
@@ -32,6 +33,7 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 @save_pdf('blind_prefit.pdf')
 def main():
     froo = f'fitDiagnostics_blind_run2.root'
+    #froo = f'fitDiagnostics_nomerge_run2.root'
     prefit= PreFit(froo)
     prefit.makeplots(doPull=False)
 
@@ -70,6 +72,7 @@ class PreFit(PostFit):
         #
         self.make_error_boxes(ax, (self.edges[ch][1:]+self.edges[ch][:-1])/2, d['total']['values'],
                               xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err'], label='stat+sys')
+        print(len(self.edges[ch]))
 
     def make_stackhist(self, ch='Zhpt2'):
         ax = self.axs # # 0,0 lt # 0,1 rt
@@ -79,7 +82,7 @@ class PreFit(PostFit):
         #
         self.endaxs(ax,'prefit', ch=ch)
         self.addlegend(opt='blind')
-        #plt.show()
+        plt.show()
 
     def init_axes(self, opt='', channel=''):
         #fig, axs = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
@@ -94,8 +97,9 @@ class PreFit(PostFit):
         )
         self.fig = fig
         lumi = cfg.Lumi[re.search(r'201\d',channel).group()]
-        self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
-        self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+        #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
+        #self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+        CMSlabel(fig, axs, lumi=lumi)
         self.axs = axs
 
     def endaxs(self,ax,p,ch='Zhpt1'):
@@ -116,4 +120,5 @@ class PreFit(PostFit):
         ax.tick_params(which='both', direction='in', top=True, right=True)
 
 if __name__ == '__main__':
+    import_mpl_settings(2)
     main()

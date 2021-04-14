@@ -27,7 +27,7 @@ def runQC():
         #'allvars_dnn_ZH_vars': cfg.allvars_dnn_ZH_vars,
     }
     for nn_input in input_dict[args.nn_inputs]:
-        command = f"qsub -l nodes=1:ppn=4 -N runQCNN_{nn_input} "
+        command = f"qsub -l nodes=1:ppn=8 -N runQCNN_{nn_input} "
         command += f" -o log/nn/{nn_input}.stdout -e log/nn/{nn_input}.stderr "
         command += f'-v nn_input={nn_input} scripts/runQCNN.sh'
         print(command)

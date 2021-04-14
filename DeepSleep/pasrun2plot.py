@@ -17,7 +17,7 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.backends.backend_pdf as matpdf
 from matplotlib import rc
 rc("savefig",dpi=250)
-rc("figure", figsize=(6, 6*(6./8.)), dpi=200)                                                            
+rc("figure", figsize=(3.375, 3.375*(6./8.)), dpi=200)                                                            
 rc("figure", max_open_warning=600)
 rc("hatch", linewidth=0.5, color='r') 
 #
@@ -25,7 +25,8 @@ import functools
 import numpy as np
 import pandas as pd
 import config.ana_cff as cfg
-from lib.fun_library import t2Run, save_pdf, getZhbbWeight, getLaLabel
+from lib.fun_library import t2Run, save_pdf, getZhbbWeight, getLaLabel, import_mpl_settings, upperlefttext, CMSlabel
+from modules.AnaDict import AnaDict
 from anrun2plot import PlotsFromDC
 
 nn = cfg.nn
@@ -42,12 +43,12 @@ tbins_map = {
     'n_ak4jets':[3.5,4.5,5.5,6.5,7.5,14],
     'n_b_inZh':[-0.5,0.5,1.5,2.5]}
 
-def initDF(data, pt_cut = 300):
+def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
     #processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','ttX','VJets','other']
     #processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','single_t','ttX','VJets']
     processes = ['ttZ','ttH','TTBar','tt_B','single_t','ttX','VJets']
     #rare_p = {'ttX','VJets','other'}    
-    k_list = ['Zh_M','Zh_pt',nn,'process']
+    k_list = ['Zh_M','Zh_pt',nn,'process','n_ak4jets']
     df = pd.DataFrame()
     for p in processes:
         for y in ['2016','2017','2018']:
@@ -59,7 +60,8 @@ def initDF(data, pt_cut = 300):
                            axis='rows', ignore_index=True)
     #
     # organize by process
-    cuts = (lambda df_: df_[(df_[nn] > 0.80) & (df_['Zh_pt'] > pt_cut)])
+    #cuts = (lambda df_: df_[(df_[nn] > 0.80) & (df_['Zh_pt'] > pt_cut) & (df_['n_ak4jets'] >= 5)])
+    cuts = (lambda df_: df_[(df_[nn] > 0.80) & (add_cut(df_)) & (df_['n_ak4jets'] >= 5)])
     df = cuts(df)
     sig_p = ['ttZ','ttH']
     #bkg_p = ['VJets','ttX','single_t','tt_2b','tt_bb','TTBar']
@@ -79,7 +81,7 @@ def initDF(data, pt_cut = 300):
         #l   = np.array([f'{x} ({y:3.1f}+/-{z:3.1f})' for x,y,z in zip(l,i,i_err)])
         if issig is not None:
             xfactor = [int(issig/i_p) for i_p in i]
-            w = np.array([w_p*x_p for w_p,x_p in zip(w,xfactor)])
+            w = np.array([w_p*x_p for w_p,x_p in zip(w,xfactor)], dtype=object)
             l   = np.array([rf'{l_p}$\times{x_p}$' for l_p,x_p in zip(l,xfactor)])
         return h,w,w2,i,c,l
     #
@@ -103,17 +105,20 @@ def initDF(data, pt_cut = 300):
     make_error_boxes(ax,x,y,xerr,yerr,label='Stat unc.')
     #plot step sig
     sig_h, sig_w, sig_w2, sig_i, sig_c, sig_l = get_hist_essentials(sig_p,issig=sum(n))
-    _ = ax.hist(
-        sig_h,
-        bins=tbins_map['Zh_M'],
-        histtype='step',
-        linewidth = 1.5, # i think default is 1
-        weights = sig_w,
-        color   = sig_c,
-        label    = sig_l
+    sig_ls = [':','--']
+    for i_ in range(len(sig_h)):
+        _ = ax.hist(
+            sig_h[i_],
+            bins=tbins_map['Zh_M'],
+            histtype='step',
+            linewidth = 1.5, # i think default is 1
+            linestyle = sig_ls[i_],
+            weights   = sig_w[i_],
+            color     = sig_c[i_],
+            label     = sig_l[i_]
     )
     #
-    endplt(fig,ax,pt_cut)
+    endplt(fig,ax,add_cut_str)
     #plt.show()
     #plt.savefig(f'pdf/pas_zhm_80nn_{pt_cut}pt_run2.pdf')
 
@@ -151,36 +156,55 @@ def initplt():
         )
     return fig,ax
 
-def endplt(fig,ax,pt_cut):
+def endplt(fig,ax,add_cut_str):
     from matplotlib.ticker import AutoMinorLocator
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(which='both', direction='in', top=True, right=True)
     #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
-    fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 12)
-    fig.text(0.635,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
-    ax.set_xlabel(rf'Z/H $m_{{sd}}$ ($NN > 0.80$; Z/H $p_{{t}}>{pt_cut}$) [GeV]', fontsize = 12)
+    #fig.text(0.105,0.89, r"\textbf{CMS} {\footnotesize \textit{Simulation}}", usetex=True, fontsize = 10)
+    #fig.text(0.635,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+    CMSlabel(fig=fig, ax=ax, opt='Simulation')
+    fig.text(0.635,0.66, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=10)
+    fig.text(0.635,0.62, r'DNN score $>0.80$', usetex=True, fontsize=10)
+    ax.set_xlabel(r'${m}_{\mathrm{SD}}^{\mathrm{Z/H\; cand.}}$ [GeV]', fontsize = 10, usetex=True)
     #self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
-    ax.set_ylabel('Events / 10 GeV') # hardcoded
+    ax.set_ylabel('Events / 10 GeV', fontsize=10, usetex=True) # hardcoded
     #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )        
     #plt.xlim(self.bin_range)
     #ax.set_yscale('log')
     ax.set_xlim(tbins_map['Zh_M'][0],tbins_map['Zh_M'][-1])
     #ax.set_ylim(ymin=ax.get_ylim()[0],ymax=ax.get_ylim()[1]*7.5)
-    ax.set_ylim(0,ymax=ax.get_ylim()[1]*1.2)
+    ax.set_ylim(0,ymax=ax.get_ylim()[1]*1.1)
     #plt.grid(True)
     handles, labels = ax.get_legend_handles_labels()
     hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w')
     handles = handles + [hatch_patch]
     labels  = labels + ['Stat Unc.']
-    ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize='small')
+    ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=10)
+    plt.tight_layout()
+    #plt.show()
 
 @save_pdf(f'pas_zhm_80newnn_ptcut_run2.pdf')
 def main():
-    data = PlotsFromDC().getData()
-    initDF(data,200)
-    initDF(data,300)
-    initDF(data,450)
+    pas_data_file = cfg.dataDir+'/pas_plot_info/pas_data_file.pkl'
+    if not os.path.exists(pas_data_file):
+        data = PlotsFromDC().getData()
+        AnaDict(data).to_pickle(pas_data_file)
+    else:
+        data = AnaDict.read_pickle(pas_data_file)
+    #
+    import_mpl_settings(2)
+    
+    initDF(data, 
+           add_cut=(lambda _df: ((_df['Zh_pt'] >= 200) & (_df['Zh_pt'] < 300)) ),
+           add_cut_str=r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$')
+    initDF(data,
+           add_cut=(lambda _df: ((_df['Zh_pt'] >= 300) & (_df['Zh_pt'] < 450)) ), 
+           add_cut_str=r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$')
+    initDF(data,
+           add_cut=(lambda _df: ((_df['Zh_pt'] >= 450) & (_df['Zh_pt'] < np.inf)) ), 
+           add_cut_str=r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$')
 
 
 if __name__ == '__main__':
