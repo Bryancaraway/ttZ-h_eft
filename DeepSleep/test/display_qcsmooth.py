@@ -32,7 +32,7 @@ sys_to_plot = ['jesRelativeSample{y}','jesHF{y}','jesAbsolute{y}','jesEC2{y}',
                'jesBBEC1', 'fsr', 'UE', 'hdamp']
 sample = 'TTBar'
 #sample = 'ttZ3'
-year   = '2016'
+year   = '2017'
 
 @save_pdf(f'qcsmooth_before_after_{sample}_{year}.pdf')
 def main():

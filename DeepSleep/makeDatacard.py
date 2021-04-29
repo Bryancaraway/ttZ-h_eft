@@ -355,9 +355,17 @@ class MakeDataCard:
         #
         #Systematic.set_dc_processes(self.dc_dict, process_line)
         self.write2dc(f'# Rate uncertainties\n')
-        Systematic('lumi_2016', 'lnN',  all_mc, 1.025)
-        Systematic('lumi_2017', 'lnN',  all_mc, 1.023)
-        Systematic('lumi_2018', 'lnN',  all_mc, 1.025)
+        # new lumi
+        Systematic('lumi_13TeV_2016',       'lnN',  all_mc, 1.01)
+        Systematic('lumi_13TeV_2017',       'lnN',  all_mc, 1.02)
+        Systematic('lumi_13TeV_2018',       'lnN',  all_mc, 1.015)
+        Systematic('lumi_13TeV_correlated', 'lnN',  all_mc, {'2016':1.006, '2017': 1.009, '2018': 1.02}) # 0.6, 0.9, 2.0
+        Systematic('lumi_13TeV_1718',       'lnN',  all_mc, {'2017':1.006, '2018': 1.002}) # 0.6, 0.2
+        # old 
+        #Systematic('lumi_2016', 'lnN',  all_mc, 1.025)
+        #Systematic('lumi_2017', 'lnN',  all_mc, 1.023)
+        #Systematic('lumi_2018', 'lnN',  all_mc, 1.025)
+        
         # probably do xsec theo rates here
         # first signal
         Systematic('tth_ggpdf', 'lnN', tth_sig, 1.036)       # revisit these
@@ -638,12 +646,24 @@ class Systematic: # Class to handle Datacard systematics
         #self.channel  = channel
         self.years     = re.findall(r'201\d', name) if name != 'jesHEMIssue' else ['2018']
         if len(self.years) == 0: self.years = cfg.Years
-        self.value    = value if type(value) is not list else {i:v for i,v in zip(self.ids,value)}
+        # handle different value casts
+        if type(value) is list:
+            self.value = {i:v for i,v in zip(self.ids,value)}
+        elif type(value) is float or type(value) is int:
+            self.value = value
+        elif type(value) is dict:
+            self.value = None
+            self.years = list(value.keys())
+        else:
+            self.value = None
+        #self.value    = value if type(value) is not list else {i:v for i,v in zip(self.ids,value)}
         self.optvalue = optvalue
         self.info     = '' if info is None else info
         #
         if self.datacard is not None: 
             for year in self.years:
+                if type(value) is dict:
+                    self.value = value[year]
                 self.datacard[year].write(self.get_DC_line()) # write to datacard file upon instance creation
 
     @property
@@ -698,8 +718,8 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
         self.up     = up
         self.down   = down
         self.subtype = subtype
-        self.extraQC = False # to make smoothing before and after plots
-        #self.extraQC = extraQC
+        #self.extraQC = False # to make smoothing before and after plots
+        self.extraQC = extraQC
 
     def get_shape(self):
         fun_dict = {'mcstat' :self.makeMCStatHist,
@@ -712,7 +732,7 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
         #
         if self.extraQC and __name__ == '__main__': self.handle_extraQC()
         #if False: # testing qc vs no qc 
-        #self.handleQC()
+        self.handleQC()
         #
         return self.histos
 

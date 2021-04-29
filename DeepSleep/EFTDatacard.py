@@ -86,7 +86,7 @@ class EFTDatacard:
         for line in old:
             offset = (1 if 'lnN' not in line and 'shape' not in line else 2)
             n_proc = (len(line.split())-offset)
-            if n_proc % self.n_ch == 0  and 'jmax' not in line and '---' not in line and 'shapes' not in line:
+            if n_proc % self.n_ch == 0  and 'jmax' not in line and '---' not in line and 'shapes' not in line and 'group' not in line:
                 l_index = int(n_proc/self.n_ch)
                 pre_line = line.split()[:offset]
                 out_line = '  '.join(pre_line+line.split()[l_index+offset:])+' \n'

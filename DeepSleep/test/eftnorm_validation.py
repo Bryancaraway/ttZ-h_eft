@@ -50,7 +50,8 @@ wc_ranges = {
 def main(input_files, samples):
     norm_change = {}
     for input_file, sample in zip(input_files, samples):
-        norm_change[sample] = process(input_file,sample)
+        print (input_file, sample)
+        norm_change[sample] = process(input_file,re.sub(r'_201\d','',sample))
         #plot_overal_norm(norm_change, sample)
     #
     plot_overall_norm(norm_change, samples)
@@ -78,7 +79,7 @@ def get_norm_change(df,sample):
         #pool.close()
     return norm_change
 
-@save_pdf("ttH_ttZ_2018_incxs_impacts.pdf")
+@save_pdf("ttH_2018_incxs_impacts.pdf")
 def plot_overall_norm_compare(norm_change, samples):
     for w in norm_change[samples[0]]: # samples[0] is dummy index
         fig, ax = plt.subplots(1,len(samples), sharey=True) # anticipating this is ttz vs tth
@@ -109,34 +110,35 @@ def plot_overall_norm_compare(norm_change, samples):
         #plt.show()
 
 
-@save_pdf("ttbb_2018_incxs_impacts.pdf")
+@save_pdf("ttH_incxs_impacts.pdf")
 def plot_overall_norm(norm_change, samples):
-    sample = samples[0]
-    norm_change = norm_change[sample]
-    for w in norm_change:
-        #test_points = np.array(single_points[sample]['SM']+single_points[sample][w])
-        fig, ax = plt.subplots()
-        ax.plot(wc_ranges[w],norm_change[w])
-        #ax.scatter(x=test_points[:,0], y=test_points[:,1], marker='*',color='red',label='Validation')
-        ax.axhline(1,c='r',ls='--')
-        #plt.xticks([i for i in range(len(norm_change))], norm_change.keys())
-        ax.set_xlabel(f'WC {w} ')
-        ax.set_ylabel(rf'$\sigma$({sample})'+r'$^{EFT}$/$\sigma$'+f'({sample})'+r'$^{SM}$')
-        ax.xaxis.set_minor_locator(AutoMinorLocator())
-        ax.yaxis.set_minor_locator(AutoMinorLocator())
-        fig.suptitle(f'Inc. Rate change w/resp. to {w} for {sample}')
-        #plt.xlim(-1,1)
-        #plt.legend()
-        #plt.show()
+    for sample in samples:
+        nc = norm_change[sample]
+        for w in nc:
+            test_points = np.array(single_points[re.sub(r'_201\d','',sample)]['SM']+single_points[re.sub(r'_201\d','',sample)][w])
+            fig, ax = plt.subplots()
+            ax.plot(wc_ranges[w],nc[w])
+            ax.scatter(x=test_points[:,0], y=test_points[:,1], marker='*',color='red',label='Validation')
+            ax.axhline(1,c='r',ls='--')
+            #plt.xticks([i for i in range(len(norm_change))], norm_change.keys())
+            ax.set_xlabel(f'WC {w} ')
+            ax.set_ylabel(rf'$\sigma$({sample})'+r'$^{EFT}$/$\sigma$'+f'({sample})'+r'$^{SM}$')
+            ax.xaxis.set_minor_locator(AutoMinorLocator())
+            ax.yaxis.set_minor_locator(AutoMinorLocator())
+            fig.suptitle(f'Inc. Rate change w/resp. to {w} for {sample}')
+            #plt.xlim(-1,1)
+            #plt.legend()
+            #plt.show()
 
 def __worker(lines):
-    pool = Pool()
+    pool = Pool(8)
     results = pool.map(get_eft_df,[line.strip('\n') for line in lines])
     pool.close()
     _out_df = pd.concat(results, axis='rows', ignore_index=True)
     return _out_df
 
 def get_eft_df(roofile):
+    print(roofile)
     with uproot.open(roofile) as roo:
         t = roo['Events']
         eft_reweight = t.array('LHEReweightingWeight', executor=executor)
@@ -161,9 +163,18 @@ if __name__ == '__main__':
     #main("ttjets_eft.txt", 'ttjets')
     input_files = [
         #"files/ttz_eft_2018.txt",
+        
+        #"files/tth_eft_2016.txt",
+        #"files/tth_eft_2017.txt",
         #"files/tth_eft_2018.txt",
-        "files/ttbb_eft_2018.txt"
+        #"files/ttz_eft_2016.txt",
+        "files/ttz_eft_2017.txt",
+        "files/ttz_eft_2018.txt",
+        
+        #"files/ttbb_eft_2018.txt"
     ]
     #main(input_files, ['ttZ','ttH'])
-    main(input_files, ['ttbb'])
+    #main(input_files, ['ttH_2016','ttH_2017','ttH_2018'])
+    main(input_files, ['ttZ_2017','ttZ_2018'])
+    #main(input_files, ['ttbb'])
 

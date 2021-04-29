@@ -214,6 +214,9 @@ def prep_model_data(m_info):
     #
     testXY  = pd.read_pickle(cfg.dnn_ZH_dir+'/testXY.pkl')
     trainY, valY, testY = [resetIndex(df['label']) for df in [trainXY, valXY, testXY]]
+    print(f"Size of : {'train':10} {'val':10} {'test':10}")
+    print(f"          {len(trainY):10} {len(valY):10} {len(testY):10}")
+    exit()
     trainX, valX, testX = [resetIndex(df.drop(columns=['label'])) for df in [trainXY, valXY, testXY]]
     #
     m_class = DNN_model(m_info['sequence'],m_info['other_settings'])  

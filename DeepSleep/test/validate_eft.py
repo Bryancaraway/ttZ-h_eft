@@ -20,9 +20,11 @@ Short script to plot shape validation plots
 class main():
     
 
-    sig_p = {#'TTZ': ['Zbb','Zqq','Zllnunu'],
-             #'TTH': ['Hbb','Hnonbb'],
-             'TTbb': ['tt_B']}
+    sig_p = {
+        'TTZ': ['Zbb','Zqq','Zllnunu'],
+        #'TTH': ['Hbb','Hnonbb'],
+        #'TTbb': ['tt_B'],
+    }
     sig_k = {'TTZ': 'genZHpt',
              'TTH': 'genZHpt',
              'TTbb': 'ttbb_genbb_pt'}
@@ -34,25 +36,27 @@ class main():
     f_dir = f'{sys.path[1]}/files/year/mc_files/'
     years = ['2016','2017','2018'] # for now
 
-    @save_pdf('eft_validation.pdf')
+    @save_pdf('eft_validation_ttz.pdf')
     def run(self):
-        for y in ['2018']:
+        for y in ['2017','2018']:
             for k,v in self.sig_p.items():
                 self.worker(k,v,self.f_dir.replace('year',y), y)
 
     def worker(self, p, sub_p, i_dir, y):
         nom    = pd.read_pickle(f'{i_dir}{self.sig_sm[p]}_val.pkl')
         eft    = pd.read_pickle(f'{i_dir}{p}_EFT_val.pkl')
-        eftjet = pd.read_pickle(f'{i_dir}{p}jet_EFT_val.pkl')
+        #eftjet = pd.read_pickle(f'{i_dir}{p}jet_EFT_val.pkl')
         #
         bins = [0,200,300,450,600]
-        bins = 50
-        r = (0,250)
+        r = (bins[0],bins[-1])
+        #bins = 50 # for ttbb jet study
+        #r = (0,250) # for ttbb jet study
+
         #self.sig_k = {'TTbb':'Zh_pt'}
         #self.sig_k = {'TTbb':'Zh_M'}
         #self.sig_k = {'TTbb':'n_ak4jets'}
         #self.sig_k = {'TTbb':'NN'}
-        self.sig_k = {'TTbb':'ttbb_genbb_invm'}
+        #self.sig_k = {'TTbb':'ttbb_genbb_invm'}
         for sp in sub_p:
             fig, ax = plt.subplots()
             cut = (lambda df: (df['NN']>= 0) & (df[sp] == True))
@@ -66,30 +70,33 @@ class main():
                               )
             self.plots_with_stats(eft[self.sig_k[p]][cut(eft)].clip(0,600), 
                                   eft['EFT183'][cut(eft)]/sum(eft['EFT183'][cut(eft)]),
-                                  f'Priv. {sp}+w/o extra parton',
+                                  f'Priv. {sp}',
                                   'blue', ax,
                                   b=bins,
                                   r=r
                               )
-            self.plots_with_stats(eftjet[self.sig_k[p]][cut(eftjet)].clip(0,600), 
-                                  eftjet['EFT183'][cut(eftjet)]/sum(eftjet['EFT183'][cut(eftjet)]),
-                                  f'Priv. {sp}+extra parton',
-                                  'red', ax,
-                                  b=bins,
-                                  r=r
-                              )
+            #self.plots_with_stats(eftjet[self.sig_k[p]][cut(eftjet)].clip(0,600), 
+            #                      eftjet['EFT183'][cut(eftjet)]/sum(eftjet['EFT183'][cut(eftjet)]),
+            #                      f'Priv. {sp}+extra parton',
+            #                      'red', ax,
+            #                      b=bins,
+            #                      r=r
+            #                  )
+
             #ax.set_yscale('log')
             ax.legend()
-            #ax.set_xlabel(r'GEN bb $p_{T}$ (GeV)')
-            ax.set_xlabel(r'GEN bb mass (GeV)')
+
+            #ax.set_xlabel(r'GEN bb mass (GeV)')
+            ax.set_xlabel(self.sig_k[p])
+            
             #ax.set_xlabel(r'Z/H cand. $p_{T}$ (GeV)')
             #ax.set_xlabel(r'Z/H cand. $m_{SD}$ (GeV)')
             #ax.set_xlabel(r'jet multiplicity')
             #ax.set_xlabel(r'MVA score')
             ax.set_ylabel('Fraction of total / bin')
             ax.set_title(f'{p} Private vs Central {y}')
-            plt.show()
-            exit()
+            #plt.show()
+            #exit()
             #
             fig, ax = plt.subplots()
             cut = (lambda df: (df['NN']>= 0) & (df[sp] == True))
@@ -107,7 +114,8 @@ class main():
                                   b=100
                               )
             ax.legend()
-            ax.set_xlabel(r'GEN bb $p_{T}$ (GeV)')
+            #ax.set_xlabel(r'GEN bb $p_{T}$ (GeV)')
+            ax.set_xlabel(self.sig_k[p])
             ax.set_ylabel('Fraction of total / bin')
             ax.set_title(f'{p} Private (weight fix) vs Central {y}')
             #plt.show() 

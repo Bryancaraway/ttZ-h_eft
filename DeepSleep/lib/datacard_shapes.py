@@ -5,9 +5,10 @@ and per datacard channel
 '''
 if __name__ == '__main__':
     import subprocess as sb
-    import sys
+
     sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 
+import sys
 import numpy as np
 import pandas as pd
 import functools
@@ -34,7 +35,7 @@ class DataCardShapes():
     @t2Run
     def init_hist_funcs(self):
         for y in self.years:
-            get_pickle= (lambda s: pd.read_pickle(f'{self.file_dir}{y}/mc_files/{s}_val.pkl'))
+            get_pickle= (lambda s: pd.read_pickle(f'{sys.path[1]}/{self.file_dir}{y}/mc_files/{s}_val.pkl'))
             df = pd.concat([get_pickle(s) for s in self.ref_samples], axis='rows', ignore_index=True)
             #df = df[((df[self.nn]>=0.0) & ((df['Hbb']==True) | (df['Zbb'] == True)))]
             df = df[((df[self.nn]>=0.0) & (df['matchedGen_ZHbb_bb']==True))]
