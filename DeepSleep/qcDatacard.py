@@ -62,7 +62,7 @@ nn = cfg.nn
     
 # only targets listed here may be used
 tbins_map = {
-    #'Zh_M' :[50,80,105,145,200],
+    'Zh_M' : np.arange(50,210,10),
     #'Zh_pt':[200,300,450,np.inf],
     #'nBottoms_drLeptonCleaned':[1.5,2.5,3.5,4.5,10],
 
@@ -98,8 +98,8 @@ tbins_map = {
     'outZh_max_ak8sdM' : [50,100,150,200,np.inf],
     'outZh_b12_m' : [0,50,100,150,200,np.inf],
     'outZh_b12_dr': [0.4, 1.2, 2.4, 3.6, np.inf],
-    'ht_b': [0,200,300,500,700,np.inf],
-    'ht_outZh': [0,300,500,700,900,np.inf],
+    'ht_b': [0,200,300,500,700,900,1500,np.inf],
+    'ht_outZh': [0,300,500,700,900,1500,np.inf],
     'n_Zh_btag_sj':[-0.5,0.5,1.5,np.inf],
     'Zh_bestb_sj':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
     'Zh_worstb_sj':[0,.25,.5,.75,1.0],
@@ -206,7 +206,7 @@ class MakeQCDataCard(MakeDataCard):
         
     def updatedict(self, p, v, y=''):
         if doNNcuts:
-            v = v +[nn] + ([] if 'n_ak4jets' in v else ['n_ak4jets'])
+            v = v +[nn] + ([] if 'n_ak4jets' in v else ['n_ak4jets']) + ([] if 'Zh_pt' in v else ['Zh_pt'])
         sub_f_dir = 'data_files' if 'Data' in p else 'mc_files'
         if not os.path.exists(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl'): return 
         if p in cfg.all_sys_samples:
@@ -226,6 +226,7 @@ class MakeQCDataCard(MakeDataCard):
         if doNNcuts:
             #group = df[df[nn] >= 0.0].groupby(by='process')
             group = df[(df[nn] >= 0.0) & (df['n_ak4jets'] >= 5)].groupby(by='process') # trying >= 5 cut
+            #group = df[(df[nn] >= 0.35) & (df['n_ak4jets'] >= 5) & (df['Zh_pt'] > 300)].groupby(by='process') # trying >= 5 cut
         else:
             group = df.groupby(by='process')
         if 'Data' not in p:

@@ -21,9 +21,9 @@ class main():
     
 
     sig_p = {
-        'TTZ': ['Zbb','Zqq','Zllnunu'],
+        #'TTZ': ['Zbb','Zqq','Zllnunu'],
         #'TTH': ['Hbb','Hnonbb'],
-        #'TTbb': ['tt_B'],
+        'TTbb': ['tt_B'],
     }
     sig_k = {'TTZ': 'genZHpt',
              'TTH': 'genZHpt',
@@ -36,9 +36,9 @@ class main():
     f_dir = f'{sys.path[1]}/files/year/mc_files/'
     years = ['2016','2017','2018'] # for now
 
-    @save_pdf('eft_validation_ttz.pdf')
+    @save_pdf('eft_validation_ttbb.pdf')
     def run(self):
-        for y in ['2017','2018']:
+        for y in ['2018']:
             for k,v in self.sig_p.items():
                 self.worker(k,v,self.f_dir.replace('year',y), y)
 
@@ -75,7 +75,7 @@ class main():
                                   b=bins,
                                   r=r
                               )
-            #self.plots_with_stats(eftjet[self.sig_k[p]][cut(eftjet)].clip(0,600), 
+            #self.plots_with_stats(eftjet[self.sig_k
             #                      eftjet['EFT183'][cut(eftjet)]/sum(eftjet['EFT183'][cut(eftjet)]),
             #                      f'Priv. {sp}+extra parton',
             #                      'red', ax,

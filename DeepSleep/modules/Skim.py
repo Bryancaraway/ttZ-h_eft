@@ -52,7 +52,7 @@ class Skim :
         self.ana_vars = AnaVars(year,isData, jec_sys=jec_sys) 
         self.tree     = self.set_tree_from_roofile(roofile)
         # prepMeta metadata factory
-        self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree)
+        self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree, jec_sys)
         # define event information
         self.jets      = self.build_dict(
             cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars']+(
@@ -70,33 +70,38 @@ class Skim :
             self.geninfo    = self.build_dict(cfg.ana_vars['genpvars']) 
             self.lheweights = self.build_dict(cfg.ana_vars['lheWeights'])
         self.hlt        = self.build_dict(cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}'])
-        self.subjets    = self.build_dict(cfg.ana_vars['ak8sj'])
+        #self.subjets    = self.build_dict(cfg.ana_vars['ak8sj'])
         # wont keep
         self.filters    = self.build_dict(cfg.ana_vars['filters_all']+cfg.ana_vars['filters_year'][self.year]) 
         # ===================== #
         # define object criteria
-        self.jet_mask     = self.is_a_jet()
-        self.fatjet_mask  = self.is_a_fatjet()
-        self.elec_mask    = self.is_a_electron()
-        self.muon_mask    = self.is_a_muon()
+        #self.jet_mask     = self.is_a_jet()
+        #self.fatjet_mask  = self.is_a_fatjet()
+        #self.elec_mask    = self.is_a_electron()
+        #self.muon_mask    = self.is_a_muon()
         # apply object criteria
-        self.electrons = self.electrons[self.elec_mask]
-        self.muons     = self.muons[    self.muon_mask]
-        self.jets      = self.jets[     self.jet_mask] # still need to lepton clean
-        self.fatjets   = self.fatjets[  self.fatjet_mask]
+        self.soft_electrons = self.electrons[self.is_a_soft_electron()]
+        self.electrons      = self.electrons[self.is_a_electron()]
+        self.soft_muons     = self.muons[    self.is_a_soft_muon()]
+        self.muons          = self.muons[    self.is_a_muon()]
+        self.jets           = self.jets[     self.is_a_jet()] # still need to lepton clean
+        self.fatjets        = self.fatjets[  self.is_a_fatjet()]
         # define event selection
         self.event_mask   = self.get_event_selection()
         # apply event selection
-        self.jets       = self.jets[      self.event_mask]
-        self.fatjets    = self.fatjets[   self.event_mask]
-        self.electrons  = self.electrons[ self.event_mask]
-        self.muons      = self.muons[     self.event_mask]
-        self.events     = self.events[    self.event_mask]
+        self.jets            = self.jets[          self.event_mask]
+        self.fatjets         = self.fatjets[       self.event_mask]
+        self.electrons       = self.electrons[     self.event_mask]
+        self.soft_electrons  = self.soft_electrons[self.event_mask]
+        self.muons           = self.muons[         self.event_mask]
+        self.soft_muons      = self.soft_muons[    self.event_mask]
+        self.events          = self.events[        self.event_mask]
         if not self.isData:
             self.geninfo    = self.geninfo[   self.event_mask]
             self.lheweights = self.lheweights[self.event_mask]
         self.hlt        = self.hlt[       self.event_mask]
-        self.subjets    = self.subjets[   self.event_mask]
+        # might drop subjets
+        #self.subjets    = self.subjets[   self.event_mask]
         #print(len(self.events['genWeight']))
         ''' 
         add interesting info to events: 
@@ -112,11 +117,14 @@ class Skim :
         self.handle_lep_info()
         #
         self.btag_event_mask = self.get_b_tag_eventmask()
-        self.jets       = self.jets[      self.btag_event_mask]
-        self.fatjets    = self.fatjets[   self.btag_event_mask]
-        self.subjets    = self.subjets[   self.btag_event_mask]
-        self.hlt        = self.hlt[       self.btag_event_mask]
-        self.events     = self.events [   self.btag_event_mask]
+        self.jets            = self.jets[          self.btag_event_mask]
+        self.fatjets         = self.fatjets[       self.btag_event_mask]
+        #self.subjets         = self.subjets[       self.btag_event_mask]
+        self.soft_electrons  = self.soft_electrons[self.btag_event_mask]
+        self.soft_muons      = self.soft_muons[    self.btag_event_mask]
+        self.hlt             = self.hlt[           self.btag_event_mask]
+        self.events          = self.events [       self.btag_event_mask]
+
         if not self.isData:
             self.geninfo = self.geninfo[  self.btag_event_mask]
         #
@@ -124,7 +132,10 @@ class Skim :
     def get_skim(self):
         __out_dict = {
             'ak4':self.jets,
-            'ak8':{**self.fatjets,**self.subjets},
+            'ak8':self.fatjets,
+            #'ak8':{**self.fatjets,**self.subjets},
+            'soft_e':self.soft_electrons,
+            'soft_mu':self.soft_muons,
             #'sj': self.subjets
         }
         events = {**self.events,**self.hlt}
@@ -177,9 +188,18 @@ class Skim :
             'Lep_eta' : get_lep_info('eta'),
             'Lep_phi' : get_lep_info('phi'),
             'Lep_mass': get_lep_info('mass'),
+            'Lep_iso' : get_lep_info('miniPFRelIso_all'),
+            'Lep_ch'  : get_lep_info('charge'),
             'passSingleLepMu'   : single_mu,
             'passSingleLepElec' : single_el
         })
+        self.events['Muon_mediumPromptId'] = self.muons['Muon_mediumPromptId'].pad(1).fillna(0)
+        #self.events['Muon_tightId']        = self.muons['Muon_tightId'].pad(1).fillna(0)
+        self.events['Muon_sip3d']          = self.muons['Muon_sip3d'].pad(1).fillna(999)
+        #self.events['Muon_dxy']            = abs(self.muons['Muon_dxy'].pad(1).fillna(999))
+        #self.events['Muon_dz']             = abs(self.muons['Muon_dz'].pad(1).fillna(999))
+        #
+        self.events['Electron_sip3d']         = self.electrons['Electron_sip3d'].pad(1).fillna(999)
     #
     def handle_multiplicity_HEM_info(self):
         self.events.update({
@@ -232,9 +252,21 @@ class Skim :
     #
     def is_a_electron(self):
         return  cfg.lep_sel['electron'][self.year](self.electrons)
+    def is_a_soft_electron(self):
+        return  (
+            (self.electrons['Electron_cutBasedNoIso'] >= 1) &
+            (abs(self.electrons['Electron_eta']) < 2.5) &
+            (self.electrons['Electron_pt'] <= (30 if self.year == '2016' else 35))
+        )
     #
     def is_a_muon(self):
         return cfg.lep_sel['muon'](self.muons)
+    def is_a_soft_muon(self):
+        return  (
+            ((self.muons['Muon_softId'] == 1) | (self.muons['Muon_mediumId'] == 1)) &
+            (self.muons['Muon_pt'] <= 30) &
+            (abs(self.muons['Muon_eta']) < 2.4)
+        )
     # === event criteria functions === #
     def get_MET_filter(self) :    
         return ((self.filters['Flag_goodVertices']                       == 1)       &
@@ -274,7 +306,7 @@ class Skim :
         
 
     def get_event_selection(self): # after objects have been defined
-        return ( (self.jets['Jet_pt'].counts >= 4) &
+        return ( (self.jets['Jet_pt'].counts >= 5) &
                  (self.fatjets['FatJet_pt'].counts >= 1) &
                  (self.events['MET_pt'] > 20) &
                  (self.electrons['Electron_pt'].counts + self.muons['Muon_pt'].counts == 1) &

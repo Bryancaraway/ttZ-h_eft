@@ -189,15 +189,43 @@ def getZhbbBaseCuts(df_):
     import config.ana_cff as cfg
     base_cuts = (
         (df_['n_b_outZh']   >= 2)             &
-        (df_['n_ak4jets']   >= 5)             & # new addition
+        #(df_['n_lb_outZh']   >= 2)             &
+        #(df_['n_b_outZh']   >= 1)             &
+        (df_['n_ak4jets']   >= 5)             & 
         (df_['Zh_bbvLscore'] >= 0.8)          &
         ( (df_['isEleE']==True) | (df_['isMuonE']==True)) & # pass sim trigger
-        #(df_['n_ak8_Zhbb']  >  0)          &
-        (df_['Zh_pt']       >= cfg.ZHptcut)& # 200
+        (df_['passNotHadLep'] == 1) & # might add
+        (df_['Zh_pt']       >= 200)& # 200
         (df_['MET_pt']      >= 20)            &
         (df_['Zh_M']        >= 50)            &
         (df_['Zh_M']        <= 200))
     return base_cuts
+
+def getFakebbvlCuts(df_):
+    control_cuts = (
+        (df_['n_b_outZh']   == 1)             &
+        (df_['n_ak4jets']   >= 5)             & 
+        (df_['Zh_bbvLscore'] >= 0.0)          &
+        ( (df_['isEleE']==True) | (df_['isMuonE']==True)) & # pass sim trigger
+        (df_['passNotHadLep'] == 1) & # might add
+        (df_['Zh_pt']       >= 200)& # 200
+        (df_['MET_pt']      >= 20)            &
+        (df_['Zh_M']        >= 50)            &
+        (df_['Zh_M']        <= 200))
+    return control_cuts
+
+def getFakebbvlWeights(df_, obj):
+    return (
+        df_['weight']* np.sign(df_['genWeight'])
+        * df_['topptWeight']
+        * (df_['HEM_weight'] if obj.year == '2018' else 1.0)
+        * (df_['lep_trigeffsf'])
+        * df_['lep_sf']
+        #* df_['dak8md_bbvl_sf']
+        * df_['BTagWeight'] 
+        * df_['puWeight']  
+        * (df_['PrefireWeight'] if obj.year != '2018' else 1.0)
+    )
 
 def getZhbbWeight(df_, year):
     import config.ana_cff as cfg
@@ -206,8 +234,12 @@ def getZhbbWeight(df_, year):
                   ###* (cfg.Lumi['Total']/cfg.Lumi[year])
                   * df_['topptWeight']
                   * (df_['HEM_weight']  if year == '2018' else 1.0 )
-                  * (df_['lep_trigeffsf'])
-                  * df_['lep_sf']
+                  #* (df_['lep_trigeffsf'])
+                  #* df_['lep_sf']
+                  * df_['electron_sf']
+                  * df_['muon_sf']
+                  * df_['electron_trigeffsf']
+                  * df_['muon_trigeffsf']
                   * df_['dak8md_bbvl_sf']
                   * df_['BTagWeight'] 
                   * df_['puWeight']  
@@ -294,7 +326,7 @@ def getLaLabel(str_):
         'ttHbb':            [r't$\mathregular{\bar{t}}$Htobb',
                              'gold'],
         #'ttX':              [r't($\mathregular{\bar{t}}$)X',
-        'ttX':              [r't$\mathregular{\bar{t}}$t$\mathregular{\bar{t}}$, t$\mathregular{\bar{t}}\gamma$, t$\mathregular{\bar{t}}$W',
+        'ttX':              [r't$\mathregular{\bar{t}}$t$\mathregular{\bar{t}}$, t$\mathregular{\bar{t}}\gamma$, t$\mathregular{\bar{t}}$W tHW, tHq',
                              'tab:red'],
         'single_t':         [r'single top',
                              'tab:brown'],
@@ -310,10 +342,16 @@ def getLaLabel(str_):
                              'tab:purple'],
         'VJets':            [r'V$+$jets',
                              'cyan'],
-        'other':            ['other',
-                             'pink'],
+        'other':            ['VV',
+                             'green'],
         'rare':            ['Rare',
-                            'pink'],
+                            'orange'],
+        'tZq_had':         ['tZq_had',
+                            'red'],
+        'TWQ':             ['tZq_had',
+                            'blue'],
+        'THW':             ['tHW',
+                            'green'],
         #
         'ttZ_genm_Zbb':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb',
                             'blue'],

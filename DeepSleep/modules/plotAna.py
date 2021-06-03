@@ -151,7 +151,8 @@ class Plotter :
         interp_dict = {'sepGenSig': self.sepGenSig,
                        'sepGenBkg': self.sepGenBkg,
                        'sepGenMatchedSig':self.sepGenMatchedSig,
-                       'sepGenMatchedBkg':self.sepGenMatchedBkg}
+                       'sepGenMatchedBkg':self.sepGenMatchedBkg,
+                       'sepBySample':self.sepBySample}
         
         for k in self.sepGenOpt.split(';'):
             if k in interp_dict:
@@ -214,12 +215,12 @@ class Plotter :
             df['ttH_genm_Hbb'] = (lambda x : x[x['matchedGen_Hbb'] == True])(df['ttH'])
             df['ttZ_notgenm_Zbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttZ'])
             df['ttH_notgenm_Hbb'] = (lambda x : x[x['matchedGen_ZHbb'] == False])(df['ttH'])
-        elif '++' not in self.sepGenOpt:
+        elif '++' not in self.sepGenOpt: # +
             df['ttZ_genm_Zbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttZ'])
             df['ttH_genm_Hbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttH'])
             df['ttZ_notgenm_Zbb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == False])(df['ttZ'])
             df['ttH_notgenm_Hbb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == False])(df['ttH'])
-        elif '++' in self.sepGenOpt:
+        elif '++' in self.sepGenOpt: # ++
             df['ttZ_genm_Zbb_bb'] = (lambda x : x[x['matchedGen_ZHbb_bb'] == True])(df['ttZ'])
             df['ttZ_genm_Zbb_b'] = (lambda x : x[x['matchedGen_ZHbb_b'] == True])(df['ttZ'])
             df['ttZ_genm_Zbb_nob'] = (lambda x : x[x['matchedGen_ZHbb_nob'] == True])(df['ttZ'])
@@ -247,6 +248,19 @@ class Plotter :
         df['TTBar_nobbGenMatch'] = (lambda x : x[x['genMatched_tt_bb'] == False])(df['TTBarLep'])
         self.data.update(df) 
         self.data.pop('TTBarLep')
+
+    def sepBySample(self):
+        df = self.data.copy()
+        kill_k = []
+        for k in self.data:
+            kill_k.append(k)
+            for s in df[k]['sample'].unique():
+                df[s] = (lambda x : x[x['sample'] == s])(df[k])
+        self.data.update(df)
+        for k in kill_k:
+            self.data.pop(k)
+
+            
 
     @property
     def retData(self):
@@ -300,7 +314,7 @@ class Plotter :
             handles = handles + [hatch_patch]
             labels  = labels + ['Stat Unc.']
         self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=10)
-        self.ax.set_ylim(ymin=(0 if not self.doLog else (.1 if not self.doNorm else .001)),
+        self.ax.set_ylim(ymin=(0 if not self.doLog else (.1 if not self.doNorm else .001)), # .1 -> .001
                          ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: 
@@ -366,6 +380,12 @@ class Plotter :
             return {sample:df}
         except:
             return None
+    @classmethod
+    def set_cut_func(cls, custom_cut_func):
+        cls.cut_func = staticmethod(custom_cut_func)
+    @classmethod
+    def reset_cut_func(cls):
+        cls.cut_func = staticmethod(getZhbbBaseCuts)
 
 
 class StackedHist(Plotter) :
@@ -505,17 +525,19 @@ class Hist (Plotter) :
         self.beginPlt
         #
         k, h, w, i, c, l = self.retData
+        # check if there is only one process being plotted 
         if not self.doBinRatio :
-            n, bins_, patches_ = self.ax.hist(
-                h,
-                bins=self.bins, 
-                stacked=False,# fill=True,
-                histtype='step',
-                weights = w if not self.doNorm else np.divide(w,i),
-                color   = c,
-                label   = l
-            )
-            self.addMCStat(h,n,w,i,c,bins_)
+            for j in range(len(l)):
+                n, bins_, patches_ = self.ax.hist(
+                    h[j],
+                    bins=self.bins, 
+                    stacked=False,# fill=True,
+                    histtype='step',
+                    weights = w[j] if not self.doNorm else np.divide(w[j],i[j]),
+                    color   = c[j],
+                    label   = l[j]
+                )
+                self.addMCStat(h[j],n,w[j],i[j],c[j],bins_)
         else:
             tot_n, _ = np.histogram(np.concatenate(h).ravel(), bins=self.bins, weights=np.concatenate(w).ravel())
             p_n      = np.array([np.histogram(h_, bins=self.bins, weights=w_)[0] for h_,w_ in zip(h,w)])
@@ -555,11 +577,15 @@ class Hist (Plotter) :
 
     def addMCStat(self,h,n,w,i,c,bins):
         bin_c = (bins[1:]+bins[:-1])/2
-        yerr = np.array([np.histogram(h[s], bins=self.bins, weights=np.power(w[s],2))[0] for s in range(len(h))])
-        for j in range(len(i)):
-            self.ax.errorbar(x=bin_c, y=n[j], 
-                             yerr= (np.sqrt(yerr[j]) if not self.doNorm else np.sqrt(yerr[j])/i[j]),
-                             fmt='.', ms=3, color=c[j])
+        #yerr = np.array([np.histogram(h[s], bins=self.bins, weights=np.power(w[s],2))[0] for s in range(len(h))])
+        yerr = np.array(np.histogram(h, bins=self.bins, weights=np.power(w,2))[0], dtype=float)
+        #for j in range(len(i)):
+        #    self.ax.errorbar(x=bin_c, y=n[j], 
+        #                     yerr= (np.sqrt(yerr[j]) if not self.doNorm else np.sqrt(yerr[j])/i[j]),
+        #                     fmt='.', ms=3, color=c[j])
+        self.ax.errorbar(x=bin_c, y=n, 
+                         yerr= (np.sqrt(yerr) if not self.doNorm else np.sqrt(yerr)/i),
+                         fmt='.', ms=3, color=c)
     #
 #
 

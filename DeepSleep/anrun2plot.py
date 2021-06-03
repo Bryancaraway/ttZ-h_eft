@@ -71,7 +71,9 @@ class PlotsFromDC(MakeDataCard):
                  sig = cfg.Sig_MC+cfg.sig_sys_samples, 
                  bkg = cfg.Bkg_MC+cfg.bkg_sys_samples,  # does not include QCD
                  years = cfg.Years, 
-                 isblind=False):
+                 isblind=False,
+                 extrak=None,
+                 extrasigk=None):
         # start getting signal and bkg 
         super().__init__(sig,bkg,years,isblind,get_sumw_sumw2)
         self.sig = sig
@@ -81,13 +83,14 @@ class PlotsFromDC(MakeDataCard):
         #self.years = ['2018']
         self.isblind = isblind
         self.dc_bins = 1#len(tbins_map[target])#len(pt_bins[1:])
-        self.bkg_v  = super().weights + super().weight_sys + ['process',nn,'sample']+target
-        self.sig_v  = self.bkg_v + ['genZHpt']
-        self.data_v = ['process',nn]+target
+        self.bkg_v  = super().weights + super().weight_sys + ['process',nn,'sample']+target + (extrak if type(extrak) is list else [])
+        self.sig_v  = self.bkg_v + ['genZHpt'] + (extrasigk if type(extrasigk) is list else [])
+        self.data_v = ['process',nn]+target + (extrak if type(extrak) is list else [])
         #
         #self.getdata()
     def getData(self):
         super().getdatav2()
+        print(self.data_dict['ttH_2016'].keys())
         return self.data_dict
 
     #def updatedict(self, p, v, y=''):

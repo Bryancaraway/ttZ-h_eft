@@ -31,7 +31,7 @@ rc("figure", max_open_warning=600)
 
 @save_pdf('pas_template_plots.pdf')
 def main():
-    froo = f'fitDiagnostics_blind_run2.root'
+    froo = f'fitDiagnostics_inc_run2.root'
     #froo = f'fitDiagnostics_nomerge_run2.root'
     pfp= PlotForPas(froo)
     pfp.makeplots()
@@ -176,8 +176,8 @@ class PlotForPas(PostFit):
         hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w')
         handles = handles + [hatch_patch]
         labels  = labels + ['stat+sys.']
-        ax.legend(handles,labels, bbox_to_anchor=(-.625,.675), 
-                  ncol = 2, columnspacing=5.5,
+        ax.legend(handles,labels, bbox_to_anchor=(-1.025,.685), 
+                  ncol = 2, columnspacing=2.0,
                   fontsize=10, framealpha = 0, loc='lower left')
 
 if __name__ == '__main__':

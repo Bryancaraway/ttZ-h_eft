@@ -189,7 +189,10 @@ def endplt(fig,ax,add_cut_str):
 def main():
     pas_data_file = cfg.dataDir+'/pas_plot_info/pas_data_file.pkl'
     if not os.path.exists(pas_data_file):
-        data = PlotsFromDC().getData()
+        data = PlotsFromDC(
+            sig= cfg.Sig_MC,
+            bkg = cfg.Bkg_MC,
+            extrasigk=['matchedGen_ZHbb_bb']).getData()
         AnaDict(data).to_pickle(pas_data_file)
     else:
         data = AnaDict.read_pickle(pas_data_file)

@@ -30,7 +30,12 @@ def main():
     # fitDiagnostics_test_2016.root, fitDiagnostics_test_2017.root, fitDiagnostics_test_2018.root, sfitDiagnostics_test_run2.root
     #PostFit("fitDiagnostics_test_2016.root").makeplots()
     #f_list = [f"fitDiagnostics_blind_{i}.root" for i in ['2016','2017','2018','run2']] # test
+
     f_list = ['fitDiagnostics_partblind_run2.root']
+    #f_list = ['fitDiagnostics_partblindalt_run2.root']
+
+    #f_list = ['fitDiagnostics_Zh_M_NNcuts_run2.root']
+    #f_list = ['fitDiagnostics_partblind_2017.root']
     #f_list = ['fitDiagnostics_corrlf_run2.root']
     
     for f in f_list:
@@ -53,6 +58,9 @@ class PostFit:
         'y2016': '2016',
         'y2017': '2017',
         'y2018': '2018',
+        'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
         'y2016_Zhpt1': r'2016, $200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
         'y2016_Zhpt2': r'2016, $300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
         'y2016_Zhpt3': r'2016, ${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
@@ -83,7 +91,7 @@ class PostFit:
             # store, prefit # shapes_prefit, shapes_fit_s
             def to_dict(p): # takes prefit or postfit
                 pp_dict = {'prefit' :'shapes_prefit',
-                           'postfit':'shapes_fit_s'}
+                           'postfit':('shapes_fit_b' if 'partblind' in self.fitroo else 'shapes_fit_s')}
                 suf = (lambda b: b.decode().split(';')[0])
                 self.hists[p] = {}
                 for ch in roo[pp_dict[p]]:
@@ -122,10 +130,13 @@ class PostFit:
             if doPull:
                 self.init_axes(opt='pulls',channel=ch)
                 self.fig.suptitle(ch, fontsize=10)
-                self.make_pulls(ch)
+                self.make_pulls(ch, pre_post='postfit')
         if self.doPull:
             self.plot_1dpulls()
-            self.plot_1dgof()
+            try:
+                self.plot_1dgof()
+            except FileNotFoundError:
+                pass
         #print(f"data test statistic: prefit:{np.nansum(self.chi2_arr['prefit'])} | postfit: {np.nansum(self.chi2_arr['postfit'])}") 
         print(f"data test statistic: prefit:{-2*np.log(np.nanprod(self.chi2_arr['prefit']))} | postfit: {-2*np.log(np.nanprod(self.chi2_arr['postfit']))}") 
 
@@ -218,7 +229,8 @@ class PostFit:
             wspace=0.3
         )
         self.fig = fig
-        lumi = cfg.Lumi[re.search(r'201\d',channel).group()]
+        #lumi = cfg.Lumi[re.search(r'201\d',channel).group()]
+        lumi= self.lumi
         if opt == 'pulls':
             self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 10)
             self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
@@ -290,30 +302,20 @@ class PostFit:
         #
         #plt.show()
     #
-    def make_pulls(self,ch):
+    def make_pulls(self,ch, pre_post='postfit'):
         # only for post fit
         axt = self.axs[0]
         axb = self.axs[1]
-        d = self.hists['postfit'][ch]
+        d = self.hists[pre_post][ch]
         ## stack portion
         self.do_stack(d, axt ,ch)
         # Pull def = (Data - Pred.) / sqrt( Pred. + Pred.err^2 )
         #y =        (d['data']['values'] - d['total']['values']) / np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2))
-        #print(d['data']['values'], d['total']['values'], np.power(d['total']['err'],2) )
-        
-        #print()
-        #print(d['total']['values'])
-        #print(d['total']['err'])
-        #print()
         
         num = np.subtract(d['data']['values'], d['total']['values'])
-        #den = np.sqrt( np.subtract( d['total']['values'], np.power( d['total']['err'] ,2) ))
-        den = np.sqrt( abs(np.subtract( d['total']['values'], np.power( d['total']['err'] ,2) )))
-        #print('\n')
-        #print('Data: ', d['data']['values'])
-        #print('Pred: ', d['total']['values'])
-        #print('Sys: ',d['total']['err'])
-        #print('Sys^2: ',np.power( d['total']['err'] ,2))
+        den = np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2) ) # Kens definition
+        #den = np.sqrt( abs(np.subtract( d['total']['values'], np.power( d['total']['err'] ,2) ))) # Desy definition
+
 
         #y = (d['data']['values'] - d['total']['values']) / np.sqrt( d['total']['values'] - np.power( d['total']['err'] ,2))
         y = num/den
@@ -327,7 +329,7 @@ class PostFit:
                      fmt='.', label='data', color='k')
         #self.make_error_boxes(axb, (self.edges[ch][1:]+self.edges[ch][:-1])/2, np.ones_like(d['total']['values']),
         #                      xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err']/d['total']['values'], label='stat+sys')
-        self.endaxs(axt,axb,'postfit',self.doPull, ch)
+        self.endaxs(axt,axb,pre_post,self.doPull, ch)
         self.addlegend(opt='pulls')
         
 
@@ -354,14 +356,14 @@ class PostFit:
         axb.tick_params(which='both', direction='in', top=True, right=True)
         if not doPull:
             axb.axhline(1, color='k', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
-            axb.set_ylim(0.5,1.5)
-            axb.yaxis.set_major_locator(FixedLocator([.75,1,1.25]))
+            axb.set_ylim(0.0,2.00)
+            axb.yaxis.set_major_locator(FixedLocator([.5,1,1.5]))
             axb.yaxis.set_major_formatter(FormatStrFormatter('%g'))
             axb.set_ylabel('data/MC' if 'post' not in p else 'data/pred.', fontsize=8)
         else:
             axb.axhline(0, color='red', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
-            axb.set_ylim(-3.0,3.0)
-            axb.yaxis.set_major_locator(FixedLocator([-2,-1,0.0,1,2]))
+            axb.set_ylim(-5.0,5.0)
+            axb.yaxis.set_major_locator(FixedLocator([-4,-2,0.0,2,4]))
             axb.yaxis.set_major_formatter(FormatStrFormatter('%g'))
             axb.set_ylabel('Pull', fontsize=8)
         axb.set_xlabel(('' if self.kinem is None else self.kinem+' ')+('bin #' if self.t_labels is None else ''), fontsize=8)
@@ -379,9 +381,11 @@ class PostFit:
         hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w')
         handles = handles + [hatch_patch]
         labels  = labels + ['stat+sys.']
-        ax.legend(handles,labels, bbox_to_anchor=(1.00,1), 
+        ax.legend(handles,labels, bbox_to_anchor=(1.00,.90), 
                   handlelength=0.7, handletextpad=0.25, handleheight=0.7,
-                  fontsize='xx-small', framealpha = 0, loc='upper left')
+                  ncol=2,
+                  fontsize='xx-small', framealpha = 0, loc='upper right')
+        #plt.show()
 
 
     @staticmethod

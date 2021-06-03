@@ -21,6 +21,8 @@ pdfDir            = _wdir+'pdf/'
 preproc_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PreProcessed/'
 postproc_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
 postSkim_dir = '/cms/data/store/user/ttxeft/NanoAODv7/Skim/'
+# NN dir
+DNNoutputDir      = dataDir+'/NN_files/'
 # Overhead #
 import os
 if   os.path.exists('/cms/data/store/user/ttxeft/') : # test to see if on kodiak
@@ -45,7 +47,7 @@ tt_eft_samples    = ['TTJets_EFT','TTBB_EFT']
 Sig_MC            = ['ttH','ttZ']
 Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VJets']
 #Bkg_MC            = ['TTBar','ttbb','ttX','single_t','VV','VVV','VJets']
-#All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VV','VVV','VJets']
+#All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VJets','VV','rare','QCD']
 All_MC            = ['ttZ','ttH','TTBar','ttbb','single_t','ttX','VJets']
 
 # Handle systematic sample docs
@@ -96,6 +98,10 @@ ZHbb_btagWP    = {'2016': 0.6321, # Med for 2016
                   '2017': 0.4941, # Med for 2017
                   '2018': 0.4148  # Med for 2018
                   }
+ZHbb_loosebtagWP    = {'2016': 0.2217, # Loose for 2016
+                       '2017': 0.1522, # Loose for 2017
+                       '2018': 0.1241  # Loose for 2018
+                   }
 #
 hlt_path = {
     'muon'    :{ '2016': (lambda x : ((x['HLT_IsoMu24']) | 
@@ -141,24 +147,40 @@ hlt_path = {
 LC = ''
 #
 lep_sel_vars = {'muon'    : ['Muon_pt','Muon_eta','Muon_phi','Muon_mass',
-                             'Muon_miniPFRelIso_all','Muon_mediumId'],#'Muon_FlagId'],
+                             'Muon_miniPFRelIso_all','Muon_mediumId', # might just need to add Muon_sip3d, Muon_softId, Muon_charge, and Muon_mediumPromptId
+                             'Muon_tightId','Muon_mediumPromptId',"Muon_dxy","Muon_dz","Muon_sip3d","Muon_softId","Muon_charge"],#'Muon_FlagId'],
                 'electron': ['Electron_pt','Electron_eta','Electron_phi','Electron_mass',
-                             'Electron_miniPFRelIso_all', 'Electron_cutBasedNoIso']}
+                             'Electron_miniPFRelIso_all', 'Electron_cutBasedNoIso','Electron_sip3d','Electron_charge']}
 
 lep_sel =      {'muon': (lambda x: ((x['Muon_pt'] > 30)        & 
                                     (abs(x['Muon_eta']) < 2.4) &
-                                    #(x['Muon_FlagId'] >= 1)    &  # not in NanoAODv7 files
                                     (x['Muon_mediumId'] >= 1)    & 
+                                    (x['Muon_sip3d'] < 4) &
                                     (x['Muon_miniPFRelIso_all'] < 0.2) )),
 
-                'electron': {'2016': (lambda x : ((x['Electron_pt'] > 30) & (abs(x['Electron_eta']) < 2.5) & 
-                                                  (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
-                             '2017': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & 
-                                                  (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
-                             '2018': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & 
-                                                  (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
-                             }
-                }
+                'nosip3d_muon': (lambda x: ((x['Muon_pt'] > 30)        & 
+                                            (abs(x['Muon_eta']) < 2.4) &
+                                            (x['Muon_mediumId'] >= 1)    & 
+                                            #(x['Muon_sip3d'] < 4) &
+                                            (x['Muon_miniPFRelIso_all'] < 0.2) )),
+
+                'electron': {
+                    '2016': (lambda x : ((x['Electron_pt'] > 30) & (abs(x['Electron_eta']) < 2.5) & (x['Electron_sip3d'] < 4) &
+                                         (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                    '2017': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & (x['Electron_sip3d'] < 4) &
+                                         (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                    '2018': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & (x['Electron_sip3d'] < 4) &
+                                         (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                },
+                'nosip3d_electron': {
+                    '2016': (lambda x : ((x['Electron_pt'] > 30) & (abs(x['Electron_eta']) < 2.5) & #(x['Electron_sip3d'] < 4) &
+                                         (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                    '2017': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & #(x['Electron_sip3d'] < 4) &
+                                         (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                    '2018': (lambda x : ((x['Electron_pt'] > 35) & (abs(x['Electron_eta']) < 2.5) & #(x['Electron_sip3d'] < 4) &
+                                         (x['Electron_cutBasedNoIso'] >= 4) & (x['Electron_miniPFRelIso_all'] < 0.1))),
+                },
+            }
 
 ana_vars = {
     'ak4vars'    : ['Jet_btagDeepB','Jet_puId','Jet_jetId',],
@@ -177,22 +199,15 @@ ana_vars = {
     'ak4lvec'    : {'TLVarsLC'    :['Jet_pt'+LC, 'Jet_eta'+LC, 'Jet_phi'+LC, 'Jet_mass'+LC],
                     'TLVars'      :['Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass'],
                 },
-#
+    #
     'ak8vars'    : ['FatJet_jetId',
-                    'FatJet_deepTagMD_WvsQCD','FatJet_deepTagMD_TvsQCD','FatJet_deepTagMD_bbvsLight',
-                    'FatJet_deepTagMD_ZHbbvsQCD',
-                    #'FatJet_deepTag_WvsQCD'+LC,'FatJet_deepTag_TvsQCD'+LC,'FatJet_deepTag_ZvsQCD'+LC,
-                    #'FatJet_deepTagMD_H4qvsQCD'+LC, 'FatJet_deepTagMD_HbbvsQCD'+LC, 'FatJet_deepTagMD_TvsQCD'+LC, 
-                    #'FatJet_deepTagMD_ZbbvsQCD'+LC, 'FatJet_deepTagMD_ZvsQCD'+LC, 'FatJet_deepTagMD_bbvsLight'+LC, 'FatJet_deepTagMD_ccvsLight'+LC,     
-                    'FatJet_msoftdrop'+LC,'FatJet_btagDeepB'+LC,'FatJet_btagHbb'+LC,
-                    'FatJet_n2b1','FatJet_n3b1','FatJet_tau1','FatJet_tau2','FatJet_tau3','FatJet_tau4',
-                    'FatJet_subJetIdx1'+LC,'FatJet_subJetIdx2'+LC],
+                    'FatJet_deepTagMD_bbvsLight',
+                    'FatJet_msoftdrop'+LC,],
     'ak8lvec'    : {'TLVarsLC' :['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC],
                     'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass']},
-    'ak8sj'      : ['SubJet_pt','SubJet_mass','SubJet_n2b1','SubJet_n3b1','SubJet_tau1','SubJet_tau2','SubJet_tau3','SubJet_tau4','SubJet_btagDeepB'],
-#
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 
-                    'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother','genTtbarId'], # event level identifier for ttbar+bb
+                    'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother',
+                    'genTtbarId','LHE_HT','LHE_HTIncoming'], # event level identifier for ttbar+bb
 
     'event'      : ['MET_phi', 'MET_pt',
                     'MET_T1_phi', 'MET_T1_pt',
@@ -204,14 +219,6 @@ ana_vars = {
     'filters_year' : {'2016': [], '2017':['Flag_ecalBadCalibFilterV2'], '2018':['Flag_ecalBadCalibFilterV2']},
     # these are MC only
     'sysvars_mc'      : ['genWeight','puWeight',
-                         #'BTagWeight',
-                         #'BTagWeight_jes_up','BTagWeight_jes_down',
-                         #'BTagWeight_lf_up','BTagWeight_lf_down',
-                         #'BTagWeight_hf_up','BTagWeight_hf_down',
-                         #'BTagWeight_lfstats1_up','BTagWeight_lfstats1_down',
-                         #'BTagWeight_lfstats2_up','BTagWeight_lfstats2_down',
-                         #'BTagWeight_hfstats1_up','BTagWeight_hfstats1_down',
-                         #'BTagWeight_hfstats2_up','BTagWeight_hfstats2_down',
                          'puWeightUp','puWeightDown', 
                          'pdfWeight_Up','pdfWeight_Down',],
     'sysvars_2016'    : ['PrefireWeight','PrefireWeight_Up','PrefireWeight_Down'],
@@ -322,13 +329,3 @@ withbbvl_dnn_ZHgenm_vars = nodak8md_dnn_ZH_vars+['Zh_bbvLscore']
 
 
 
-#
-#dnn_ZH_alpha      = 0.00003 # 200: 0.0003 # 300 : 0.00003
-#dnn_ZH_batch_size = 512
-#fl_gamma          = .2 # 200: .1    , 300: 1.5 / .4
-#fl_alpha          = .85 # 200: .85 , 300: .80 /.85
-#dnn_ZH_epochs     = 0 #210 ### 200: 120, 300: 100
-DNNoutputDir      = dataDir+'/NN_files/'
-#DNNoutputName     = 'corr_noweight_noM.h5'
-#DNNmodelName      = 'corr_noweight_model_noM.h5' 
-#DNNuseWeights     = True

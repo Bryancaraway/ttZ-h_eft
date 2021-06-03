@@ -3,12 +3,12 @@ Define 2d shape histograms
 for datacard per year 
 and per datacard channel
 '''
+import sys
 if __name__ == '__main__':
     import subprocess as sb
 
     sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
 
-import sys
 import numpy as np
 import pandas as pd
 import functools
@@ -54,6 +54,7 @@ class DataCardShapes():
                 sub_df = df[df['pt_bin'] == f'Zhpt{i}']
                 #quantiles = np.linspace(0,1,self.n_NN_bins+1) # actual quantiles, 10% intervals
                 quantiles = [0.0, .05, .25, .35, .50, .70, 1.0] # actual quantiles, 10% intervals
+
                 #if self.isblind:
                 nn_df = sub_df[self.nn] 
                 #else:
@@ -64,8 +65,8 @@ class DataCardShapes():
                                             getZhbbWeight(sub_df,y))
                 nn_bins[0], nn_bins[-1] = 0,1 # explicity set bin edges to 0 and 1
                 if self.isblind == False:
-                    #nn_bins = nn_bins[:2] # only %5 percent of gen-matched signal
-                    nn_bins = nn_bins[:-1] # up to last bin but mass-side bands
+                    #nn_bins = nn_bins[:-1] # up to last bin but mass-side bands
+                    nn_bins = nn_bins # dont do anything
                 
                 #nn_bins = nn_bins[1:] # drop first background dominated bin
                 print(nn_bins)

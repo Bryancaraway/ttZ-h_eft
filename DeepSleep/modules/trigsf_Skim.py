@@ -51,6 +51,9 @@ class TrigSkim(Skim) :
                 f'{el_mu}_pt' : elmu_df[f'{el_mu}_pt'].flatten(),
                 f'{el_mu}_eta': elmu_df[f'{el_mu}_eta'].flatten(),
                 f'{el_mu}_phi': elmu_df[f'{el_mu}_phi'].flatten(),
+                f'{el_mu}_mass': elmu_df[f'{el_mu}_mass'].flatten(),
+                f'{el_mu}_sip3d': elmu_df[f'{el_mu}_sip3d'].flatten(),
+                f'{el_mu}_charge': elmu_df[f'{el_mu}_charge'].flatten(),
             })
 
     def get_b_tag_eventmask(self):
@@ -60,6 +63,8 @@ class TrigSkim(Skim) :
         __out_dict = {}
         events = {**self.events,**self.hlt}
         __out_dict['events'] = pd.DataFrame.from_dict({k:v for k,v in events.items()})
+        __out_dict['soft_e'] = self.soft_electrons
+        __out_dict['soft_mu'] = self.soft_muons
         if not self.isData:
             __out_dict['gen'] = self.geninfo
             __out_dict['metaData'] = self.Meta.get_metadata()
@@ -67,6 +72,12 @@ class TrigSkim(Skim) :
         self.f.close()
         #
         return __out_dict
+
+    def is_a_electron(self):
+        return  cfg.lep_sel['nosip3d_electron'][self.year](self.electrons)
+
+    def is_a_muon(self):
+        return cfg.lep_sel['nosip3d_muon'](self.muons)
 
 if __name__ == '__main__':
     year = '2016'

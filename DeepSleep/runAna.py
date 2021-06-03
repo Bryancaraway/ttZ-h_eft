@@ -41,10 +41,11 @@ def runAna():
         #    analyzer(sample)
         import multiprocessing
         pool = multiprocessing.Pool(4)
-        _ = pool.map(analyzer, process_cfg[args.sample])
+        p_cfg = [s for s in process_cfg[args.sample] if (args.year == '2017' and 'QCD_HT_2000toInf' == s) == False]
+        _ = pool.map(analyzer, p_cfg) # ...
         pool.close()
         # run post job
-        post_job(process_cfg[args.sample])
+        post_job(p_cfg)
 
 #@t2Run
 def analyzer(sample):
@@ -77,10 +78,12 @@ def analyzer(sample):
         ak4_df, ak8_df, gen_df, meta_df = [ AnaDict(gD_out[k]) for k in ['ak4','ak8','gen','metaData'] ]
         val_df = gD_out['events']
 
+    softe, softmu = [ AnaDict(gD_out[k]) for k in ['soft_e','soft_mu'] ]
+
     #####
     print('Running processAna...')
     processAna_cfg = {'outDir': 'files/', 'outTag':tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
-                      'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'meta_df':meta_df,
+                      'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'meta_df':meta_df, 'softe_df':softe, 'softmu_df':softmu,
                       'sample':sample, 'condor':args.condor, 'keep_all': args.keep_all}
     processAna(processAna_cfg)
 

@@ -36,7 +36,7 @@ class SkimMeta :
     #nanoAODv7_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
     #sample  = None
 
-    def __init__(self, sample, year, isData, tree):
+    def __init__(self, sample, year, isData, tree, jec_sys=None):
         self.sample = sample
         self.year   = year
         self.isData = isData
@@ -170,7 +170,7 @@ class SkimMeta :
         #scale = scale * np.sign(gw)
         ps    = np.array([scps_helper(ps[:,i]) * np.sign(gw) for i in range(4)]).T
         scale = np.array([scps_helper(scale[:,i]) * np.sign(gw) for i in range(9)]).T
-        print(ps.shape)
+        #print(ps.shape)
         out_list = []
         for i,ptbin in enumerate(genpt_bins):
             if ptbin == 0: # do inclusive counts first 

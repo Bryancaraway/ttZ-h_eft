@@ -68,6 +68,14 @@ class Calc_LepEffSF :
         self.data_df = self.getData('Data_Single'+self.of_lep[self.channel])
         di_mc_df, di_gen_df   = self.getData('TTTo2L2Nu')
         semi_mc_df, semi_gen_df   = self.getData('TTToSemiLeptonic')
+        #tw_mc_df, tw_gen_df   = self.getData('ST_tW_top')
+        #atw_mc_df, atw_gen_df   = self.getData('ST_tW_antitop')
+        #print("Data", len(self.data_df))
+        #print("semi contribution",sum(semi_mc_df["weight"]*np.sign(semi_mc_df["genWeight"])))
+        #print("di contribution",sum(  di_mc_df[  "weight"]*np.sign(  di_mc_df["genWeight"])))
+        #print("tw contribution",sum(  tw_mc_df[  "weight"]*np.sign(  tw_mc_df["genWeight"])))
+        #print("atw contribution",sum( atw_mc_df[ "weight"]*np.sign( atw_mc_df["genWeight"])))
+        #exit()
         self.mc_df  = pd.concat([di_mc_df,semi_mc_df], axis='rows', ignore_index=True)
         self.gen_df = AnaDict({k: PostSkim.try_concatenate([di_gen_df[k],semi_gen_df[k]]) for k in di_gen_df})
         # need to load and add sf, topptrwgt to mc_df
@@ -288,31 +296,54 @@ class Calc_LepEffSF :
         #pass_ref = self.pass_refTrig(gD_out['events'])
         pass_nb  = (lambda df: ((df['nBottoms'] == 1) | (df['nBottoms'] == 2)) & (df['MET_pt']>20))(gD_out['events'])
         #pass_nb  = (lambda df: np.ones_like(df['Muon_pt'])==1)(gD_out['events']) # dummy
-        pass_event = pass_nb
+        # add j/psi upsilon veto here
+        jpsi_ups_veto = self.get_jspi_ups_veto(gD_out['soft_e'],gD_out['soft_mu'],gD_out['events'])
+        #
+        pass_event = (pass_nb & jpsi_ups_veto)
         if isData:
             return gD_out['events'][pass_event]
         else:
-            gD_out['events']['ttype'] = re.search(f'(Semi|2L)',sample).group() 
+            lep_decay = re.search(f'(Semi|2L)',sample).group() if re.search(f'(Semi|2L)',sample) else 'else'
+            gD_out['events']['ttype'] = lep_decay
             events = gD_out['events'][pass_event]
             gen    = AnaDict(gD_out['gen'])[pass_event]
             return (events, gen)
+
+    def get_jspi_ups_veto(self, softe, softmu, df):
+        print(softe['Electron_pt'][softe['Electron_pt'].counts > 0])
+        from uproot_methods import TLorentzVectorArray
+        getTLVm  = TLorentzVectorArray.from_ptetaphim
+        common_k = ['pt','eta','phi','mass']
+        def get_veto(softl, sell, ltype):
+            sel_l, sel_l_ch   = [sell[ltype+'_'+k] for k in common_k], sell[ltype+'_charge']
+            soft_l, soft_l_ch = [softl[ltype+'_'+k] for k in common_k], softl[ltype+'_charge']
+            sel_l_tlv, soft_l_tlv = getTLVm(*sel_l), getTLVm(*soft_l)
+            sel_soft_l_invm = (sel_l_tlv+soft_l_tlv[(~(soft_l_tlv == sel_l_tlv) & ~(sel_l_ch == soft_l_ch))]).mass
+            return np.where(np.isinf(sel_soft_l_invm.min()), 999, sel_soft_l_invm.min()) > 12
+        e_veto  = get_veto(softe, df, 'Electron')
+        mu_veto = get_veto(softmu, df, 'Muon')
+        return (e_veto & mu_veto)
+
+                
 
     # ------ #
 
     def pass_refTrig(self,df):
         ref_trig_dict = {
+            # corresponds to muon hlt path
             'Electron':{'2016': (lambda x : (x['HLT_IsoMu24'] | 
                                              x['HLT_IsoTkMu24'])),
                         '2017': (lambda x : (x['HLT_IsoMu27'])),
                         '2018': (lambda x : (x['HLT_IsoMu24'])),
                     },
+            # corresponds to electron hlt path
             'Muon'    : cfg.hlt_path['electron'],
         }
-        pass_reftrig = ref_trig_dict[self.channel][self.year](df)
+        pass_reftrig = ((ref_trig_dict[self.channel][self.year](df)) & (df[self.of_lep[self.channel]+'_sip3d'] < 4))
         return pass_reftrig
 
     def pass_targetTrig(self,df):
-        return cfg.hlt_path[self.channel.lower()][self.year](df)
+        return ((cfg.hlt_path[self.channel.lower()][self.year](df)) & (df[self.channel+'_sip3d'] < 4))
         
     def add_lepSF(self):
         for lep, lep_type in zip(['Muon','Electron'],['muon','electron']):

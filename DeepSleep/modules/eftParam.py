@@ -70,7 +70,7 @@ class EFTFitParams():
         'genZHpt':[0,200,300,450,500], # clip at 500
         'Zh_pt':[200,300,450,500], # clip at 500
     }
-    m_bins  = cfg.sdm_bins # clip at 500
+    m_bins  = cfg.sdm_bins 
     
     def __init__(self, doReco=False):
         # seperate aux for different signals
@@ -376,7 +376,7 @@ def forDatacard(doReco):
 if __name__ == '__main__':
     import pickle
     # -- to test different eft samples w/o channel binning
-
+    
     #forTesting()
     
     # -- to make parameterizations for datacard workspace

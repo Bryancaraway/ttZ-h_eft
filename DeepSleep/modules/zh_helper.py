@@ -9,7 +9,7 @@ from modules.AnaDict import AnaDict
 import numpy as np
 import pandas as pd
 
-
+@t2Run
 def reco_zh_helper_andrew(obj):
     # Note: in order to take advatage of numpy methods with dimensionallity
     # it is necessary to numpy-ize (rectangularize) jagged-arrays using custom (hacky)
@@ -35,11 +35,11 @@ def reco_zh_helper_andrew(obj):
     #ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_bbtag, ak8_Zhbbtag, ak8_doubleB, w_tag, t_tag, subj1, subj2, ak8_n2b1, ak8_n3b1, ak8_tau1, ak8_tau2, ak8_tau3, ak8_tau4 = k_getter( 
     #    obj.ak8_df, [fj+str_ for str_ in common_k+['msoftdrop','btagDeepB','deepTagMD_bbvsLight', 'btagHbb', 'deepTagMD_WvsQCD','deepTagMD_TvsQCD','subJetIdx1','subJetIdx2','n2b1','n3b1','tau1','tau2','tau3','tau4']]
     #)
-    ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_bbtag, ak8_Zhbbtag, ak8_doubleB, w_tag, t_tag, subj1, subj2 = k_getter( 
-        obj.ak8_df, [fj+str_ for str_ in common_k+['msoftdrop','btagDeepB','deepTagMD_bbvsLight', 'btagHbb', 'deepTagMD_WvsQCD','deepTagMD_TvsQCD','subJetIdx1','subJetIdx2']]
+    ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_Zhbbtag  = k_getter( 
+        obj.ak8_df, [fj+str_ for str_ in common_k+['msoftdrop','deepTagMD_bbvsLight']]
     )
     #subj_pt,  subj_btag, subj_n2b1, subj_n3b1, subj_tau1, subj_tau2, subj_tau3, subj_tau4 = obj.ak8_df['SubJet_pt'],  obj.ak8_df['SubJet_btagDeepB'], obj.ak8_df['SubJet_n2b1'], obj.ak8_df['SubJet_n3b1'], obj.ak8_df['SubJet_tau1'], obj.ak8_df['SubJet_tau2'], obj.ak8_df['SubJet_tau3'], obj.ak8_df['SubJet_tau4'],
-    subj_pt,  subj_btag = obj.ak8_df['SubJet_pt'],  obj.ak8_df['SubJet_btagDeepB']
+    #subj_pt,  subj_btag = obj.ak8_df['SubJet_pt'],  obj.ak8_df['SubJet_btagDeepB']
     #
     lep_pt, lep_eta, lep_phi, lep_M = [obj.val_df[l+str_] for str_ in common_k+['mass']]
     met_pt, met_phi = obj.val_df['MET_pt'], obj.val_df['MET_phi']
@@ -48,34 +48,34 @@ def reco_zh_helper_andrew(obj):
     #print(Zh_reco_cut)
     #Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M, Zh_doubleB, Zh_wtag, Zh_ttag,Zh_bbtag, Zh_n2b1, Zh_n3b1, Zh_tau1, Zh_tau2, Zh_tau3, Zh_tau4=lib.sortbyscore(
     #    [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M, ak8_doubleB, w_tag,t_tag,ak8_bbtag,ak8_n2b1, ak8_n3b1, ak8_tau1, ak8_tau2, ak8_tau3, ak8_tau4],ak8_Zhbbtag,Zh_reco_cut)
-    Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M, Zh_doubleB, Zh_wtag, Zh_ttag,Zh_bbtag=lib.sortbyscore(
-        [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M, ak8_doubleB, w_tag,t_tag,ak8_bbtag],ak8_Zhbbtag,Zh_reco_cut)
+    Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M, Zh_Zhbbtag =lib.sortbyscore(
+        [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M, ak8_Zhbbtag ], ak8_Zhbbtag, Zh_reco_cut)
     # =============================== # 
     # compute subject info related to Zh candidate : have to sort out candidate with no subjet
     
     #ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag,  ak8_sj1_n2b1, ak8_sj2_n2b1, ak8_sj1_n3b1, ak8_sj2_n3b1, ak8_sj1_tau1, ak8_sj2_tau1, ak8_sj1_tau2, ak8_sj2_tau2, ak8_sj1_tau3, ak8_sj2_tau3, ak8_sj1_tau4, ak8_sj2_tau4 = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt,  subj_btag, subj_n2b1, subj_n3b1, subj_tau1, subj_tau2, subj_tau3, subj_tau4] for id_ in [subj1, subj2]] # sj kinems per ak8jet
-    ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt,  subj_btag] for id_ in [subj1, subj2]] # sj kinems per ak8jet
-    ak8_sj1_sdM, ak8_sj2_sdM, ak8_sj1_Zhbb, ak8_sj2_Zhbb = [ak8_k[id_ != -1] for ak8_k in [sd_M, ak8_Zhbbtag] for id_ in [subj1, subj2]] # ak8 kinems 
+    #ak8_sj1_pt, ak8_sj2_pt, ak8_sj1_btag, ak8_sj2_btag = [subj_k[id_[id_ != -1]] for subj_k in [subj_pt,  subj_btag] for id_ in [subj1, subj2]] # sj kinems per ak8jet
+    #ak8_sj1_sdM, ak8_sj2_sdM, ak8_sj1_Zhbb, ak8_sj2_Zhbb = [ak8_k[id_ != -1] for ak8_k in [sd_M, ak8_Zhbbtag] for id_ in [subj1, subj2]] # ak8 kinems 
     #Zh_kinem_sj1_cut = ((ak8_sj1_pt>=obj.pt_cut) & (ak8_sj1_sdM >= 50) & (ak8_sj1_sdM <= 200) & (ak8_sj1_Zhbb >= 0.0))
 
-    Zh_kinem_sj1_cut = (ak8_sj1_Zhbb >= 0.0)
+    #Zh_kinem_sj1_cut = (ak8_sj1_Zhbb >= 0.0)
     #Zh_sj1_pt, Zh_sj1_btag, Zh_sj1_Zhbb, Zh_sj1_n2b1, Zh_sj1_n3b1, Zh_sj1_tau1, Zh_sj1_tau2, Zh_sj1_tau3, Zh_sj1_tau4 = lib.sortbyscore([
     #    ak8_sj1_pt,ak8_sj1_btag,ak8_sj1_Zhbb,ak8_sj1_n2b1, ak8_sj1_n3b1, ak8_sj1_tau1, ak8_sj1_tau2, ak8_sj1_tau3, ak8_sj1_tau4],ak8_sj1_Zhbb,Zh_kinem_sj1_cut)
-    Zh_sj1_pt, Zh_sj1_btag, Zh_sj1_Zhbb = lib.sortbyscore([
-        ak8_sj1_pt,ak8_sj1_btag,ak8_sj1_Zhbb],ak8_sj1_Zhbb,Zh_kinem_sj1_cut)
+    #Zh_sj1_pt, Zh_sj1_btag, Zh_sj1_Zhbb = lib.sortbyscore([
+    #    ak8_sj1_pt,ak8_sj1_btag,ak8_sj1_Zhbb],ak8_sj1_Zhbb,Zh_kinem_sj1_cut)
     #Zh_kinem_sj2_cut = ((ak8_sj2_pt>=obj.pt_cut) & (ak8_sj2_sdM >= 50) & (ak8_sj2_sdM <= 200) & (ak8_sj2_Zhbb >= 0.0))
-    Zh_kinem_sj2_cut = ((ak8_sj2_Zhbb >= 0.0))
+    #Zh_kinem_sj2_cut = ((ak8_sj2_Zhbb >= 0.0))
     #Zh_sj2_pt,  Zh_sj2_btag, Zh_sj2_Zhbb, Zh_sj2_n2b1, Zh_sj2_n3b1, Zh_sj2_tau1, Zh_sj2_tau2, Zh_sj2_tau3, Zh_sj2_tau4 = lib.sortbyscore([
     #    ak8_sj2_pt,ak8_sj2_btag,ak8_sj2_Zhbb,ak8_sj2_n2b1, ak8_sj2_n3b1, ak8_sj2_tau1, ak8_sj2_tau2, ak8_sj2_tau3, ak8_sj2_tau4],ak8_sj2_Zhbb,Zh_kinem_sj2_cut)
-    Zh_sj2_pt,  Zh_sj2_btag, Zh_sj2_Zhbb = lib.sortbyscore([
-        ak8_sj2_pt,ak8_sj2_btag,ak8_sj2_Zhbb],ak8_sj2_Zhbb,Zh_kinem_sj2_cut)
+    #Zh_sj2_pt,  Zh_sj2_btag, Zh_sj2_Zhbb = lib.sortbyscore([
+    #    ak8_sj2_pt,ak8_sj2_btag,ak8_sj2_Zhbb],ak8_sj2_Zhbb,Zh_kinem_sj2_cut)
     #
-    Zh_sj_b12  = np.column_stack([Zh_sj1_btag[:,0], Zh_sj2_btag[:,0]])
-    Zh_sj_pt12 = np.nan_to_num(np.column_stack([Zh_sj1_pt[:,0], Zh_sj2_pt[:,0]]) )
+    #Zh_sj_b12  = np.column_stack([Zh_sj1_btag[:,0], Zh_sj2_btag[:,0]])
+    #Zh_sj_pt12 = np.nan_to_num(np.column_stack([Zh_sj1_pt[:,0], Zh_sj2_pt[:,0]]) )
 
     #Zh_sj1_sj2_dr = deltaR(Zh_sj1_eta, Zh_sj1_phi, Zh_sj2_eta, Zh_sj2_phi)
-    Zh_sjpt12_over_fjpt = (Zh_sj_pt12[:,0] +  Zh_sj_pt12[:,1])/Zh_pt[:,0]
-    Zh_sjpt1_over_fjpt, Zh_sjpt2_over_fjpt  = [(Zh_sj_pt12[:,i])/Zh_pt[:,0] for i in range(2)]
+    #Zh_sjpt12_over_fjpt = (Zh_sj_pt12[:,0] +  Zh_sj_pt12[:,1])/Zh_pt[:,0]
+    #Zh_sjpt1_over_fjpt, Zh_sjpt2_over_fjpt  = [(Zh_sj_pt12[:,i])/Zh_pt[:,0] for i in range(2)]
     # =============================== #
     # Calculate sphericity and aplanarity of the event
     spher, aplan = lib.calc_SandA(
@@ -92,6 +92,7 @@ def reco_zh_helper_andrew(obj):
     ak4_btag_indRsort =  np.take_along_axis(np.where(ZH_ak4_dr <= 0.8, fillne(ak4_btag),np.nan),ind_ZH_ak4_dr,axis=1)
     #
     Zh_b_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(b_eta),fillne(b_phi))
+    Zh_lb_dr = deltaR(Zh_eta[:,0],Zh_phi[:,0],fillne(q_eta[q_btag>obj.b_lwp]),fillne(q_phi[q_btag>obj.b_lwp]))
     ind_Zh_b_dr = np.argsort(np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis=1)
     b_pt_dRsort, b_eta_dRsort, b_phi_dRsort, b_mass_dRsort  = [
         process_sorted(b_k, Zh_b_dr, ind_Zh_b_dr) for b_k in [b_pt,b_eta,b_phi,b_mass]]
@@ -153,6 +154,7 @@ def reco_zh_helper_andrew(obj):
         #
     #
     n_b_outZhbb = np.nansum(Zh_b_dr > .8, axis=1)
+    n_lb_outZhbb = np.nansum(Zh_lb_dr > .8, axis=1)
     n_q_outZhbb = np.nansum(Zh_q_dr > .8 , axis=1)
     n_b_inZhbb  = np.nansum(Zh_b_dr <= .8, axis=1)
     n_q_inZhbb  = np.nansum(Zh_q_dr <= .8, axis=1)
@@ -214,8 +216,8 @@ def reco_zh_helper_andrew(obj):
     obj.val_df['fjeteta_1'] = ak8_eta.pad(1)[:,0]
     obj.val_df['fjetsdm_1'] = sd_M.pad(1)[:,0]
     obj.val_df['fjetbbvl_1']= ak8_Zhbbtag.pad(1)[:,0]
-    obj.val_df['fjetwscore_1']= w_tag.pad(1)[:,0]
-    obj.val_df['fjettscore_1']= t_tag.pad(1)[:,0]
+    #obj.val_df['fjetwscore_1']= w_tag.pad(1)[:,0]
+    #obj.val_df['fjettscore_1']= t_tag.pad(1)[:,0]
     #
     obj.val_df['n_ak8_Zhbb'] = ak8_pt[((ak8_pt >= obj.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.6))].counts
     obj.val_df['Zh_bbvLscore']  = Zh_Zhbbtag[:,0]
@@ -223,20 +225,20 @@ def reco_zh_helper_andrew(obj):
     obj.val_df['Zh_eta']    = Zh_eta[:,0]
     obj.val_df['Zh_phi']    = Zh_phi[:,0]
     obj.val_df['Zh_M']      = Zh_M[:,0]
-    obj.val_df['Zh_doubleB']      = Zh_doubleB[:,0]
-    obj.val_df['Zh_Wscore'] = Zh_wtag[:,0]
-    obj.val_df['Zh_Tscore'] = Zh_ttag[:,0]
-    obj.val_df['Zh_deepB']  = Zh_bbtag[:,0]
+    #obj.val_df['Zh_doubleB']      = Zh_doubleB[:,0]
+    #obj.val_df['Zh_Wscore'] = Zh_wtag[:,0]
+    #obj.val_df['Zh_Tscore'] = Zh_ttag[:,0]
+    #obj.val_df['Zh_deepB']  = Zh_bbtag[:,0]
     #obj.val_df['Zh_n2b1']  = Zh_n2b1[:,0]
     #obj.val_df['Zh_n3b1']  = Zh_n3b1[:,0]
     #obj.val_df['Zh_tau1']  = Zh_tau1[:,0]
     #obj.val_df['Zh_tau2']  = Zh_tau2[:,0]
     #obj.val_df['Zh_tau3']  = Zh_tau3[:,0]
     #obj.val_df['Zh_tau4']  = Zh_tau4[:,0]
-    obj.val_df['n_Zh_btag_sj'] = np.nansum(Zh_sj_b12 >= obj.b_wp, axis=1)
-    obj.val_df['n_Zh_sj']       = np.nansum(Zh_sj_b12 >= 0, axis=1)
-    obj.val_df['Zh_bestb_sj']   = np.nan_to_num(np.nanmax(Zh_sj_b12, axis=1))
-    obj.val_df['Zh_worstb_sj']  = np.nan_to_num(np.nanmin(Zh_sj_b12, axis=1))
+    #obj.val_df['n_Zh_btag_sj'] = np.nansum(Zh_sj_b12 >= obj.b_wp, axis=1)
+    #obj.val_df['n_Zh_sj']       = np.nansum(Zh_sj_b12 >= 0, axis=1)
+    #obj.val_df['Zh_bestb_sj']   = np.nan_to_num(np.nanmax(Zh_sj_b12, axis=1))
+    #obj.val_df['Zh_worstb_sj']  = np.nan_to_num(np.nanmin(Zh_sj_b12, axis=1))
     obj.val_df['ak4_bestb_inZH']   = np.nan_to_num(np.nanmax(ak4_btag_indRsort, axis=1))
     obj.val_df['ak4_worstb_inZH']  = np.nan_to_num(np.nanmin(ak4_btag_indRsort, axis=1))
     #obj.val_df['Zh_sj1_n2b1']  = Zh_sj1_n2b1[:,0]
@@ -252,10 +254,10 @@ def reco_zh_helper_andrew(obj):
     #obj.val_df['Zh_sj2_tau3']  = Zh_sj2_tau3[:,0]
     #obj.val_df['Zh_sj2_tau4']  = Zh_sj2_tau4[:,0]
     #obj.val_df['Zh_sj1_sj2_dr']    = Zh_sj1_sj2_dr
-    obj.val_df['sjpt1_over_Zhpt'] = Zh_sjpt1_over_fjpt
-    obj.val_df['sjpt2_over_Zhpt'] = Zh_sjpt2_over_fjpt
-    obj.val_df['outZh_max_Wscore'] = np.max(np.nan_to_num(Zh_wtag[:,1:]), axis=1) # new
-    obj.val_df['outZh_max_Tscore'] = np.max(np.nan_to_num(Zh_ttag[:,1:]), axis=1) # new
+    #obj.val_df['sjpt1_over_Zhpt'] = Zh_sjpt1_over_fjpt
+    #obj.val_df['sjpt2_over_Zhpt'] = Zh_sjpt2_over_fjpt
+    #obj.val_df['outZh_max_Wscore'] = np.max(np.nan_to_num(Zh_wtag[:,1:]), axis=1) # new
+    #obj.val_df['outZh_max_Tscore'] = np.max(np.nan_to_num(Zh_ttag[:,1:]), axis=1) # new
     obj.val_df['outZh_max_bbvLscore']  = np.max(np.nan_to_num(Zh_Zhbbtag[:,1:]), axis=1) # new
     obj.val_df['outZh_max_ak8pt']  = np.max(np.nan_to_num(Zh_pt[:,1:]), axis=1) # new
     obj.val_df['outZh_max_ak8sdM']  = np.max(np.nan_to_num(Zh_M[:,1:]), axis=1) # new
@@ -276,6 +278,7 @@ def reco_zh_helper_andrew(obj):
     obj.val_df['nonZhbb_q1_dr'] =  np.nan_to_num(np.sort( np.where(Zh_q_dr > 0.8, Zh_q_dr, np.nan),axis = 1 )[:,0])
     obj.val_df['nonZhbb_b1_dr'] =  np.sort( np.where(Zh_b_dr > 0.8, Zh_b_dr, np.nan),axis = 1 )[:,0]
     obj.val_df['n_b_outZh']     = n_b_outZhbb
+    obj.val_df['n_lb_outZh']     = n_lb_outZhbb
     obj.val_df['n_b_inZh']      = n_b_inZhbb
     obj.val_df['n_q_outZh']     = n_q_outZhbb
     obj.val_df['n_q_inZh']      = n_q_inZhbb

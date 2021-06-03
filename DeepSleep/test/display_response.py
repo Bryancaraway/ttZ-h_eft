@@ -19,7 +19,7 @@ ana_cuts = getZhbbBaseCuts
 pt_bins = [0,200,300,450,np.inf]
 
 
-def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None):
+def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yield'):
     fig, ax = plt.subplots()
     fig.subplots_adjust(
         top=0.88,
@@ -39,7 +39,7 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None):
         for j in range(1,len(y_bins)):
             text = ax.text(x_bins[i] - (x_bins[i]-x_bins[i-1])/2, 
                            y_bins[j] - (y_bins[j]-y_bins[j-1])/2, 
-                           round(df.iloc[j-1,i-1],5) if df.to_numpy().max() < 1 else round(df.iloc[j-1,i-1],1),
+                           round(df.iloc[j-1,i-1],2) if df.to_numpy().max() < 1 else round(df.iloc[j-1,i-1],1),
                            ha="center", va="center", color="w")
     #
     #ax.set_xscale("Log")
@@ -55,26 +55,26 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None):
     #fig.suptitle(f'{lep}_{year}')
     cbar = fig.colorbar(c, pad=.01)
     cbar.ax.tick_params('y', direction='in', which='both', right=True)
-    cbar.ax.set_ylabel('Expected yield', fontsize=10)
+    cbar.ax.set_ylabel(c_label, fontsize=10)
     plt.tight_layout()
     #plt.show()
 
 
-@save_pdf("stxs_sigsens_yeilds.pdf")
+@save_pdf("stxs_sigsens_yields.pdf")
 def make_stxs_sigsens_yeilds(sel):
     x_bins = [200,300,450,600]
     y_bins = [0,200,300,450,600]
     for p in ['ttZ','ttH']:
         r_df = sel[p]
-        make_heatmap(r_df, x_bins, y_bins, p.replace('tt',''), opt_title='NN > 0.8, {} mass bin')        
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), opt_title='NN > 0.8, {} mass bin')        
 
-@save_pdf("stxs_yeilds.pdf")
+@save_pdf("stxs_yields.pdf")
 def make_stxs_yeilds(inc,sel):
     x_bins = [200,300,450,600]
     y_bins = [0,200,300,450,600]
     for p in ['ttZ','ttH']:
         r_df = sel[p]
-        make_heatmap(r_df, x_bins, y_bins, p.replace('tt',''))        
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''))        
     
 @save_pdf("stxs_response.pdf")
 def make_stxs_response(inc,sel):
@@ -82,8 +82,8 @@ def make_stxs_response(inc,sel):
     y_bins = [0,200,300,450,600]
     for p in ['ttZ','ttH']:
         inc_y = np.array([inc[p][p+str(i)] for i in range(4)])
-        r_df = sel[p].divide(inc_y,axis='rows')
-        make_heatmap(r_df, x_bins, y_bins, p.replace('tt',''))        
+        r_df = sel[p].divide(inc_y,axis='rows') * 100
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${\mathrm{M}}_{\mathrm{ji}}$ (%)')        
 
 @save_pdf("inc_response.pdf")
 def make_inc_response(inc,sel):
@@ -93,7 +93,8 @@ def make_inc_response(inc,sel):
         inc_y = np.array( [ inc[p][p+str(0)] ] + [ sum([inc[p][p+str(i)] for i in range(1,4)]) ]  )
         temp_df = pd.concat([sel[p].iloc[0,:],sel[p].iloc[1:,:].sum(axis='rows')], axis='columns').T
         r_df = temp_df.divide(inc_y,axis='rows')
-        make_heatmap(r_df, x_bins, y_bins, p.replace('tt','')) 
+
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt','')) 
 
 def get_sel_yields(sel_cuts=None):
     sel_cuts = {'ttZ': (lambda _:_), 'ttH':(lambda _:_)} if sel_cuts is None else sel_cuts

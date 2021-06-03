@@ -41,11 +41,16 @@ process_cfg = {
                     'ST_s_lep',
                     'ST_t_top',     
                     'ST_t_antitop',
-                    'tZq_ll'],
+                    'tZq_ll',],# might move this to ttX
+    #'rare'       : [#'tZq_had',
+    #                'THW',
+    #                'THQ'],
     'ttX'        : ['TTWJetsToLNu',
                     'TTWJetsToQQ', 
                     'TTTT',  
-                    'TTGJets'],
+                    'TTGJets',
+                    'THW',
+                    'THQ'],
     'VJets'      : [#'WJetsToLNu_HT_70to100',
                     #'WJetsToLNu_HT_100to200',  
                     #'WJetsToLNu_HT_200to400',  
@@ -71,6 +76,14 @@ process_cfg = {
     #                'ZZZ',
     #                'WZG',
     #                'WWG'],
+    
+    'QCD'         : [#'QCD_HT_200to300',
+                     #'QCD_HT_300to500',
+                     'QCD_HT_500to700',
+                     'QCD_HT_700to1000',
+                     'QCD_HT_1000to1500',
+                     'QCD_HT_1500to2000',
+                     'QCD_HT_2000toInf'],
     #
     'Data_SingleElectron' : {'2016':['Data_SingleElectron'],
                              '2017':['Data_SingleElectron'],
@@ -140,11 +153,14 @@ sample_cfg = {
     'ST_t_top'      : {'out_name' : 'single_t',     'xs' : 136.065, 'kf' : 1.0,},
     'ST_t_antitop'  : {'out_name' : 'single_t',     'xs' : 80.97,   'kf' : 1.0,},
     'tZq_ll'        : {'out_name' : 'single_t',     'xs' : 0.0758,  'kf' : 1.0,},
+    'tZq_had'       : {'out_name' : 'rare',     'xs' : 0.1518,  'kf' : 1.0,},
     # ttX
     'TTWJetsToLNu' : {'out_name' : 'ttX',     'xs' : 0.1793,  'kf' : 1.0,},
     'TTWJetsToQQ'  : {'out_name' : 'ttX',     'xs' : 0.3708,  'kf' : 1.0,},
     'TTTT'         : {'out_name' : 'ttX',     'xs' : 0.009103,'kf' : 1.0,},
     'TTGJets'      : {'out_name' : 'ttX',     'xs' : 3.697,   'kf' : 1.0,},
+    'THW'          : {'out_name' : 'ttX',     'xs' : 0.01517,  'kf' : 1.0,},
+    'THQ'          : {'out_name' : 'ttX',     'xs' : 0.07425,  'kf' : 1.0,},
     # Vjets
     'WJetsToLNu_HT_70to100'    : {    'out_name' : 'VJets',    'xs' : 1353,    'kf' : 1.21,},
     'WJetsToLNu_HT_100to200'   : {    'out_name' : 'VJets',    'xs' : 1345.0,  'kf' : 1.21,},
@@ -174,6 +190,14 @@ sample_cfg = {
     'ZZZ' : {   'out_name' : 'VVV',   'xs' :  0.01398,   'kf' : 1.0,},
     'WZG' : {   'out_name' : 'VVV',   'xs' :  0.04123,   'kf' : 1.0,},
     'WWG' : {   'out_name' : 'VVV',   'xs' :  0.2147,    'kf' : 1.0,},
+    # QCD
+    #'QCD_HT_200to300'   : {   'out_name' : 'QCD', 'xs' : 1556000, 'kf' : 1.0,},  
+    #'QCD_HT_300to500'   : {   'out_name' : 'QCD', 'xs' : 323600,  'kf' : 1.0,},  
+    'QCD_HT_500to700'   : {   'out_name' : 'QCD', 'xs' : 29990,   'kf' : 1.0,}, # 'xs2016':32150
+    'QCD_HT_700to1000'  : {   'out_name' : 'QCD', 'xs' : 6351,    'kf' : 1.0,}, # 'xs2016':6828
+    'QCD_HT_1000to1500' : {   'out_name' : 'QCD', 'xs' : 1093,    'kf' : 1.0,}, # 'xs2016':1208
+    'QCD_HT_1500to2000' : {   'out_name' : 'QCD', 'xs' : 99.01,   'kf' : 1.0,}, # 'xs2016':120
+    'QCD_HT_2000toInf'  : {   'out_name' : 'QCD', 'xs' : 20.23,   'kf' : 1.0,}, # 'xs2016':25.27
     # Data
     'Data_SingleElectron' : { 'out_name' : 'Data_SingleElectron', 'xs' : 0.0, 'kf' : 1.0,},
     'Data_EGamma'         : { 'out_name' : 'Data_SingleElectron', 'xs' : 0.0, 'kf' : 1.0,},

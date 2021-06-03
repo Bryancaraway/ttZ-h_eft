@@ -130,7 +130,7 @@ def train_model(m_info):
         print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
         plot_history(history)
         print('here')
-        model.save_weights(cfg.dnn_ZH_dir+'/'+'ttzh_newgenm'+'.h5')
+        #model.save_weights(cfg.dnn_ZH_dir+'/'+'ttzh_newgenm'+'.h5')
         print('here')
         
     return model, testX, testY
@@ -216,7 +216,6 @@ def prep_model_data(m_info):
     trainY, valY, testY = [resetIndex(df['label']) for df in [trainXY, valXY, testXY]]
     print(f"Size of : {'train':10} {'val':10} {'test':10}")
     print(f"          {len(trainY):10} {len(valY):10} {len(testY):10}")
-    exit()
     trainX, valX, testX = [resetIndex(df.drop(columns=['label'])) for df in [trainXY, valXY, testXY]]
     #
     m_class = DNN_model(m_info['sequence'],m_info['other_settings'])  
@@ -236,7 +235,7 @@ if __name__ == "__main__":
     #all_vars -> m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
 
     #m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
-    m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.5]], "other_settings": {"fl_a": [1, 1.5, 1.25], "fl_g": 0.5, "lr_alpha": 0.0003}, "n_epochs": 150, "batch_size": 10256}
+    m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.5]], "other_settings": {"fl_a": [0.75, 1, 0.25], "fl_g": 0.5, "lr_alpha": 0.0003}, "n_epochs": 100, "batch_size": 10256}
     #{'sequence': [['Dense', 128], ['Dense', 32], ['Dropout', 0.2]], 'other_settings': {'fl_a': [1.25,1.25,.4], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 60, 'batch_size': 10256}
     
     #m_info = json.load(open(json_dir/sys.argv[1]))

@@ -34,7 +34,7 @@ class DNN_datasets:
     #dnn_vars = cfg.nodak8md_dnn_ZH_vars
     #dnn_vars = cfg.withbbvl_dnn_ZH_vars
     dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
-    cut_vars =  ['process','Zh_pt','MET_pt','Zh_M', 'isEleE', 'isMuonE','Zh_bbvLscore']
+    cut_vars =  ['process','Zh_pt','MET_pt','Zh_M', 'isEleE', 'isMuonE','Zh_bbvLscore', 'passNotHadLep']
     test_train_dir = cfg.dnn_ZH_dir
 
     def __init__(self):

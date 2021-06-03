@@ -32,6 +32,7 @@ parser.add_argument('--qsub', dest='qsub',  action='store_true', required=False,
 parser.add_argument('--noskim', dest='noskim',  action='store_true', required=False, help='Run Skim', default=False)
 parser.add_argument('--nopost', dest='nopost',  action='store_true', required=False, help='Run postSkim', default=False)
 parser.add_argument('--is4trig', dest='is4trig',  action='store_true', required=False, help='Run trigSkim', default=False)
+parser.add_argument('-q', dest='queue', type=str, required=False, help='Queue to submit jobs to', choices=['hep','econ','james'], default=None)
 args = parser.parse_args()
 
 if args.jec is not None and re.search(r'201\d', str(args.jec)) and args.year not in args.jec:
@@ -103,9 +104,14 @@ def parallel_skim(files, out_dir, tag):
     remove_old_files(out_dir)
     #os.system(f'rm {out_dir}/*{args.sample}*{tag}*.pkl ; rm {log_dir}Skim_{args.sample}_*{tag}*.std*') # start of job, get rid of old files
     job_script = 'scripts/runSkim.sh'
+    #que_limit = {'hep'  : 9, 'econ' : 20}
+    if args.queue is not None:
+        add_queue = f'-q {args.queue}'
+    else:
+        add_queue = ''
     for i, sfile in enumerate(files):
         # rerun runSkim without pre/post skim using pbs
-        command = f"qsub -l nodes=1:ppn=4 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
+        command = f"qsub {add_queue} -l nodes=1:ppn=4 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
         command += f" -o {log_dir}Skim_{args.sample}_{tag}{i}.stdout -e {log_dir}Skim_{args.sample}_{tag}{i}.stderr "
         add_args  = ''
         if args.jec is not None:
@@ -119,16 +125,16 @@ def parallel_skim(files, out_dir, tag):
         print(command)
         os.system(command)
     # make sure jobs are finished before exiting
+    
     num_jobs_running = lambda: int(sb.check_output(
-            f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_{args.sample}_{args.year}{tag}_' | wc -l", shell=True).decode())
+        f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_{args.sample}_{args.year}{tag}_' | wc -l", shell=True).decode())
     # allow qsub to catch up?
     time.sleep(5)
-    print(f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_{args.sample}_{args.year}{tag}_' | wc -l", num_jobs_running())
     while num_jobs_running() > 0:
         time.sleep(30) 
     # jobs are finished here
     # run postjob
-    command = f"qsub -l nodes=1:ppn=1 -N PostSkim_{args.sample}_{args.year}{tag} "
+    command = f"qsub {add_queue} -l nodes=1:ppn=1 -N PostSkim_{args.sample}_{args.year}{tag} "
     command += f" -o {log_dir}{args.sample}{tag}.stdout -e {log_dir}{args.sample}{tag}.stderr "
     if args.jec is not None:
         add_args = f',jec={args.jec}'

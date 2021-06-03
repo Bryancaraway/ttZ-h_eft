@@ -33,6 +33,12 @@ single_points = {
         'cpt': [[ -20,.5477/.4461], [ 15, .5094/.4461] ], 'cptb': [[ -15,.4856/.4461], [ 15,.4839/.4461] ], 'ctW': [[ -2, .5820/.4461], [ 2, .6182/.4461] ], 'ctZ': [[ -2,.5617/.4461], [ 2,.5439/.4461] ],
         'ctp': [[ -11,1.264/.4461], [ 40,1.016/.4461] ]
     },
+    'ttbb' : {
+        'SM': [[0,1]], 
+        'cbW':[[-7,9.975/8.763],[7,10.0/8.763]], 'cpQ3': [[ -7, 8.375/8.763], [ 7, 10.64/8.763] ], 'cpQM': [[ -12, 8.763/8.763], [ 16,8.763/8.763] ],
+        'cpt': [[ -20,8.762/8.763], [ 15, 8.764/8.763] ], 'cptb': [[ -15, 9.178/8.763], [ 15,9.262/8.763] ], 'ctW': [[ -2, 8.914/8.763], [ 2, 8.853/8.763] ], 'ctZ': [[ -2, 8.851/8.763], [ 2, 8.774/8.763] ],
+        'ctp': [[ -11, 8.762/8.763], [ 40, 8.763/8.763] ]
+    },
 }
 
 wc_ranges = {
@@ -54,7 +60,7 @@ def main(input_files, samples):
         norm_change[sample] = process(input_file,re.sub(r'_201\d','',sample))
         #plot_overal_norm(norm_change, sample)
     #
-    plot_overall_norm(norm_change, samples)
+    save_pdf(re.sub(r'_201\d','',samples[0])+"_incxs_impacts.pdf")(plot_overall_norm)(norm_change, samples)
     #plot_overall_norm_compare(norm_change, samples)
 
 
@@ -110,7 +116,7 @@ def plot_overall_norm_compare(norm_change, samples):
         #plt.show()
 
 
-@save_pdf("ttH_incxs_impacts.pdf")
+
 def plot_overall_norm(norm_change, samples):
     for sample in samples:
         nc = norm_change[sample]
@@ -121,6 +127,7 @@ def plot_overall_norm(norm_change, samples):
             ax.scatter(x=test_points[:,0], y=test_points[:,1], marker='*',color='red',label='Validation')
             ax.axhline(1,c='r',ls='--')
             #plt.xticks([i for i in range(len(norm_change))], norm_change.keys())
+            ax.set_ylim(0.5,max(ax.get_ylim()[1],1.5))
             ax.set_xlabel(f'WC {w} ')
             ax.set_ylabel(rf'$\sigma$({sample})'+r'$^{EFT}$/$\sigma$'+f'({sample})'+r'$^{SM}$')
             ax.xaxis.set_minor_locator(AutoMinorLocator())
@@ -168,13 +175,14 @@ if __name__ == '__main__':
         #"files/tth_eft_2017.txt",
         #"files/tth_eft_2018.txt",
         #"files/ttz_eft_2016.txt",
-        "files/ttz_eft_2017.txt",
-        "files/ttz_eft_2018.txt",
+        #"files/ttz_eft_2017.txt",
+        #"files/ttz_eft_2018.txt",
         
-        #"files/ttbb_eft_2018.txt"
+        "files/tt_B_eft_2018.txt"
     ]
     #main(input_files, ['ttZ','ttH'])
     #main(input_files, ['ttH_2016','ttH_2017','ttH_2018'])
-    main(input_files, ['ttZ_2017','ttZ_2018'])
+    #main(input_files, ['ttZ_2017','ttZ_2018'])
+    main(input_files, ['ttbb_2018'])
     #main(input_files, ['ttbb'])
 
