@@ -15,7 +15,7 @@ import config.ana_cff as cfg
 # add parsargs at some point for year, rundata, minibatch
 parser = argparse.ArgumentParser(description='Run analysis over many samples and years using batch system')
 parser.add_argument('-s', dest='samples', type=str, 
-                    choices=list(process_cfg.keys())+['all','data','mc','mc_nosys', 'jec'],
+                    choices=list(process_cfg.keys())+['all','data','mc','mc_nosys', 'all_nosys', 'jec','trig'],
                     required=True, help='analyze all, mc only, or data only')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years+['all'],
                     required=True, help='year or all years')
@@ -29,15 +29,17 @@ log_dir = f'log/{args.year}/'
 job_script = f'scripts/{args.script}.sh'
 
 sample_dict = {'all' : [k for k in process_cfg.keys() if 'Data' not in k]+cfg.Data_samples,
+               'all_nosys': [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k]+cfg.Data_samples,
                #'mc'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
                'mc'  : [k for k in process_cfg.keys() if 'Data' not in k],
                'mc_nosys'  : [k for k in process_cfg.keys() if 'Data' not in k and 'sys' not in k],
                'jec' : ['ttZ','ttH','ttbb','single_t','TTBar'],
+               'trig': ['TTBar']+cfg.Data_samples,
                'data': cfg.Data_samples,
 }
 
 q_limit = {
-    'hep'  : 9, 
+    'hep'  : 20, 
     'econ' : 20,
     'james': 20,
 }
@@ -74,6 +76,7 @@ def execute_runAna(samples, year, jec):
     for sample in samples:
         add_args  = ''
         add_out_name = ''
+        nodes='1'
         if jec is not None :
             add_args = f',jec={jec}'
             add_out_name = '_'+jec
@@ -88,10 +91,11 @@ def execute_runAna(samples, year, jec):
             ppn = 4
         if args.queue is not None:
             add_queue = f'-q {args.queue}'
+            nodes = 'gpu006' if args.queue == 'hep' else '1'
         else:
             add_queue = ''
         pass_args = f'-v sample={sample},year={year}{add_args}'
-        command   = f'qsub {add_queue} -l nodes=1:ppn={ppn} -o {log_dir}Ana_{out_name}.stdout -e {log_dir}Ana_{out_name}.stderr '
+        command   = f'qsub {add_queue} -l nodes={nodes}:ppn={ppn} -o {log_dir}Ana_{out_name}.stdout -e {log_dir}Ana_{out_name}.stderr '
         command  += f'-N {args.samples}_{args.year}_{sample}{year}{tag} '
         command += f' {pass_args} {job_script}'
         print(command)
@@ -107,22 +111,27 @@ def execute_runAna(samples, year, jec):
 
 def execute_runSkim(samples,year,jec):
     popens = []
-    for sample in samples:
+    for ith, sample in enumerate(samples):
         _args = ['python','runSkim.py','-s',sample,'-y',year,'--qsub','--nopost']
         if args.script == 'trigSkim':
+            if sample == 'TTToHadronic': continue # dont need this for trigger sf
             _args = _args+['--is4trig']
         if jec is not None :
             tag = jec
             _args += ['-j',jec]
         else:
             tag = ''
-        if args.queue is not None:
-            _args += ['-q',args.queue]
+        if args.queue is not None or ith % 15 == 16:
+            if args.queue is not None:
+                queue = args.queue
+            else:
+                queue = 'econ'
+            _args += ['-q', queue]
         _args += ['-t',tag]
         #popens.append(sb.Popen(_args, stdout=sb.PIPE))
         print(_args)
         popens.append(sb.Popen(_args, stdout=sb.PIPE, stderr=sb.PIPE))
-        time.sleep(10)
+        time.sleep(2)
         if args.queue is None:
             num_jobs_running = lambda: int(sb.check_output(
                 f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_' | wc -l", shell=True).decode())
@@ -138,7 +147,7 @@ def execute_runSkim(samples,year,jec):
 
 def continue_or_wait(n_j_running):
     #print(n_j_running())
-    time.sleep(5)
+    time.sleep(2)
     while n_j_running() > q_limit.get(args.queue,60):
         time.sleep(30) 
 

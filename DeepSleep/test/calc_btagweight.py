@@ -25,7 +25,7 @@ class Calc_BTagWeightSF :
 
     def __init__(self, year) : 
         self.year       = year
-        self.processes  = cfg.All_MC
+        self.processes  = cfg.All_MC+['QCD']
         #self.btw_yields = None
         self.r_ratio    = {} # by process
         #

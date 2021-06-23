@@ -55,20 +55,21 @@ def sortbyscore(vars_, score_, cut_):
 
 def ak_crosscleaned(eta1,phi1,eta2,phi2, cut) : # cross cleaned for arbitrary length array inputs
     # input 4 awkward arrays
+    # jet should be ph2,eta2
     from awkward import JaggedArray as aj
     import math
     c1_ = np.array(eta1.counts)
     c2_ = np.array(eta2.counts)
     out_ = np.ones(len(eta2.flatten()))
     args_ = eta1.flatten(), phi1.flatten(), c1_, eta2.flatten(), phi2.flatten(), c2_, cut, math.pi, out_
-    @njit(parallel=True)
+    @njit(parallel=False)
     def njit_cc(e1,p1,c1,e2,p2,c2,cut,pi,o):
         iter1 = 0
         iter2 = 0
         a = c1.size
-        for i in prange(a): 
-            for ij in prange(c2[i]):
-                for ii in prange(c1[i]):
+        for i in range(a): 
+            for ij in range(c2[i]):
+                for ii in range(c1[i]):
                     deta = e1[ii+iter1] - e2[ij+iter2]
                     dphi = p1[ii+iter1] - p2[ij+iter2]
                     if (dphi > pi):
@@ -82,7 +83,43 @@ def ak_crosscleaned(eta1,phi1,eta2,phi2, cut) : # cross cleaned for arbitrary le
             iter1 += c1[i]
             iter2 += c2[i]
         return o
-    return aj.fromoffsets(eta2.offsets, njit_cc(*args_)).astype(bool)
+    out =  aj.fromoffsets(eta2.offsets, njit_cc(*args_)).astype(bool)
+    return out
+
+def argmatch(eta1,phi1,eta2,phi2, cut, m_idx=1): 
+    # return index where 1 matches 2
+    from awkward import JaggedArray as aj
+    import math
+    c1_ = np.array(eta1.counts).astype(int)
+    c2_ = np.array(eta2.counts).astype(int)
+    out_ = -1 * np.ones(len(eta1.flatten())) 
+    args_ = eta1.flatten(), phi1.flatten(), c1_, eta2.flatten(), phi2.flatten(), c2_, cut, math.pi, out_, m_idx
+    @njit(parallel=False)
+    def njit_match(e1,p1,c1,e2,p2,c2,cut,pi,o,m_idx):
+        iter1 = 0
+        iter2 = 0
+        a = int(c1.size)
+        for i in range(a): 
+            for j1 in range(c1[i]):
+                m_iter = 0
+                for j2 in range(c2[i]):
+                    deta = float(e1[j1+iter1] - e2[j2+iter2])
+                    dphi = float(p1[j1+iter1] - p2[j2+iter2])
+                    if (dphi > pi):
+                        dphi - 2*pi
+                    elif (dphi <= -pi):
+                        dphi + 2*pi
+                    dr = float((deta**2 + dphi**2)**(.5))
+                    if dr <= float(cut):
+                        m_iter += 1
+                        if m_iter == m_idx:
+                            o[j1+iter1] = j2
+                            break
+            iter1 += c1[i]
+            iter2 += c2[i]
+        return o
+    return aj.fromoffsets(eta1.offsets, njit_match(*args_)).astype(int)
+
                                                 
 
 def deltaR(eta1,phi1,eta2,phi2):
@@ -303,6 +340,8 @@ def getLaLabel(str_):
     la_str = ''
     col_str= ''
     la_col_map = {
+        'data_obs':       [r'Data',
+                           'black'],
         'ttZ':            [r't$\mathregular{\bar{t}}$Z',
                            'tab:blue'],
         'ttH':            [r't$\mathregular{\bar{t}}$H',

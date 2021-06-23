@@ -145,7 +145,6 @@ class PostFit:
         print(self.pulls)
         self.pulls = self.pulls[(~np.isnan(self.pulls)) & (self.pulls != 0)]
         mu, std = norm.fit(self.pulls.flatten())
-        #xmin, xmax = ax.get_xlim()
         xmin, xmax = np.min(self.pulls), np.max(self.pulls)
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mu, std)
@@ -183,7 +182,6 @@ class PostFit:
         gof_data =  t.array('limit')[0]
         gof_toy  =  t_toy.array('limit')
         mu, std = norm.fit(gof_toy.flatten())
-        #xmin, xmax = ax.get_xlim()
         xmin, xmax = np.min(gof_toy), np.max(gof_toy)
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mu, std)
@@ -335,7 +333,7 @@ class PostFit:
 
     def endaxs(self,axt,axb,p,doPull=False, ch='Zhpt1'):
         #axt
-        axt.set_xlim(0,self.edges[ch][-1])
+        axt.set_xlim(self.edges[ch][0],self.edges[ch][-1])
         axt.set_ylim(0.)
 
         #if axt.get_ylim()[1] > 1000:

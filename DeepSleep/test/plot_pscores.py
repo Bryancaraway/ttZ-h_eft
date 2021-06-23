@@ -26,12 +26,14 @@ rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 gof_dir = 'fitdiag_roots/gof'
+fit_vars = cfg.withbbvl_dnn_ZHgenm_vars
+fit_vars = [f'NN_{i}' for i in range(64)]
 
-@save_pdf("qcnn_pscores.pdf")
+@save_pdf("qcnn_pscores_hl2.pdf")
 def main():
     #dnn_vars = cfg.withbbvl_dnn_ZH_vars
-    dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
-    p_df = pd.DataFrame.from_dict({v:calc_p(v) for v in dnn_vars},orient='index',columns=['pscore'])
+
+    p_df = pd.DataFrame.from_dict({v:calc_p(v) for v in fit_vars},orient='index',columns=['pscore'])
     fig, ax = initplt()
     ax.errorbar(
         x=np.arange(0,len(p_df),1), y=p_df['pscore'], 
@@ -41,6 +43,11 @@ def main():
     ax.set_xticks(np.arange(0,len(p_df),1))
     ax.set_xticklabels(p_df.index, rotation=90, fontsize=4)
     endplt(fig,ax, len(p_df))
+    plt.close()
+    plt.hist(p_df['pscore'], bins=20, range=(0,1))
+    for i in p_df['pscore']:
+        print(i)
+    #plt.show()
  
 def calc_p(var):
     t     = uproot.open(f"{gof_dir}/higgsCombine_{var}_NNcuts_run2.GoodnessOfFit.mH120.root")['limit']

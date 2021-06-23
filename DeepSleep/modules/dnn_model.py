@@ -73,14 +73,7 @@ class DNN_model:
     def Build_Model(self, input_shape, load_weights=None):
         #
         main_input = keras.layers.Input(shape=[input_shape], name='input')
-        #
-        #layer      = keras.layers.Lambda(lambda x: (x - K.constant(mean_)) / K.constant(std_), name='normalizeData')(main_input)
         layer = keras.layers.BatchNormalization()(main_input)
-        #layer = main_input
-        #
-        #layer      = keras.layers.Dense(128, activation='relu', kernel_regularizer=keras.regularizers.l1(0.00))(layer)
-        #layer      = keras.layers.Dense(64, activation='relu', kernel_regularizer=keras.regularizers.l1(0.00))(layer)
-        #layer      = keras.layers.Dropout(0.5)(layer) 
         for seq in self.sequence:
             layer = self.seq_dict[seq[0]](seq[1])(layer)
         #
@@ -101,6 +94,30 @@ class DNN_model:
             metrics=['accuracy',tf.keras.metrics.AUC()])
         ##
         return model
+    
+    def Build_New_Model(self, input_shape, model):
+        main_input = keras.layers.Input(shape=[input_shape], name='input')
+        layer = keras.layers.BatchNormalization()(main_input)
+        for seq in self.sequence[:-2]:
+            layer = self.seq_dict[seq[0]](seq[1])(layer)
+        #
+        output     = keras.layers.Dense(64, name='output')(layer)
+        #
+        new_model      = keras.models.Model(inputs=main_input, outputs=output, name='new_model')
+        optimizer  = keras.optimizers.Adam(learning_rate=self.lr_alpha)
+
+        new_model.set_weights(model.get_weights()[:-2])
+        #
+        #from focal_loss import BinaryFocalLoss
+        new_model.compile(
+            loss=[self.cfl(self.fl_alpha,self.fl_gamma)],
+            optimizer=optimizer, 
+            #optimizer='adam', 
+            #
+            metrics=['accuracy',tf.keras.metrics.AUC()])
+        ##
+        return new_model
+        
 
 def train_model(m_info):
     trainX, trainY, valX, valY, testX, testY, model = prep_model_data(m_info)
@@ -118,7 +135,7 @@ def train_model(m_info):
         validation_data = (valX, valY),
         callbacks = cb,
         shuffle = True,
-        verbose = 1
+        verbose = 1,
     )
     if __name__ == '__main__':
         loss ,acc, auc             = model.evaluate(testX, testY)#, sample_weight = testW['DNNweight'].values)
@@ -130,7 +147,8 @@ def train_model(m_info):
         print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
         plot_history(history)
         print('here')
-        #model.save_weights(cfg.dnn_ZH_dir+'/'+'ttzh_newgenm'+'.h5')
+        #model.save_weights(cfg.dnn_ZH_dir+'/'+'newgenm_model'+'.h5')
+        model.save_weights(cfg.dnn_ZH_dir+'/'+'newreduced1p0_model'+'.h5')
         print('here')
         
     return model, testX, testY
@@ -219,9 +237,13 @@ def prep_model_data(m_info):
     trainX, valX, testX = [resetIndex(df.drop(columns=['label'])) for df in [trainXY, valXY, testXY]]
     #
     m_class = DNN_model(m_info['sequence'],m_info['other_settings'])  
-    model = m_class.Build_Model(len(cfg.withbbvl_dnn_ZHgenm_vars), )#load_weights='ttzh_model.h5') 
+    #model = m_class.Build_Model(len(cfg.withbbvl_dnn_ZHgenm_vars), )#load_weights='ttzh_model.h5')
+    #dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
+    dnn_vars = cfg.reduced1p0genm_vars
+    #dnn_vars = cfg.withbbvl_dnn_ZH_1p5vars
+    model = m_class.Build_Model(len(dnn_vars), )#load_weights='ttzh_model.h5') 
     return (
-        trainX.to_numpy(), np.stack(trainY.values), valX.to_numpy(), np.stack(valY.values), testX.to_numpy(), np.stack(testY.values), model
+        trainX.filter(items=dnn_vars).to_numpy(), np.stack(trainY.values), valX.filter(items=dnn_vars).to_numpy(), np.stack(valY.values), testX.filter(items=dnn_vars).to_numpy(), np.stack(testY.values), model
     )
 
 
@@ -230,14 +252,7 @@ if __name__ == "__main__":
     import sys
     json_dir = f'{sys.path[1]}/log/nn/'
 
-    #best - > m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 0.75, 0.75], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
-
-    #all_vars -> m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
-
-    #m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
-    m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.5]], "other_settings": {"fl_a": [0.75, 1, 0.25], "fl_g": 0.5, "lr_alpha": 0.0003}, "n_epochs": 100, "batch_size": 10256}
-    #{'sequence': [['Dense', 128], ['Dense', 32], ['Dropout', 0.2]], 'other_settings': {'fl_a': [1.25,1.25,.4], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 60, 'batch_size': 10256}
+    m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.5]], "other_settings": {"fl_a": [0.75, 1, 0.25], "fl_g": 0.5, "lr_alpha": 0.0003}, "n_epochs": 140, "batch_size": 10256}
     
-    #m_info = json.load(open(json_dir/sys.argv[1]))
     local_test(m_info)
 

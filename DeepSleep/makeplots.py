@@ -25,20 +25,17 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #@save_pdf('control_plots_tight.pdf')
 
 
-@save_pdf('ttbb_lheht.pdf')
+#@save_pdf('ttbb_lheht.pdf')
+#@save_pdf('hl2_outputs.pdf')
+#@save_pdf('ttzbb_efficiency.pdf')
 
 
-#@save_pdf('NN_compare.pdf')
+@save_pdf('NN_compare.pdf')
 #@save_pdf('fakebbvlsf_CR.pdf')
 #@save_pdf('fakebbvlsf_CR_Andrew.pdf')
 
-#@save_pdf("rare_yields.pdf")
-#@save_pdf("met_withqcd.pdf")
-##@save_pdf("nlepfrac_study.pdf")
-
-#@save_pdf('btv_study.pdf')
-
-#@save_pdf('mass_sensitivity.pdf')
+#@save_pdf("met_nn_withqcd.pdf")
+#@save_pdf("nn_comparison.pdf")
 
 
 def main():
@@ -48,8 +45,8 @@ def main():
         #for jec in jec_list:
         #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
         #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
-        Plotter.load_data(y, samples=['ttbb'], addBSF=False, byprocess=True)
-        #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+["QCD"], addBSF=False, byprocess=True)
+        #Plotter.load_data(y, samples=['ttbb'], addBSF=False, byprocess=True)
+        Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+["QCD"], addBSF=False, byprocess=True)
         ''' LOOK AT STACKED DATA VS MC '''
 
         # --- control plots tight
@@ -65,7 +62,7 @@ def main():
         #StackedHist(processes,    'MET_pt', xlabel=r'missing $e_{T}$ (GeV)', bin_range=[0,500],  n_bins=25,     doCuts=True, addData=True, doShow=False)  
         #StackedHist(processes,    'MET_phi', xlabel=r'missing $\phi$ (GeV)', bin_range=[-3.15,3.15],  n_bins=20,     doCuts=True, addData=True, doShow=False)  
         #StackedHist(processes,    'nBottoms', xlabel='# of ak4 b-jets', bin_range=[-0.5,8.5],  bins=[-.5,.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5],  doCuts=True, addData=True, doShow=False) 
-        #StackedHist(processes,    'n_ak4jets', xlabel='# of ak4 jets',  bin_range=[-0.5,12.5],  bins=[-.5,.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5],  doCuts=True, addData=True, doShow=False) 
+        #StackedHist(processes,    'n_ak4jets', xlabel='# of ak4 jets',  bin_range=[-0.5,12.5],  bins=[-.5,.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5],  doCuts=False, addData=True, doShow=False) 
         #StackedHist(processes,    'n_ak8jets', xlabel='# of ak8 jets', bin_range=[-0.5,6.5],  bins=[-.5,.5,1.5,2.5,3.5,4.5,5.5,6.5],  doCuts=True, addData=True, doShow=False) 
         ##
         #StackedHist(processes,    'jetpt_1', xlabel=r'leading jet $p_{T} (AK4)$ (GeV)', bin_range=[0,500],  n_bins=25,     doCuts=True, addData=True, doShow=False)  
@@ -92,9 +89,29 @@ def main():
         
         ###   #
         #StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200],  bins=[50,80,105,145,200], add_cuts='Zh_bbvLscore>0.8',  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV)', bin_range=[50,200], n_bins=50, add_cuts='n_b_outZh>=2;Zh_bbvLscore<0.4', doLog=False,  doCuts=False, addData=True, doShow=True)  
         #Hist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ [GeV] (Zhpt>300,NN>0.8)', bin_range=[50,200],  bins=30, add_cuts='NN>0.8;Zh_pt>300',  doCuts=True, addSoB=True, doShow=False)  
         #Hist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ [GeV] (Zhpt>450,NN>0.8)', bin_range=[50,200],  bins=30, add_cuts='NN>0.8;Zh_pt>450',  doCuts=True, addSoB=True, doShow=False)  
         ##
+        ###------- mass validation
+        #StackedHist(processes,    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV) baseline, pt>300', bin_range=[50,200],      n_bins=30, add_cuts='Zh_pt>300',  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,    'Zh_M_nom', xlabel=r"Z/H $m_{sd}$ 'bad' (GeV) baseline, pt>300", bin_range=[50,200],  n_bins=30, add_cuts='Zh_pt>300',  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,    'Zh_M_alt', xlabel=r"Z/H $m_{sd}$ sjcorr (GeV) baseline, pt>300", bin_range=[50,200],  n_bins=30, add_cuts='Zh_pt>300',  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes,    'fjetsdm_1', xlabel=r'fj1 $m_{sd}$ (GeV) wmd>0.5, pt>300', bin_range=[50,200],      n_bins=30, add_cuts='fjetwmdscore_1>0.5;fjetpt_1>300',  doCuts=False, addData=True, doShow=False)  
+        #StackedHist(processes,    'fjetsdmnom_1', xlabel=r"fj1 $m_{sd}$ 'bad' (GeV) wmd>0.5, pt>300", bin_range=[50,200],  n_bins=30, add_cuts='fjetwmdscore_1>0.5;fjetpt_1>300',  doCuts=False, addData=True, doShow=False)  
+        #StackedHist(processes,    'fjetsdmalt_1', xlabel=r"fj1 $m_{sd}$ sjcorr (GeV) wmd>0.5, pt>300", bin_range=[50,200],  n_bins=30, add_cuts='fjetwmdscore_1>0.5;fjetpt_1>300',  doCuts=False, addData=True, doShow=False)  
+        #
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV) baseline, pt 300-450', bin_range=[50,200],      n_bins=30, add_cuts='Zh_pt>300;Zh_pt<450',  doCuts=True, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'Zh_M_nom', xlabel=r"Z/H $m_{sd}$ 'bad' (GeV) baseline, pt 300-450", bin_range=[50,200],  n_bins=30, add_cuts='Zh_pt>300;Zh_pt<450',  doCuts=True, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'Zh_M_alt', xlabel=r"Z/H $m_{sd}$ sjcorr (GeV) baseline, pt 300-450", bin_range=[50,200],  n_bins=30, add_cuts='Zh_pt>300;Zh_pt<450',  doCuts=True, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'Zh_M', xlabel=r'Z/H $m_{sd}$ (GeV) baseline, pt 300-450, NN>0.8', bin_range=[50,200],      n_bins=30, add_cuts='Zh_pt>300;Zh_pt<450;NN>0.8',  doCuts=True, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'Zh_M_nom', xlabel=r"Z/H $m_{sd}$ 'bad' (GeV) baseline, pt 300-450, NN>0.8", bin_range=[50,200],  n_bins=30, add_cuts='Zh_pt>300;NN>0.8;Zh_pt<450',  doCuts=True, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'Zh_M_alt', xlabel=r"Z/H $m_{sd}$ sjcorr (GeV) baseline, pt 300-450, NN>0.8", bin_range=[50,200],  n_bins=30, add_cuts='Zh_pt>300;NN>0.8;Zh_pt<450',  doCuts=True, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'fjetsdm_1', xlabel=r'fj1 $m_{sd}$ (GeV) wmd>0.5, pt>300', bin_range=[50,200],      n_bins=30, add_cuts='fjetwmdscore_1>0.5;fjetpt_1>300',  doCuts=False, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'fjetsdmnom_1', xlabel=r"fj1 $m_{sd}$ 'bad' (GeV) wmd>0.5, pt>300", bin_range=[50,200],  n_bins=30, add_cuts='fjetwmdscore_1>0.5;fjetpt_1>300',  doCuts=False, addData=True, doShow=False)  
+        #Hist(['ttZ','ttH','tt_B','TTBar'],    'fjetsdmalt_1', xlabel=r"fj1 $m_{sd}$ sjcorr (GeV) wmd>0.5, pt>300", bin_range=[50,200],  n_bins=30, add_cuts='fjetwmdscore_1>0.5;fjetpt_1>300',  doCuts=False, addData=True, doShow=False)  
+
+        ###------- end of mass validation
         ##StackedHist(processes,    'Lep_pt', xlabel= r'lepton $p_{T}$ (GeV) lep_eta>2, tight baseline', bin_range=[20,750],    n_bins=30, add_cuts='Lep_eta>2;MET_pt>20',   doCuts=True, addData=True,  doShow=False)  
         ##StackedHist(processes,    'Lep_eta', xlabel=r'lepton $\eta$, tight baseline',        bin_range=[-2.6,2.6],  n_bins=26,   doCuts=True, add_cuts='MET_pt>20', addData=True, doShow=False)  
         ##StackedHist(processes,    'Lep_pt', xlabel= r'Electron $p_{T}$ (GeV) lep_eta>2. tight baseline', bin_range=[20,750],    n_bins=30,  add_cuts='passSingleLepElec==1;Lep_eta>2;MET_pt>20', doCuts=True, addData=True,  doShow=False)  
@@ -119,7 +136,13 @@ def main():
         #StackedHist(processes,'NN', xlabel='NN (Zh_pt>300)', bin_range=[0,1],  n_bins=20, add_cuts='Zh_pt>300', add_d_cuts='NN<=0.4',     doCuts=True, addData=True, doShow=False)  
         #StackedHist(processes,'NN', xlabel='NN (Zh_pt>300, ZH M bins)', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80;Zh_pt>300;Zh_M>80;Zh_M<155', add_d_cuts='NN<=0.4',     doCuts=True, addData=True, doShow=False)  
         #Hist(['ttZ','ttH'],'NN', xlabel='NN (Zh_pt>300, ZH M bins)', bin_range=[0,1],  n_bins=20, add_cuts='NN>=.80;Zh_pt>300;Zh_M>80;Zh_M<155', doNorm=False, doCuts=True, doShow=False)  
-        #Hist(['ttX'],'NN',        xlabel='NN (Zh_pt>300, ZH M bins)', bin_range=[0,1],  n_bins=20, sepGenOpt='sepBySample', add_cuts='NN>=.80;Zh_pt>300;Zh_M>80;Zh_M<155', doNorm=False,  doCuts=True, doShow=False)  
+        #Hist(['ttZ','ttH'],'n_tt_leps_notau', bins=[-0.5,0.5,1.5,2.5], add_cuts='Zllnunu==0;Hnonbb==0', doNorm=True, doCuts=True, doShow=True)  
+        #StackedHist(processes,'NN', xlabel='NN: 50 vars (Zh_pt>300, Z/H M)', bins=[0. ,0.105, 0.457 ,0.590, 0.729, 0.847, 1.], add_cuts="Zh_pt>300;Zh_M>75;Zh_M<145", doLog=True, addData=True, doCuts=True, doShow=False)  
+        #StackedHist(processes,'newgenm_NN', xlabel='NN: new 50 vars (Zh_pt>300, Z/H M)', bins=[0. ,0.091, 0.343 ,0.459, 0.612, 0.753, 1.], add_cuts="Zh_pt>300;Zh_M>75;Zh_M<145", doLog=True, addData=True, doCuts=True, doShow=False)  
+        #StackedHist(processes,'newreduced1p0_NN', xlabel='NN: new 28 vars (Zh_pt>300, Z/H M)', bins=[0. ,0.107, 0.306 ,0.385, 0.518, 0.662, 1.], add_cuts="Zh_pt>300;Zh_M>75;Zh_M<145", doLog=True, addData=True, doCuts=True, doShow=False)  
+        Hist(processes,'NN', xlabel='NN: 50 vars (Zh_pt>300, Z/H M)', bins=[0. ,0.105, 0.457 ,0.590, 0.729, 0.847, 1.], add_cuts="Zh_pt>300;Zh_M>75;Zh_M<145", doLog=True, doNorm=False, addSoB=True, doCuts=True, doShow=False)  
+        Hist(processes,'newgenm_NN', xlabel='NN: new 50 vars (Zh_pt>300, Z/H M)', bins=[0. ,0.091, 0.343 ,0.459, 0.612, 0.753, 1.], add_cuts="Zh_pt>300;Zh_M>75;Zh_M<145", doLog=True, doNorm=False, addSoB=True, doCuts=True, doShow=False)  
+        Hist(processes,'newreduced1p0_NN', xlabel='NN: new 28 vars (Zh_pt>300, Z/H M)', bins=[0. ,0.107, 0.306 ,0.385, 0.518, 0.662, 1.], add_cuts="Zh_pt>300;Zh_M>75;Zh_M<145", doLog=True, doNorm=False, addSoB=True, doCuts=True, doShow=False)  
         #
         ### QCD study
         #Hist(['QCD','ttZ','ttH'],'min_sel_soft_mu_invm',xlabel='min_sel_soft_mu_invm', bin_range=[0,100],  n_bins=100, sepGenOpt='sepGenMatchedSig;+',   add_cuts='passSingleLepMu==1;NN<=1.80',    doCuts=True, doLog=True, doNorm=False, doShow=False)
@@ -132,11 +155,12 @@ def main():
         ###
         #
         ##
-        #StackedHist(processes,'min_sel_soft_elec_invm', bin_range=[0,100], n_bins=100, add_cuts='passSingleLepElec==1', doCuts=True, doLog=True, addData=True, doShow=False)
-        #StackedHist(processes,'min_sel_soft_mu_invm', xlabel='min_sel_soft_mu_invm', bin_range=[0,100], n_bins=100, add_cuts='passSingleLepMu==1', doCuts=True, doLog=True, addData=True, doShow=False)
+        #StackedHist(processes+['QCD'],'min_sel_soft_elec_invm', bin_range=[0,100], n_bins=100, add_cuts='passSingleLepElec==1', doCuts=False, doLog=True, addData=True, doShow=False)
+        #StackedHist(processes+['QCD'],'min_sel_soft_mu_invm', xlabel='min_sel_soft_mu_invm', bin_range=[0,100], n_bins=100, add_cuts='passSingleLepMu==1', doCuts=False, doLog=True, addData=True, doShow=False)
         #Hist(['QCD','ttZ','ttH'],'MET_pt', xlabel=r'missing $e_{T}$ (GeV), with j/psi lepton cut', bin_range=[0,500],  n_bins=25,  add_cuts='passNotHadLep==1', sepGenOpt='sepGenMatchedSig;+',   doCuts=True, doShow=False)  
         #Hist(['QCD','ttZ','ttH'],'MET_pt', xlabel=r'missing $e_{T}$ (GeV), with j/psi lepton cut, Zhpt>300', bin_range=[0,500],  n_bins=25,  add_cuts='passNotHadLep==1;Zh_pt>300', sepGenOpt='sepGenMatchedSig;+',   doCuts=True, doShow=False)  
         #StackedHist(processes+['QCD'],'MET_pt', xlabel=r'missing $e_{T}$ (GeV), with j/psi lepton cut and sip3d < 4', bin_range=[0,500],  n_bins=25,  doCuts=True, addData=True, doShow=False)  
+        #StackedHist(processes+['QCD'],'NN', xlabel=r'MVA score with j/psi lepton cut and sip3d < 4', bin_range=[0,1],  n_bins=20, add_d_cuts='NN<=0.8',  doCuts=True, addData=True, doShow=False)  
 
         # ------------- N lep fraction -------- #
 
@@ -152,7 +176,7 @@ def main():
         #Hist(['ttZ','ttH'],'NN',xlabel='NN', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80', sepGenOpt='sepGenSig', doCuts=True, doLog=True, doNorm=False, doShow=True)  
         #Hist(['ttZ','ttH'],'withbbvl_NN',xlabel='NN (Zh_pt>300)', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80;Zh_pt>300', sepGenOpt='sepGenMatchedSig;++', doCuts=True, doNorm=False, doShow=False)  
         #Hist(['ttZ','ttH','tt_B','TTBar'],'NN',xlabel=r'DNN score (${p}_{\mathrm{T}}^{\mathrm{Z/H}}>300$ GeV)', bin_range=[0,1],  n_bins=20, add_cuts='NN<=1.80;Zh_pt>300', sepGenOpt='sepGenMatchedSig;+', doCuts=True, doLog=True, doNorm=True, doShow=False)  
-        #Hist(['ttZ','ttH'],'Zh_bbvLscore',xlabel='bbvL', bin_range=[.8,1],  n_bins=5, add_cuts='NN<=1.80', sepGenOpt='sepGenMatchedSig;++', doCuts=True, doNorm=False, doShow=False)  
+        #Hist(['ttZ','ttH'],'Zh_bbvLscore',xlabel='bbvL', bin_range=[.8,1],  n_bins=5, add_cuts='NN<=1.80', sepGenOpt='sepGenMatchedSig;++', doCuts=True, doNorm=False, doShow=True)  
         #Hist(['ttZ','ttH'],'Zh_bbvLscore',xlabel='bbvL (Zh_pt>300)', bin_range=[.8,1],  n_bins=5, add_cuts='NN<=1.80;Zh_pt>300', sepGenOpt='sepGenMatchedSig;++', doCuts=True, doNorm=False, doShow=False)  
         #Hist(['ttZ','ttH'],'Zh_bbvLscore',xlabel='bbvL (Zh_pt>450)', bin_range=[.8,1],  n_bins=5, add_cuts='NN<=1.80;Zh_pt>450', sepGenOpt='sepGenMatchedSig;++', doCuts=True, doNorm=False, doShow=False)  
         #Hist(['ttZ','ttH'],'Zh_M',xlabel='Z/H $m_{sd}$ ',   bins=[50,75,90,105,120,140,200],  sepGenOpt='sepGenMatchedSig;++', doCuts=True, doNorm=False, doShow=False)  
@@ -213,7 +237,9 @@ def main():
         #
         #StackedHist(processes,    'Zh_pt', xlabel=r'Z/H $p_{\mathrm{T}}$ [GeV]', bin_range=[200,600], n_bins=20, alt_weight=alt_weight,  doCuts=True, doLog=True, addData=True, doShow=False)  
         #StackedHist(processes,    'Zh_eta', xlabel=r'Z/H $\eta$', bin_range=[-2.5,2.5], n_bins=20, alt_weight=alt_weight, doCuts=True, doLog=True, addData=True, doShow=False)  
-        #StackedHist(processes,    'Zh_phi', xlabel=r'Z/H $\phi$', bin_range=[-3.15,3.15], n_bins=20, alt_weight=alt_weight, doCuts=True, doLog=True, addData=True, doShow=False)  
+        #StackedHist(processes,    'Zh_phi', xlabel=r'Z/H $\phi$', bin_range=[-3.15,3.15], n_bins=20,  doCuts=True, doLog=False, addData=True, doShow=False)  
+        #StackedHist(processes,    'Zh_phi', xlabel=r'Z/H $\phi$ (Z/H $\eta < 0$)', bin_range=[-3.15,3.15], n_bins=20, add_cuts='Zh_eta<0', doCuts=True, doLog=False, addData=True, doShow=False)  
+        #StackedHist(processes,    'Zh_phi', xlabel=r'Z/H $\phi$ (Z/H $\eta > 0$)', bin_range=[-3.15,3.15], n_bins=20, add_cuts='Zh_eta>0', doCuts=True, doLog=False, addData=True, doShow=False)  
         #StackedHist(processes,   'Zh_M', xlabel=r'Z/H $m_{\mathrm{SD}}$ [GeV]', bin_range=[50,200],  n_bins=15, alt_weight=alt_weight, doCuts=True,  doLog=True, addData=True, doShow=False)  
         #StackedHist(processes,'Zh_bbvLscore', xlabel='Z/H deepAK8MD bbvL', bin_range=[0,1],  n_bins=20, alt_weight=alt_weight,  doCuts=True, addData=True, doLog=True, doShow=False)  
         #
@@ -315,14 +341,25 @@ def main():
         #if int(y) >= 2017: 
         #    StackedHist(processes,    'HLT_OldMu100', xlabel= r'HLT_OldMu100', bins=[-.5,0.5,1.5],   add_cuts='passSingleLepMu==1;MET_pt>20;pbt_muon==1', doCuts=False, addData=True,  doShow=False)  
         #    StackedHist(processes,    'HLT_TkMu100', xlabel= r'HLT_TkMu100', bins=[-.5,0.5,1.5],   add_cuts='passSingleLepMu==1;MET_pt>20;pbt_muon==1', doCuts=False, addData=True,  doShow=False)  
+        
+        # HT seperation for Ken
+ 
+        #Hist(['tt_B'],    'LHE_HTIncoming', xlabel='LHE_HTIncoming (inc)', n_bins=50, bin_range=[0, 1500], doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
+        #Hist(['tt_B'],    'LHE_HTIncoming', xlabel='LHE_HTIncoming (300 < ZHpt < 450)', n_bins=50, bin_range=[0, 1500], add_cuts='Zh_pt>300;Zh_pt<450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
+        #Hist(['tt_B'],    'LHE_HTIncoming', xlabel='LHE_HTIncoming (ZHpt > 450)', n_bins=50, bin_range=[0, 1500],       add_cuts='Zh_pt>450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
+        #
+        #Hist(['tt_B'],    'LHE_HT', xlabel='LHE_HT (inc)', n_bins=50, bin_range=[0, 1500], doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
+        #Hist(['tt_B'],    'LHE_HT', xlabel='LHE_HT (300 < ZHpt < 450)', n_bins=50, bin_range=[0, 1500], add_cuts='Zh_pt>300;Zh_pt<450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
+        #Hist(['tt_B'],    'LHE_HT', xlabel='LHE_HT (ZHpt > 450)', n_bins=50, bin_range=[0, 1500],       add_cuts='Zh_pt>450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
 
-        Hist(['tt_B'],    'LHE_HTIncoming', xlabel='LHE_HTIncoming (inc)', n_bins=50, bin_range=[0, 1500], doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
-        Hist(['tt_B'],    'LHE_HTIncoming', xlabel='LHE_HTIncoming (300 < ZHpt < 450)', n_bins=50, bin_range=[0, 1500], add_cuts='Zh_pt>300;Zh_pt<450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
-        Hist(['tt_B'],    'LHE_HTIncoming', xlabel='LHE_HTIncoming (ZHpt > 450)', n_bins=50, bin_range=[0, 1500],       add_cuts='Zh_pt>450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
-
-        Hist(['tt_B'],    'LHE_HT', xlabel='LHE_HT (inc)', n_bins=50, bin_range=[0, 1500], doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
-        Hist(['tt_B'],    'LHE_HT', xlabel='LHE_HT (300 < ZHpt < 450)', n_bins=50, bin_range=[0, 1500], add_cuts='Zh_pt>300;Zh_pt<450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
-        Hist(['tt_B'],    'LHE_HT', xlabel='LHE_HT (ZHpt > 450)', n_bins=50, bin_range=[0, 1500],       add_cuts='Zh_pt>450',doCuts=True, doLog=True, doNorm=False, addData=False,  doShow=False)  
+        #Hist(['ttZ','ttH'],    'Zh_pt', xlabel=r'Z/H $p_{\mathrm{T}}$ [GeV]', bins=[200,300,450,600], sepGenOpt='sepGenMatchedSig;++', doCuts=True,  doLog=True, doNorm=False, doShow=False)  
+        #Hist(['ttZ','ttH'],    'matchedGen_ZHbb_tt', bins=[-0.5, 0.5, 1.5, 2.5], doCuts=True, sepGenOpt='sepGenSig', doLog=True, doNorm=False, doShow=False)  
+        
+        # NN hidden layer # 2 output
+        
+        #for i in range(64): # 64 perceptrons in hidden layer # 2
+        #    StackedHist(processes,f'NN_{i}', xlabel=f'hlayer#2, node {i}', bin_range=[-3,3],  n_bins=20,  doCuts=True, addData=True, doShow=False)              
+            
 
 
     #

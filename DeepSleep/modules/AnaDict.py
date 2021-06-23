@@ -13,6 +13,12 @@ class AnaDict (UserDict): # may want to move this to different file
     # methods
     def loc(self,keys):
         return self({k: self.data[k] for k in keys})
+    def pad(self, _i):
+        # i is the amount to pad
+        return self({k: self.data[k].pad(_i) for k in self.data})
+    def fillna(self, _i):
+        # i is the value to fill na
+        return self({k: self.data[k].fillna(_i) for k in self.data})
     def sum(self):
         return sum(self.data.values())
     def values(self):

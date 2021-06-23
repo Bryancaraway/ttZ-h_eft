@@ -23,7 +23,7 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 #from tensorflow.keras import backend as K
 from lib.fun_library import save_pdf, getZhbbBaseCuts
 import config.ana_cff as cfg
-
+from modules.dnn_model import DNN_model
 #
 import multiprocessing
 from functools import partial
@@ -34,7 +34,17 @@ class DNN_Explainability():
         self.prepData() # get signal test data
         #
         save_pdf('dnn_input_hierarchy.pdf')(self.plot_input_hierarchy)()
+        #weights = self.model.get_weights()
+        #for i in range(len(weights[:-2])):
+        #    print('\n')
+        #    print(weights[i])
+        #    print(weights[i].shape)
+        #    print('\n')
         pred = self.model.predict(self.sigX)[:,2]
+        #print(self.new_model.predict(self.sigX.iloc[0:5]))
+        plt.hist(self.new_model.predict(self.sigX)[:,0])
+        plt.show()
+
         #idx = 4
         #cut = (pred>0.9) & (self.sigY == 0)
         #from lime import lime_tabular
@@ -85,7 +95,6 @@ class DNN_Explainability():
 
     
     def getModel(self):
-        from modules.dnn_model import DNN_model
         dnn_weights = 'withbbvlnewgenm_model.h5'
         dnn_vars   = cfg.withbbvl_dnn_ZHgenm_vars
         m_info =  {
@@ -95,10 +104,11 @@ class DNN_Explainability():
         }
         dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
         self.model = dnn.Build_Model(len(dnn_vars), load_weights=dnn_weights)#'nn_ttzh_model.h5')    
+        self.new_model = dnn.Build_New_Model(len(dnn_vars), self.model)
 
 
     def prepData(self):
-        testXY = pd.read_pickle(cfg.dnn_ZH_dir+'/testXY.pkl')
+        testXY = pd.read_pickle(cfg.dnn_ZH_dir+'/oldtestXY.pkl')
         resetIndex = (lambda df: df.reset_index(drop=True).copy())
         testX ,testY = testXY.drop(columns=['label']), np.stack(resetIndex(testXY['label']).values)[:,2]
         #self.sigX = resetIndex(testX[testY == 1])
@@ -159,6 +169,22 @@ class DNN_Explainability():
         ax2.set_xticklabels(dendro['ivl'], rotation='vertical',fontsize=6)
         ax2.set_yticklabels(dendro['ivl'],fontsize=6)
         fig.tight_layout()
+        from collections import defaultdict
+        def print_hier_thresh(thresh=1):
+            reduced_idx = hierarchy.fcluster(corr_linkage, thresh, criterion='distance')
+            idx_mapping = defaultdict(list)
+            for i_, id_ in enumerate(reduced_idx):
+                idx_mapping[id_].append(i_)
+            indexes = [v[0] for v in idx_mapping.values()]
+            print(f"reduced inputs: {len(indexes)}, with thresh: {thresh}\n", self.sigX.columns[indexes])
+            return indexes
+        #
+        vars1p0  = print_hier_thresh(1)
+        vars1p25 = print_hier_thresh(1.25)
+        vars1p5  = print_hier_thresh(1.5)
+        print("extra vars in 1p25 not in 1p5 :\n",self.sigX.columns[[v for v in vars1p25 if v not in vars1p5]])
+        print("extra vars in 1p0  not in 1p25:\n",self.sigX.columns[[v for v in vars1p0 if v not in vars1p25]])
+        print("extra vars in all  not in 1p0 :\n",self.sigX.columns[[v for v in range(len(self.sigX.columns)) if v not in vars1p0]])
 
 if __name__ == '__main__':
     DNN_Explainability()

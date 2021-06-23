@@ -27,6 +27,7 @@ from lib.fun_library import t2Run, save_pdf, getZhbbWeight, getLaLabel, import_m
 from modules.AnaDict import AnaDict
 
 nn = cfg.nn
+#nn = 'newgenm_NN'
 
 def plot_nn(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
     processes = ['ttZ','ttH','TTBar','tt_B']

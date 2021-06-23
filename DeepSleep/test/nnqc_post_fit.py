@@ -26,15 +26,16 @@ rc("savefig",dpi=250)
 rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
+fit_vars = cfg.withbbvl_dnn_ZHgenm_vars
+fit_vars = [f'NN_{i}' for i in range(64)]
 
-@save_pdf('qc_nn_postfits.pdf')
+#@save_pdf('qc_nn_postfits.pdf')
+@save_pdf('qc_nn_postfits_hl2.pdf')
 #@save_pdf('qc_zhm_postfit.pdf')
 def main():
-    #dnn_vars = cfg.withbbvl_dnn_ZH_vars
-    dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
-    print(len(dnn_vars))
-    #dnn_vars = ['Zh_M']
-    for v in dnn_vars:
+    print(len(fit_vars))
+    for v in fit_vars:
+        print(v)
         froo = f'fitDiagnostics_{v}_NNcuts_run2.root'
         qc= QCNNPostFit(froo,v,tbins_map[v])
         qc.makeplots(doPull=True)

@@ -23,10 +23,14 @@ def reco_soft_lep_helper(obj):
     soft_elec = [obj.softe_df[obj.val_df['passSingleLepElec'] == 1]['Electron_'+k] for k in common_k]
     soft_elec_ch = obj.softe_df[obj.val_df['passSingleLepElec'] == 1]['Electron_charge']
     soft_elec_tlv = getTLVm(*soft_elec)
-    #
-    sel_soft_elec_invm = (sel_elec_tlv+soft_elec_tlv[(~(soft_elec_tlv == sel_elec_tlv) & ~(sel_elec_ch == soft_elec_ch))]).mass
+
+    #print(sum((~(soft_elec_tlv == sel_elec_tlv)).counts) > 0)
+    if sum((~(soft_elec_tlv == sel_elec_tlv)).counts) > 0 :
+        sel_soft_elec_invm = (sel_elec_tlv+soft_elec_tlv[(~(soft_elec_tlv == sel_elec_tlv) & ~(sel_elec_ch == soft_elec_ch))]).mass
+    else:
+        sel_soft_elec_invm = np.array([9939])
     #sel_soft_elec_invm = (sel_elec_tlv+soft_elec_tlv[~(soft_elec_tlv == sel_elec_tlv)]).mass
-    # Muons
+        # Muons
     sel_mu = [obj.val_df[obj.val_df['passSingleLepMu'] == 1]['Lep_'+k] for k in common_k]
     sel_mu_ch = obj.val_df[obj.val_df['passSingleLepMu'] == 1]['Lep_ch']
     sel_mu_tlv = getTLVm(*sel_mu)
@@ -34,7 +38,10 @@ def reco_soft_lep_helper(obj):
     soft_mu_ch = obj.softmu_df[obj.val_df['passSingleLepMu'] == 1]['Muon_charge']
     soft_mu_tlv = getTLVm(*soft_mu)
     #
-    sel_soft_mu_invm = (sel_mu_tlv+soft_mu_tlv[(~(soft_mu_tlv == sel_mu_tlv) & ~(sel_mu_ch == soft_mu_ch))]).mass
+    if sum((~(soft_elec_tlv == sel_elec_tlv)).counts) > 0 :
+        sel_soft_mu_invm = (sel_mu_tlv+soft_mu_tlv[(~(soft_mu_tlv == sel_mu_tlv) & ~(sel_mu_ch == soft_mu_ch))]).mass
+    else:
+        sel_soft_mu_invm = np.array([999])
     #sel_soft_mu_invm = (sel_mu_tlv+soft_mu_tlv[~(soft_mu_tlv == sel_mu_tlv)]).mass
     # 
     #obj.val_df['min_sel_soft_elec_invm'] = np.where(obj.val_df['passSingleLepElec'] == 1, 0, 999)

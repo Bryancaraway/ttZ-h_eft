@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 @t2Run
-def reco_zh_helper_andrew(obj):
+def reco_zh_helper(obj):
     # Note: in order to take advatage of numpy methods with dimensionallity
     # it is necessary to numpy-ize (rectangularize) jagged-arrays using custom (hacky)
     # function 'fillne'
@@ -38,6 +38,11 @@ def reco_zh_helper_andrew(obj):
     ak8_pt, ak8_eta, ak8_phi, sd_M, ak8_Zhbbtag  = k_getter( 
         obj.ak8_df, [fj+str_ for str_ in common_k+['msoftdrop','deepTagMD_bbvsLight']]
     )
+    sd_M_alt, sd_M_nom, sd_M_nos, sd_M_altnos, ak8_jercorr, ak8_wtag, ak8_wmdtag = k_getter(
+        obj.ak8_df, [fj+str_ for str_ in ['msoftdrop_alt','msoftdrop_nom', 'msoftdrop_nosmear', 'msoftdrop_altnosmear','corr_JER','deepTag_WvsQCD','deepTagMD_WvsQCD']]
+    )
+
+
     #subj_pt,  subj_btag, subj_n2b1, subj_n3b1, subj_tau1, subj_tau2, subj_tau3, subj_tau4 = obj.ak8_df['SubJet_pt'],  obj.ak8_df['SubJet_btagDeepB'], obj.ak8_df['SubJet_n2b1'], obj.ak8_df['SubJet_n3b1'], obj.ak8_df['SubJet_tau1'], obj.ak8_df['SubJet_tau2'], obj.ak8_df['SubJet_tau3'], obj.ak8_df['SubJet_tau4'],
     #subj_pt,  subj_btag = obj.ak8_df['SubJet_pt'],  obj.ak8_df['SubJet_btagDeepB']
     #
@@ -48,8 +53,8 @@ def reco_zh_helper_andrew(obj):
     #print(Zh_reco_cut)
     #Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M, Zh_doubleB, Zh_wtag, Zh_ttag,Zh_bbtag, Zh_n2b1, Zh_n3b1, Zh_tau1, Zh_tau2, Zh_tau3, Zh_tau4=lib.sortbyscore(
     #    [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M, ak8_doubleB, w_tag,t_tag,ak8_bbtag,ak8_n2b1, ak8_n3b1, ak8_tau1, ak8_tau2, ak8_tau3, ak8_tau4],ak8_Zhbbtag,Zh_reco_cut)
-    Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M, Zh_Zhbbtag =lib.sortbyscore(
-        [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M, ak8_Zhbbtag ], ak8_Zhbbtag, Zh_reco_cut)
+    Zh_Zhbbtag,Zh_pt,Zh_eta,Zh_phi,Zh_M,Zh_M_alt,Zh_M_nom,Zh_wtag, Zh_wmdtag, Zh_Zhbbtag =lib.sortbyscore(
+        [ak8_Zhbbtag,ak8_pt,ak8_eta,ak8_phi,sd_M,sd_M_alt,sd_M_nom,ak8_wtag, ak8_wmdtag,ak8_Zhbbtag ], ak8_Zhbbtag, Zh_reco_cut)
     # =============================== # 
     # compute subject info related to Zh candidate : have to sort out candidate with no subjet
     
@@ -215,8 +220,16 @@ def reco_zh_helper_andrew(obj):
     obj.val_df['fjetpt_1']  = ak8_pt.pad(1)[:,0]
     obj.val_df['fjeteta_1'] = ak8_eta.pad(1)[:,0]
     obj.val_df['fjetsdm_1'] = sd_M.pad(1)[:,0]
+    obj.val_df['fjetsdmalt_1'] = sd_M_alt.pad(1)[:,0]
+    if obj.isData: ak8_jercorr[ak8_jercorr == 0] = 1
+    obj.val_df['fjetsdm_nojer_1'] = sd_M.pad(1)[:,0]/ak8_jercorr.pad(1)[:,0]
+    obj.val_df['fjetsdmalt_nojer_1'] = sd_M_alt.pad(1)[:,0]/ak8_jercorr.pad(1)[:,0]
+    obj.val_df['fjetsdmnos_1'] = sd_M_nos.pad(1)[:,0]
+    obj.val_df['fjetsdmaltnos_1'] = sd_M_altnos.pad(1)[:,0]
+    obj.val_df['fjetsdmnom_1'] = sd_M_nom.pad(1)[:,0]
     obj.val_df['fjetbbvl_1']= ak8_Zhbbtag.pad(1)[:,0]
-    #obj.val_df['fjetwscore_1']= w_tag.pad(1)[:,0]
+    obj.val_df['fjetwscore_1']= ak8_wtag.pad(1)[:,0]
+    obj.val_df['fjetwmdscore_1']= ak8_wmdtag.pad(1)[:,0]
     #obj.val_df['fjettscore_1']= t_tag.pad(1)[:,0]
     #
     obj.val_df['n_ak8_Zhbb'] = ak8_pt[((ak8_pt >= obj.pt_cut) & (sd_M >= 50) & (sd_M <= 200) & (ak8_Zhbbtag >= 0.6))].counts
@@ -225,8 +238,11 @@ def reco_zh_helper_andrew(obj):
     obj.val_df['Zh_eta']    = Zh_eta[:,0]
     obj.val_df['Zh_phi']    = Zh_phi[:,0]
     obj.val_df['Zh_M']      = Zh_M[:,0]
+    obj.val_df['Zh_M_alt']      = Zh_M_alt[:,0]
+    obj.val_df['Zh_M_nom']      = Zh_M_nom[:,0]
     #obj.val_df['Zh_doubleB']      = Zh_doubleB[:,0]
-    #obj.val_df['Zh_Wscore'] = Zh_wtag[:,0]
+    obj.val_df['Zh_Wscore'] = Zh_wtag[:,0]
+    obj.val_df['Zh_Wmdscore'] = Zh_wmdtag[:,0]
     #obj.val_df['Zh_Tscore'] = Zh_ttag[:,0]
     #obj.val_df['Zh_deepB']  = Zh_bbtag[:,0]
     #obj.val_df['Zh_n2b1']  = Zh_n2b1[:,0]

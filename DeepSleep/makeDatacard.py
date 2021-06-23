@@ -19,8 +19,8 @@ import os
 #import pickle
 #import math
 import functools
-#from pathos.multiprocessing import ProcessingPool as Pool
-from multiprocessing import Pool
+from pathos.multiprocessing import ProcessingPool as Pool
+#from multiprocessing import Pool
 import re
 #import operator as OP
 #
@@ -61,6 +61,7 @@ sdM_bins = cfg.sdm_bins     # new format
 
 #nn = 'NN'
 nn = cfg.nn
+#nn = 'reducedgenm_NN'
 
 #[50, 75, 85, 100, 110, 120, 135, 150, 200]
 #hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=isblind) # syntax np2d[year][ith_ptbin]
@@ -138,9 +139,9 @@ class MakeDataCard:
 
     ]
         
-    bkg_v  = weights + weight_sys + [nn,'Zh_M','Zh_pt','process','sample','n_ak4jets']
+    bkg_v  = weights + weight_sys + [nn,'Zh_M','Zh_pt','process','sample']
     sig_v  = bkg_v + ['genZHpt']
-    data_v = [nn,'Zh_M','Zh_pt','process','n_ak4jets']
+    data_v = [nn,'Zh_M','Zh_pt','process']
     #
     if 'recoeft' not in tag:
         accepted_sig  = [f'{s}{i}' for i in range(len(pt_bins)) for s in ['ttH','ttZ']]#['ttHbb','ttZbb']] # change new and not new ttzbb here
@@ -156,6 +157,7 @@ class MakeDataCard:
                  sig = cfg.Sig_MC+cfg.sig_sys_samples, # new sig/bkg names
                  bkg = cfg.Bkg_MC+cfg.bkg_sys_samples, # new sig/bkg names
                  years = cfg.Years, 
+                 cut   = None, # pass cut func
                  #years = ['2017'], 
                  isblind=True,
                  sumw_sumw2=get_sumw_sumw2):
@@ -164,6 +166,7 @@ class MakeDataCard:
         self.bkg = bkg
         self.data = cfg.Data_samples
         self.years =  years
+        self.cut = (lambda x : x[nn] >= 0.0) if cut is None else cut
         #self.years = ['2018']
         self.isblind = isblind
         self.dc_bins = len(self.pt_bins[1:])
@@ -250,11 +253,11 @@ class MakeDataCard:
                 for ud in ['Up','Down']:
                     for v_str in [ f'{s}_{ud}' for s in ['mu_r','mu_f','mu_rf','ISR','FSR','pdfWeight']]:
                         df.loc[:,v_str] = df[v_str].clip(func(df[v_str].values,.15), func(df[v_str].values,99.85))
+        df = df.astype({k:'float32' for k in df if df[k].dtype == 'float64'}) # save more memory
         df.loc[:,'Zh_pt'] = df['Zh_pt'].clip(self.pt_bins[0]+1,self.pt_bins[-1]+1)
         df['pt_bin'] = pd.cut(df['Zh_pt'], bins=self.pt_bins+[500],
                               labels=[i_bin for i_bin in range(len(self.pt_bins))])
-        #df = df[df[nn] >= 0.0]
-        df = df[(df[nn] >= 0.0) & (df['n_ak4jets'] >=5)] # trying >= 5 cut
+        df = df[self.cut(df)]
         group = df.groupby(by='process')
         if 'Data' not in p:
             for n,g in group:
@@ -420,10 +423,12 @@ class MakeDataCard:
             self.histos = ShapeSystematic(f'jesAbsolute{y}', 'shape', 'qconly', jec_mc, 1, extraQC=True).get_shape()
             self.histos = ShapeSystematic(f'jesEC2{y}', 'shape', 'qconly', jec_mc, 1, extraQC=True).get_shape()
             self.histos = ShapeSystematic(f'jesBBEC1{y}', 'shape', 'qconly', jec_mc, 1, extraQC=True).get_shape()
-            self.histos = ShapeSystematic(f'jms_{y}', 'shape', 'qconly', jec_mc, 1, extraQC=True).get_shape()
-            self.histos = ShapeSystematic(f'jmr_{y}', 'shape', 'qconly', jec_mc, 1, extraQC=True).get_shape()
-            #self.histos = ShapeSystematic(f'jmssig_{y}', 'shape', 'qconly', tth_sig+ttz_sig, 1, extraQC=True).get_shape()
-            #self.histos = ShapeSystematic(f'jmrsig_{y}', 'shape', 'qconly', tth_sig+ttz_sig, 1, extraQC=True).get_shape()
+            #self.histos = ShapeSystematic(f'jms_{y}', 'shape', 'qconly', jec_mc, 1, extraQC=True).get_shape()
+            #self.histos = ShapeSystematic(f'jmr_{y}', 'shape', 'qconly', jec_mc, 1, extraQC=True).get_shape()
+            self.histos = ShapeSystematic(f'jmssig_{y}', 'shape', 'qconly', tth_sig+ttz_sig, 1, extraQC=True).get_shape()
+            self.histos = ShapeSystematic(f'jmrsig_{y}', 'shape', 'qconly', tth_sig+ttz_sig, 1, extraQC=True).get_shape()
+            self.histos = ShapeSystematic(f'jmsbkg_{y}', 'shape', 'qconly', ttbar_mc+['single_t'], 1, extraQC=True).get_shape()
+            self.histos = ShapeSystematic(f'jmrbkg_{y}', 'shape', 'qconly', ttbar_mc+['single_t'], 1, extraQC=True).get_shape()
             #self.histos = ShapeSystematic(f'jmsttbb_{y}', 'shape', 'qconly', ['tt_B'], 1, extraQC=True).get_shape()
             #self.histos = ShapeSystematic(f'jmrttbb_{y}', 'shape', 'qconly', ['tt_B'], 1, extraQC=True).get_shape()
             #self.histos = ShapeSystematic(f'jmstt_{y}', 'shape', 'qconly', ['single_t','TTBar'], 1, extraQC=True).get_shape()
@@ -849,34 +854,31 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
     def handleQC(self):
         for process in self.ids:
             for y in self.years:
-                nom     = np.float64(self.histos[f'{process}_{y}']['sumw'])
-                nom_err = np.sqrt(np.float64(self.histos[f'{process}_{y}']['sumw2']))
+                nom     = np.float32(self.histos[f'{process}_{y}']['sumw'])
+                nom_err = np.sqrt(np.float32(self.histos[f'{process}_{y}']['sumw2']))
                 #print(f'{process}_{y}_{self.name}Up')
-                up   = np.float64(self.histos[f'{process}_{y}_{self.name}Up']['sumw'])
-                down = np.float64(self.histos[f'{process}_{y}_{self.name}Down']['sumw'])
-                #UpRatio, DownRatio = np.divide(up_hist['sumw'],nom_hist['sumw']), np.divide(down_hist['sumw'],nom_hist['sumw'])
-                #nom_sumw = np.where(nom_hist['sumw']==0, 0.00001 ,nom_hist['sumw'])
+                if re.search(r'(jms)|(jmr)', self.name) is not None and f'{process}_{y}_{self.name}Up' not in self.histos:
+                    tmp_name = re.search(r'(jms)|(jmr)', self.name).group()+f'_{y}'
+                    self.histos[f'{process}_{y}_{self.name}Up'] = {'sumw':[], 
+                                                                   'sumw2':self.histos[f'{process}_{y}_{tmp_name}Up']['sumw2']}     # need to initiate 
+                    self.histos[f'{process}_{y}_{self.name}Down'] = {'sumw':[], 
+                                                                     'sumw2':self.histos[f'{process}_{y}_{tmp_name}Down']['sumw2']}
+                else:
+                    tmp_name = self.name
+                up   = np.float32(self.histos[f'{process}_{y}_{tmp_name}Up']['sumw'])
+                down = np.float32(self.histos[f'{process}_{y}_{tmp_name}Down']['sumw'])
                 # Step 1: kill_sys for bins where the stat err is larger than the nominal
                 up   = np.where(nom<nom_err, nom, up)   
                 down = np.where(nom<nom_err, nom, down)
-                #UpRatio   = np.where(nom_sumw<np.sqrt(nom_hist['sumw2']), 1, up_hist['sumw']  / nom_sumw)
-                #DownRatio = np.where(nom_sumw<np.sqrt(nom_hist['sumw2']), 1, down_hist['sumw']/nom_sumw)
-                # Step 2: bad_sys
-                #log_r_diff = abs(np.log(UpRatio)) - abs(np.log(DownRatio))
-                #bad_sys = abs(log_r_diff) > 0.35
-                #UpRatio, DownRatio = np.where(  bad_sys,np.where(log_r_diff > 0, 1/DownRatio, UpRatio), UpRatio), np.where(bad_sys,np.where(log_r_diff < 0, 1/UpRatio, DownRatio), DownRatio)
                 # Step 3: one_sided_sys
                 #one_sided_sys = (((UpRatio > 1) & (DownRatio > 1)) | ((UpRatio < 1) & (DownRatio < 1)))
                 is_onesided = (( (up > nom) & (down > nom) ) | ( (up < nom) & (down < nom) ))
-                #geo_mean = np.sqrt( np.divide( up, nom ) * np.divide( down, nom ) )
                 geo_mean = np.sqrt( up * down )
                 up , down = np.where(is_onesided, np.divide(up*nom, geo_mean) , up), np.where(is_onesided, np.divide(down*nom, geo_mean) , down) 
                 #
                 up, down = np.where((np.isinf(up)) | (np.isnan(up)), nom, up), np.where((np.isinf(down)) | (np.isnan(down)), nom, down) # handle cases where div by zero goes to inf
                 
                 # save hists 
-                #self.histos[f'{process}_{y}_{self.name}Up']['sumw']   = np.nan_to_num(UpRatio*nom_sumw)
-                #self.histos[f'{process}_{y}_{self.name}Down']['sumw'] = np.nan_to_num(DownRatio*nom_sumw)
                 self.histos[f'{process}_{y}_{self.name}Up']['sumw']   = up     # handle nan later
                 self.histos[f'{process}_{y}_{self.name}Down']['sumw'] = down   # handle nan later in TH1
         
@@ -886,17 +888,19 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
                 # get variation from merged bins for certain systematic
                 # and distribute variation to finer bins, 
                 # merged bins should be somewhat correlated in nature
-                nom     = np.float64(self.histos[f'{process}_{y}']['sumw'])
-                nom_err = np.sqrt(np.float64(self.histos[f'{process}_{y}']['sumw2']))
+                nom     = np.float32(self.histos[f'{process}_{y}']['sumw'])
+                nom_err = np.sqrt(np.float32(self.histos[f'{process}_{y}']['sumw2']))
                 #print(f'{process}_{y}_{self.name}Up')
                 if re.search(r'(jms)|(jmr)', self.name) is not None and f'{process}_{y}_{self.name}Up' not in self.histos:
                     tmp_name = re.search(r'(jms)|(jmr)', self.name).group()+f'_{y}'
-                    self.histos[f'{process}_{y}_{self.name}Up'] = {}     # need to initiate 
-                    self.histos[f'{process}_{y}_{self.name}Down'] = {}
+                    self.histos[f'{process}_{y}_{self.name}Up'] = {'sumw':[], 
+                                                                   'sumw2':self.histos[f'{process}_{y}_{tmp_name}Up']['sumw2']}     # need to initiate 
+                    self.histos[f'{process}_{y}_{self.name}Down'] = {'sumw':[], 
+                                                                     'sumw2': self.histos[f'{process}_{y}_{tmp_name}Down']['sumw2']}
                 else:
                     tmp_name = self.name
-                up   = np.float64(self.histos[f'{process}_{y}_{tmp_name}Up']['sumw'])
-                down = np.float64(self.histos[f'{process}_{y}_{tmp_name}Down']['sumw'])
+                up   = np.float32(self.histos[f'{process}_{y}_{tmp_name}Up']['sumw'])
+                down = np.float32(self.histos[f'{process}_{y}_{tmp_name}Down']['sumw'])
                 #
                 # shape (3, 4, 4) pt,nn,sdm
 
@@ -928,6 +932,8 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
 if __name__ == '__main__':
     #
     # initialize datacard making process
-    hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=isblind)# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
+    #hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind)# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
+    hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind, nn='newreduced1p0_NN')# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
+    exit() # not ready ========
     MakeDataCard(isblind=isblind).makeDC()
 

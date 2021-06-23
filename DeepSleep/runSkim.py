@@ -105,36 +105,60 @@ def parallel_skim(files, out_dir, tag):
     #os.system(f'rm {out_dir}/*{args.sample}*{tag}*.pkl ; rm {log_dir}Skim_{args.sample}_*{tag}*.std*') # start of job, get rid of old files
     job_script = 'scripts/runSkim.sh'
     #que_limit = {'hep'  : 9, 'econ' : 20}
+    nodes = '1'
     if args.queue is not None:
         add_queue = f'-q {args.queue}'
+        nodes = 'gpu006' if args.queue == 'hep' else '1'
     else:
         add_queue = ''
-    for i, sfile in enumerate(files):
-        # rerun runSkim without pre/post skim using pbs
-        command = f"qsub {add_queue} -l nodes=1:ppn=4 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
-        command += f" -o {log_dir}Skim_{args.sample}_{tag}{i}.stdout -e {log_dir}Skim_{args.sample}_{tag}{i}.stderr "
-        add_args  = ''
-        if args.jec is not None:
-            add_args += f',jec={args.jec}'
-        #
-        if args.is4trig:
-            add_args += f',is4trig={args.is4trig}'
-        out_name  = f'{args.sample}_{i}{tag}.pkl'
-        pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},outfile={out_name},nopost=True{add_args}'
-        command += f'{pass_args} {job_script}'
-        print(command)
-        os.system(command)
+    #for i, sfile in enumerate(files):
+    #    # rerun runSkim without pre/post skim using pbs
+    #    command = f"qsub {add_queue} -l nodes={nodes}:ppn=4 -N runSkim_{args.sample}_{args.year}{tag}_{i}  "
+    #    command += f" -o {log_dir}Skim_{args.sample}_{tag}{i}.stdout -e {log_dir}Skim_{args.sample}_{tag}{i}.stderr "
+    #    add_args  = ''
+    #    if args.jec is not None:
+    #        add_args += f',jec={args.jec}'
+    #    #
+    #    if args.is4trig:
+    #        add_args += f',is4trig={args.is4trig}'
+    #    out_name  = f'{args.sample}_{i}{tag}.pkl'
+    #    pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},outfile={out_name},nopost=True{add_args}'
+    #    command += f'{pass_args} {job_script}'
+    #    print(command)
+    #    os.system(command)
+    # rerun runSkim without pre/post skim using pbs
+    nfiles = len(files) -1 # start from 0
+    sfile = files[0].replace('0.list','') # get the prefix of the file name
+    #
+    command = f"qsub {add_queue} -l nodes={nodes}:ppn=4 "+ (f"-J 0-{nfiles}" if nfiles>0 else " ")
+    command += f" -N runSkim_{args.sample}_{args.year}{tag}"
+    command += f" -o {log_dir}Skim_{args.sample}_{tag}.stdout -e {log_dir}Skim_{args.sample}_{tag}.stderr "
+    add_args  = ''
+    if args.jec is not None:
+        add_args += f',jec={args.jec}'
+    #
+    if args.is4trig:
+        add_args += f',is4trig={args.is4trig}'
+    #out_name  = f'{args.sample}_{i}{tag}.pkl'
+    out_name = f'{args.sample}'
+    pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},'
+    pass_args += f'outfile={out_name},tag={tag},nopost=True{add_args}'
+    command += f'{pass_args} {job_script}'
+    print(command)
+    os.system(command)
     # make sure jobs are finished before exiting
     
     num_jobs_running = lambda: int(sb.check_output(
-        f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_{args.sample}_{args.year}{tag}_' | wc -l", shell=True).decode())
+        f"qstat -u $USER -w -f | grep 'Job_Name = runSkim_{args.sample}_{args.year}{tag}' | wc -l", shell=True).decode())
     # allow qsub to catch up?
     time.sleep(5)
     while num_jobs_running() > 0:
         time.sleep(30) 
     # jobs are finished here
     # run postjob
-    command = f"qsub {add_queue} -l nodes=1:ppn=1 -N PostSkim_{args.sample}_{args.year}{tag} "
+    add_queue = f'-q hep'
+    nodes = 'gpu006' if 'hep' in add_queue else '1'
+    command = f"qsub {add_queue} -l nodes={nodes}:ppn=1 -N PostSkim_{args.sample}_{args.year}{tag} "
     command += f" -o {log_dir}{args.sample}{tag}.stdout -e {log_dir}{args.sample}{tag}.stderr "
     if args.jec is not None:
         add_args = f',jec={args.jec}'
@@ -163,9 +187,11 @@ def get_jobfiles():
         file_header = args.sample if not isData else process_cfg[args.sample][args.year][0]
         files = glob(f"{sample_dir}/{args.year}/{file_header}_{args.year}"+("_Period*" if isData else "")+"/*.root")
     #
-    if len(files) > 10 and args.qsub and '.list' not in files[0]: # create filelist of size 5 for less strain on kodiak
+    #if len(files) > 10 and args.qsub and '.list' not in files[0]: # create filelist of size 5 for less strain on kodiak
+    if args.qsub and '.list' not in files[0]: # create filelist so that jobs work with job arrays
         new_files = []
-        size = 48 if len(files) > 300 else 12
+        #size = 48 if len(files) > 300 else 12
+        size = 4 if not isData  else 20
         os.system(f'rm {log_dir}{args.sample}_*{tag}*.list') # get rid of old list files
         for i in range(0,len(files),size):
             new_file = log_dir+f'{args.sample}_{tag}{i//size}.list'

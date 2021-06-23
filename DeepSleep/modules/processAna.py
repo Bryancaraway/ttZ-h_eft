@@ -82,8 +82,8 @@ class processAna :
         #
         from modules.lep_helper import reco_soft_lep_helper as anti_soft_lep
         anti_soft_lep(self)
-        from modules.zh_helper import reco_zh_helper_andrew as recoZH_andrew
-        recoZH_andrew(self)
+        from modules.zh_helper import reco_zh_helper as recoZH
+        recoZH(self)
         # dum fix for files w/o this variable
         self.val_df['topptWeight']      = 1.
         self.val_df['topptWeight_Up']   = 1.
@@ -98,12 +98,15 @@ class processAna :
                 self.match_gen_sig() 
         #
         self.passHLT_by_year()
-        #self.applyDNN(model_file='withdak8md_model.h5')
-        #self.applyDNN(model_file='noak8md_model.h5')
-        #self.applyDNN(model_file='withbbvl_model.h5')
         self.applyDNN(model_file='withbbvlnewgenm_model.h5')
+        self.applyDNN(model_file='newgenm_model.h5')
+        self.applyDNN(model_file='newreduced1p0_model.h5')
+        #self.applyDNN(model_file='reduced1p0_model.h5')
+        #self.applyDNN(model_file='reduced1p25_model.h5')
+        #self.applyDNN(model_file='reduced1p5_model.h5')
+        #
         self.val_df['NN'] = self.val_df['withbbvlnewgenm_NN'] # hard-coded to not break anythin
-
+        #self.val_df['NN'] = self.val_df['newgenm_NN'] # hard-coded to not break anythin
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
             self.match_to_rZH()
@@ -261,6 +264,8 @@ class processAna :
         rZh_eta = self.val_df['Zh_eta'].values
         rZh_phi = self.val_df['Zh_phi'].values
         #
+        istt = (abs(gen_ids) == 6)
+        #
         isbb_fromZ     = ((abs(gen_ids) == 5) & (gen_ids[gen_mom] == 23))
         isqq_fromZ     = ((abs(gen_ids) <  5) & (gen_ids[gen_mom] == 23))
         isllnunu_fromZ = ((abs(gen_ids) >=  11) & (abs(gen_ids) <= 16) & (gen_ids[gen_mom] == 23))
@@ -289,6 +294,7 @@ class processAna :
         #
         zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
         rzh_matchb_dR = deltaR(rZh_eta,rZh_phi,gen_eta[(isbb_fromZ) | (isbb_fromH)], gen_phi[(isbb_fromZ) | (isbb_fromH)])
+        rzh_matchtt_dR = deltaR(rZh_eta,rZh_phi,gen_eta[(istt)], gen_phi[(istt)])
         zh_matchbb    = ((rzh_matchb_dR <= 0.8).sum() == 2)
         zh_matchb    = ((rzh_matchb_dR <= 0.8).sum() == 1)
         zh_nomatchb    = ((rzh_matchb_dR <= 0.8).sum() == 0)
@@ -323,6 +329,8 @@ class processAna :
         #
         self.val_df['matchedGen_ZHbb_nn']  = ((self.val_df['matchedGen_ZHbb'] == 1) & ((zh_matchbb  == 1)|(zh_matchb   == 1)))
         #
+        self.val_df['matchedGen_ZHbb_tt']  = np.where(self.val_df['matchedGenLep']== True, (rzh_matchtt_dR<=0.8).sum(), -1)
+        #
     @t2Run
     def match_gen_lep(self):
         lep_eta = self.val_df['Lep_eta'].to_numpy()
@@ -341,7 +349,6 @@ class processAna :
         self.val_df['n_tt_leps'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13) | (abs(gen_ids) == 15)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24))).sum()
         self.val_df['n_tt_leps_notau'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24))).sum()
         self.val_df['matchedGenLep'] = ((lep_match_dr <= .1).sum() > 0)
-
     
     @t2Run
     def applyDNN(self, model_file='withdak8md_model.h5'):
@@ -349,34 +356,49 @@ class processAna :
 
         nn_dir    = cfg.dnn_ZH_dir 
         dnn_vars = {
-            #'withdak8md_model.h5' :cfg.allvars_dnn_ZH_vars,
-            #'noak8md_model.h5'     :cfg.nodak8md_dnn_ZH_vars,
-            #'selvars_ttzh_model.h5':cfg.selvars_dnn_ZH_vars,
-            'withbbvl_model.h5':    cfg.withbbvl_dnn_ZH_vars,
-            #'ttzh_newgenm.h5':      cfg.withbbvl_dnn_ZHgenm_vars,
-            'withbbvlnewgenm_model.h5':      cfg.withbbvl_dnn_ZHgenm_vars,
+            'newgenm_model.h5' :      cfg.withbbvl_dnn_ZHgenm_vars, # new training
+            'newreduced1p0_model.h5' : cfg.reduced1p0genm_vars,
+            'withbbvlnewgenm_model.h5':      cfg.withbbvl_dnn_ZHgenm_vars, # 50 var set, old training
+            # old
+            'reduced1p0_model.h5' : cfg.oldreduced1p0genm_vars,
+            'reduced1p25_model.h5' : cfg.oldreduced1p25genm_vars,
+            'reduced1p5_model.h5' : cfg.oldreduced1p5genm_vars,
         }
         resetIndex = (lambda df: df.reset_index(drop=True).copy())
         #open json nn settings
         # --
-        #m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 1.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 80, 'batch_size': 10256}
-        #m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 0.75, 0.75], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
-        m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 100, 'batch_size': 10256}
+        m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 
+                   'other_settings': {'fl_a': [0.75, 1, 0.25], 
+                                      'fl_g': 0.25, 'lr_alpha': 0.0003}, 
+                   'n_epochs': 100, 'batch_size': 10256
+        }
         #
         dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
-        #nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='ttzh_model.h5')#'nn_ttzh_model.h5')
         nn_model = dnn.Build_Model(len(dnn_vars[model_file]), load_weights=model_file)#'nn_ttzh_model.h5')
-        #nn_model = dnn.Build_Model(len(cfg.dnn_ZH_vars), load_weights='nn_ttzh_model.h5')
         #
         base_cuts = lib.getZhbbBaseCuts(self.val_df)
         #
         pred_df = resetIndex(self.val_df[dnn_vars[model_file]][base_cuts])
-        pred = nn_model.predict(pred_df)[:,2]
-        #print(pred)
+        print(self.sample, pred_df)
+        if len(pred_df) > 0:
+            pred = nn_model.predict(pred_df)[:,2]
+        else: 
+            pred = 0
         df_nn_name = model_file.replace("model.h5",'')+'NN'
         self.val_df.loc[:,df_nn_name] = -1.
         self.val_df.loc[base_cuts,df_nn_name] = pred
-
+        # only for current main NN
+        if model_file == 'withbbvlnewgenm_model.h5': # old, but may keep
+            #if model_file == 'newgenm_model.h5': # new
+            explain_model = dnn.Build_New_Model(len(dnn_vars[model_file]), nn_model) # output size 64
+            if len(pred_df) > 0:
+                explain_pred = explain_model.predict(pred_df) # shape (n_events, 64)
+            else: 
+                explain_pred = -10* np.ones((1,m_info['sequence'][-2][-1]))
+            print(m_info['sequence'][-2][-1])
+            for i in range(m_info['sequence'][-2][-1]):
+                self.val_df.loc[:,f'NN_{i}'] = -10
+                self.val_df.loc[base_cuts,f'NN_{i}'] = explain_pred[:,i]
         #
     def addHLT_to_MC(self):
         # add hlt variables into MC and set them to 1
@@ -555,8 +577,8 @@ class processAna :
             self.val_df.loc[(self.val_df['tt_B'] != True),'process'] = 'non_tt_B'
             self.val_df.loc[(self.val_df['tt_B'] == True),'process'] = 'tt_B' 
             #self.val_df.loc[(self.val_df['tt_2b']== True),'process'] = 'tt_2b' # this is a subset of tt_B 
-            self.val_df['LHE_HTIncoming'] = self.gen_df['LHE_HTIncoming'].flatten()
-            self.val_df['LHE_HT'] = self.gen_df['LHE_HT'].flatten()
+            #self.val_df['LHE_HTIncoming'] = self.gen_df['LHE_HTIncoming'].flatten()
+            #self.val_df['LHE_HT'] = self.gen_df['LHE_HT'].flatten()
 
             self.add_weights_to_ttbb()
             self.add_tt_2b_rate_unc()

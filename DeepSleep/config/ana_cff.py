@@ -37,7 +37,8 @@ else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./co
 ##
 #nn                = 'withbbvl_NN'
 nn                = 'NN'
-sdm_bins          = [50,80,115,155,200]     # new format
+#sdm_bins          = [50,80,115,155,200]     # old format
+sdm_bins          = [50,75,105,145,200]     # new format
 ZHptcut           = 200
 Years             = ['2016','2017','2018']
 ## EFT ##
@@ -202,12 +203,20 @@ ana_vars = {
     #
     'ak8vars'    : ['FatJet_jetId',
                     'FatJet_deepTagMD_bbvsLight',
-                    'FatJet_msoftdrop'+LC,],
-    'ak8lvec'    : {'TLVarsLC' :['FatJet_pt'+LC, 'FatJet_eta'+LC, 'FatJet_phi'+LC, 'FatJet_mass'+LC],
+                    'FatJet_deepTagMD_WvsQCD', 'FatJet_deepTag_WvsQCD',
+                    'FatJet_msoftdrop'+LC,
+                    'FatJet_msoftdrop_nom'+LC,
+                    'FatJet_corr_JER',
+                    #            ],
+                    'FatJet_subJetIdx1','FatJet_subJetIdx2'],
+    'ak8lvec'    : {'TLVars_nom' :['FatJet_pt_nom', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass_nom'],
                     'TLVars'   :['FatJet_pt', 'FatJet_eta', 'FatJet_phi', 'FatJet_mass']},
+    'sjvars'     : ['SubJet_pt','SubJet_eta','SubJet_phi','SubJet_mass','SubJet_rawFactor'],
+    'genak8jets' : ['GenJetAK8_eta','GenJetAK8_phi',],
+    'gensubjets' : ['SubGenJetAK8_pt','SubGenJetAK8_eta','SubGenJetAK8_phi','SubGenJetAK8_mass',],
     'genpvars'   : ['GenPart_pt', 'GenPart_eta', 'GenPart_phi', 'GenPart_mass', 
                     'GenPart_status', 'GenPart_pdgId', 'GenPart_genPartIdxMother',
-                    'genTtbarId','LHE_HT','LHE_HTIncoming'], # event level identifier for ttbar+bb
+                    'genTtbarId','LHE_HT','LHE_HTIncoming',], # event level identifier for ttbar+bb
 
     'event'      : ['MET_phi', 'MET_pt',
                     'MET_T1_phi', 'MET_T1_pt',
@@ -327,5 +336,52 @@ nodak8md_old_ZH_vars = [
 withbbvl_dnn_ZH_vars = nodak8md_old_ZH_vars+['Zh_bbvLscore']
 withbbvl_dnn_ZHgenm_vars = nodak8md_dnn_ZH_vars+['Zh_bbvLscore']
 
+#reduced inputs: 16, with thresh: 1.5
+reduced1p5genm_vars = [
+    'outZH_b1_pt', 'outZH_b1_score', 'outZh_q1_pt', 'outZh_q2_pt',
+    'outZH_b1_q_mindr', 'outZH_b2_q_mindr', 'l_b2_mtb', 'Zh_closeb_invM',
+    'n_ak8jets', 'outZh_b12_m', 'outZh_b12_dr', 'ak4_bestb_inZH', 'Zh_l_dr',
+    'l_b1_invM', 'spher', 'n_q_inZh'
+]
+#reduced inputs: 23, with thresh: 1.25
+reduced1p25genm_vars = reduced1p5genm_vars + [
+    'outZH_b2_score', 'outZh_q1_btag', 'outZh_q2_btag', 'ak4_worstb_inZH',
+    'nonZhbb_b1_dr', 'l_b1_dr', 'n_b_outZh'
+]
+ 
+#reduced inputs: 28, with thresh: 1
+reduced1p0genm_vars =  reduced1p25genm_vars + [
+    'ZH_b1qq_dr', 'ht_outZh', 'nonZhbb_q1_dr', 'l_b2_invM', 'l_b2_dr'
+]
+      
+## full inputs:   50
+#withbbvl_dnn_ZHgenm_vars = reduced1p0genm_vars + [
+#    'outZH_b2_pt', 'outZH_q_q_dr_nearb1', 'outZH_q_q_dr_nearb2',
+#    'outZH_qq_M_nearb1', 'outZH_qq_M_nearb2', 'outZH_b1_qq_dr',
+#    'outZH_b2_qq_dr', 'outZH_b1qq_M', 'outZH_b2qq_M', 'ZH_b2qq_dr',
+#    'ZH_lbb1qq_dr', 'ZH_lbb2qq_dr', 'n_ak4jets', 'n_ak8_Zhbb',
+#    'outZh_max_ak8sdM', 'ht_b', 'inZhb_outZhb_dr', 'Zh_l_invM_sd', 'aplan',
+#    'n_b_inZh', 'n_q_outZh', 'Zh_bbvLscore'
+#]
+ 
+# ===== ---- OLD VARS (but still relevent) ---- ===== # 
 
+oldreduced1p5genm_vars = [ # 19 inputs
+    'outZH_b1_pt', 'outZH_b1_score', 'outZh_q1_pt', 'outZh_q2_pt',
+    'outZh_q2_btag', 'outZH_b1_q_mindr', 'outZH_q_q_dr_nearb1', 'l_b2_mtb',
+    'Zh_closeb_invM', 'n_ak8jets', 'outZh_b12_dr', 'ak4_bestb_inZH',
+    'ak4_worstb_inZH', 'nonZhbb_q1_dr', 'Zh_l_dr', 'l_b1_invM', 'l_b2_invM',
+    'spher', 'n_q_inZh'
+]
 
+oldreduced1p25genm_vars = oldreduced1p5genm_vars + [ # 25 inputs
+    'outZH_b2_score', 'outZh_q1_btag', 'outZH_b2_q_mindr', 'outZh_b12_m',
+    'nonZhbb_b1_dr', 'n_b_outZh'
+]
+
+oldreduced1p0genm_vars = oldreduced1p25genm_vars + [ # 31 inputs
+    'outZH_b2_pt', 'ZH_b1qq_dr', 'ht_outZh', 'l_b1_dr', 'l_b2_dr',
+    'n_b_inZh'
+]
+
+    

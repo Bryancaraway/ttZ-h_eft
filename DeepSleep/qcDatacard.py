@@ -30,7 +30,7 @@ import config.ana_cff as cfg
 import config.process_norms as p_norms
 from lib.fun_library import weighted_quantile, getZhbbBaseCuts, getZhbbWeight, t2Run
 from lib.TH1 import export1d
-from lib.datacard_shapes import DataCardShapes
+from lib.datacard_shapes import DataCardShapes, DataCardShapes_NN
 from makeDatacard import MakeDataCard, Systematic, ShapeSystematic
 #
 import uproot
@@ -61,7 +61,7 @@ if len(sys.argv) > 2: # means do nn cuts
 nn = cfg.nn
     
 # only targets listed here may be used
-tbins_map = {
+tbins_map = {**DataCardShapes_NN().out_nn_bins_dict,**{
     'Zh_M' : np.arange(50,210,10),
     #'Zh_pt':[200,300,450,np.inf],
     #'nBottoms_drLeptonCleaned':[1.5,2.5,3.5,4.5,10],
@@ -124,11 +124,13 @@ tbins_map = {
     # ---
     # Control Plots
     # ---
-    
+}}
 
-}
+
+
 if target not in tbins_map and __name__ == '__main__':
     raise KeyError(f"{target} not in 'tbins_map'!!!\nOnly the following are available: {list(tbins_map.keys())}")
+
     
 def get_sumw_sumw2(df, weights, year):
     #ret_target = (lambda df: (df['NN'].to_numpy(), df['Zh_M'].to_numpy()))
@@ -280,6 +282,7 @@ class MakeQCDataCard(MakeDataCard):
             #        to_flat = (lambda a : a[pt_bin,:,:].flatten())
             #    temp_dict = {'sumw' : to_flat(v['sumw'])}#* (1 if y != '2017' else 3.3032)}#2.2967)} # to just scale to full run2
                 #hist_name = f'Zhpt{pt_bin+1}_{process}{sys}'
+            print(p)
             hist_name = f'{target}_{process}{sys}'
             temp_dict = {'sumw' :v['sumw'],
                          'sumw2':v['sumw2']}

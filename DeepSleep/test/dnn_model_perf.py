@@ -21,7 +21,7 @@ import config.ana_cff as cfg
 
 @save_pdf('statcorr_dnn.pdf')
 def main():
-    trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/trainXY.pkl')
+    trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/oldtrainXY.pkl')
     trainXY['sig_label'] = np.stack(trainXY['label'].values)[:,2]
     trainXY['ttbar_label'] = np.stack(trainXY['label'].values)[:,0]
     trainXY['ttbb_label'] = np.stack(trainXY['label'].values)[:,1]

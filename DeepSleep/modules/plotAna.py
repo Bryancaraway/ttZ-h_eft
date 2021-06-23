@@ -262,7 +262,6 @@ class Plotter :
 
             
 
-    @property
     def retData(self):
         k_    = np.array([k for k in self.data])
         h_    = np.array([self.data[k].to_numpy()    for k in self.data], dtype=object)
@@ -270,7 +269,7 @@ class Plotter :
         i_    = np.array([self.i_dict[k]             for k in self.data])
         ierr_ = np.array([self.i_err_dict[k]         for k in self.data])
         l_,c_ = np.array([np.array(getLaLabel(k))   for k in self.data]).T
-        l_   = np.array([f'{x} ({y:3.1f}+/-{z:3.1f})' for x,y,z in zip(l_,i_,ierr_)])
+        l_   = np.array([f'{x} ({y:3.1f}'+r'$\pm$'+f'{z:3.1f})' for x,y,z in zip(l_,i_,ierr_)])
         #print( h_,w_,i_,c_,l_)
         return k_,h_,w_,i_,c_,l_
 
@@ -313,7 +312,7 @@ class Plotter :
             hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w')
             handles = handles + [hatch_patch]
             labels  = labels + ['Stat Unc.']
-        self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=10)
+        self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=8)
         self.ax.set_ylim(ymin=(0 if not self.doLog else (.1 if not self.doNorm else .001)), # .1 -> .001
                          ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
@@ -490,7 +489,7 @@ class StackedHist(Plotter) :
         self.ax2.grid(True)
 
     def sortInputs(self):
-        k_,h_,w_,i_,c_,l_ = self.retData
+        k_,h_,w_,i_,c_,l_ = self.retData()
         # insert signal in first slot for stack plot
         sig = np.argwhere((k_=='TTZH') | (k_ == 'ttHbb') | (k_ == 'ttZbb') | (k_ =='new_ttZbb') | (k_ == 'ttZ') | (k_ == 'ttH'))
         sigh, sigw, sigi, sigc, sigl = map(lambda x: x[sig], [h_,w_,i_,c_,l_])
@@ -524,7 +523,7 @@ class Hist (Plotter) :
     def makePlot(self):
         self.beginPlt
         #
-        k, h, w, i, c, l = self.retData
+        k, h, w, i, c, l = self.retData()
         # check if there is only one process being plotted 
         if not self.doBinRatio :
             for j in range(len(l)):
@@ -555,22 +554,26 @@ class Hist (Plotter) :
 
     def addSoverBplot(self):
         sig = ['ttZ','ttH']
-        k, h, w, i, c, l = self.retData 
+        k, h, w, i, c, l = self.retData() 
         
-        bkg_hist, _ = np.histogram(np.concatenate([h_ for k_,h_ in zip(k,h) if k_ not in sig]).ravel(), bins=self.bins, 
-                                weights=np.concatenate([w_ for k_,w_ in zip(k,w) if k_ not in sig]).ravel())
-        sig_hist, edges = np.histogram(np.concatenate([h_ for k_,h_ in zip(k,h) if k_ in sig]).ravel(), bins=self.bins, 
-                                weights=np.concatenate([w_ for k_,w_ in zip(k,w) if k_ in sig]).ravel())
+        bkg_hist, _ = np.histogram(np.concatenate([h_ for k_,h_ in zip(k,h) if k_ not in sig]).ravel(), 
+                                   bins=self.bins, 
+                                   weights=np.concatenate([w_ for k_,w_ in zip(k,w) if k_ not in sig]).ravel())
+        sig_hist, edges = np.histogram(np.concatenate([h_ for k_,h_ in zip(k,h) if k_ in sig]).ravel(), 
+                                       bins=self.bins, 
+                                       weights=np.concatenate([w_ for k_,w_ in zip(k,w) if k_ in sig]).ravel())
         bin_c = (edges[1:]+edges[:-1])/2
+        print("Total Sum(S^2/B)",np.sum(np.power(sig_hist,2)/bkg_hist))
+        print("S/sqrt(B)",sig_hist/np.sqrt(bkg_hist))
         self.ax2.errorbar(x=bin_c, y = sig_hist/np.sqrt(bkg_hist),
                           xerr=(edges[1:]-edges[:-1])/2,
                           fmt='.', color='k', label=r'S/$\sqrt{\mathrm{B}}$')
         self.ax2.xaxis.set_minor_locator(AutoMinorLocator())
         self.ax2.yaxis.set_major_formatter(FormatStrFormatter('%g'))
-        self.ax2.yaxis.set_major_locator(FixedLocator([.50,1]))
+        #self.ax2.yaxis.set_major_locator(FixedLocator([.50,1]))
         self.ax2.yaxis.set_minor_locator(AutoMinorLocator())
         self.ax2.tick_params(which='both', direction='in', top=True, right=True)
-        self.ax2.set_ylim(0.0,1.25)
+        #self.ax2.set_ylim(0.0,5)
         self.ax2.set_ylabel(r'S/$\sqrt{\mathrm{B}}$')
         self.ax2.grid(True)
 

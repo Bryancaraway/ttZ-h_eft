@@ -3,6 +3,7 @@ Define 2d shape histograms
 for datacard per year 
 and per datacard channel
 '''
+import os
 import sys
 if __name__ == '__main__':
     import subprocess as sb
@@ -11,9 +12,10 @@ if __name__ == '__main__':
 
 import numpy as np
 import pandas as pd
+import json
 import functools
 import config.ana_cff as cfg
-from lib.fun_library import weighted_quantile, getZhbbWeight, t2Run
+from lib.fun_library import weighted_quantile, getZhbbWeight, getZhbbBaseCuts, t2Run
 
 class DataCardShapes():
     years = cfg.Years
@@ -24,17 +26,18 @@ class DataCardShapes():
     nn = cfg.nn
     hist_dict = {}
     #
-    def __init__(self, recopt_bins, recosdM_bins, n_NN_bins=10, isblind=True): # will have to change isblind for final fit
+    def __init__(self, recopt_bins, recosdM_bins, n_NN_bins=10, nn='NN', isblind=True): # will have to change isblind for final fit
         self.pt_bins = recopt_bins+[500]
         self.sdM_bins = recosdM_bins
-        self.n_NN_bins = n_NN_bins
+        #self.n_NN_bins = n_NN_bins
+        self.nn = nn
         self.isblind = isblind
         #
         self.init_hist_funcs()
     
     @t2Run
     def init_hist_funcs(self):
-        for y in self.years:
+        for y in  self.years:
             get_pickle= (lambda s: pd.read_pickle(f'{sys.path[1]}/{self.file_dir}{y}/mc_files/{s}_val.pkl'))
             df = pd.concat([get_pickle(s) for s in self.ref_samples], axis='rows', ignore_index=True)
             #df = df[((df[self.nn]>=0.0) & ((df['Hbb']==True) | (df['Zbb'] == True)))]
@@ -83,6 +86,35 @@ class DataCardShapes():
             return self.hist_dict[y]
         except KeyError:
             raise KeyError(f"{y} is not a valid top-level key!!!")
+
+
+class DataCardShapes_NN():
+    year = '2018' # just use 2018
+    file_dir = './files/'
+    ref_samples = cfg.Data_samples
+    data_dir = cfg.dnn_ZH_dir
+
+    def __init__(self, n_hl2_bins=64):
+        self.out_nn_bins_file = self.data_dir+'/hidden_layer_2_bins.json'
+        if os.path.exists(self.out_nn_bins_file):
+            self.out_nn_bins_dict = self.get_json_file()
+        get_pickle= (lambda s: pd.read_pickle(f'{sys.path[1]}/{self.file_dir}{self.year}/data_files/{s}_val.pkl'))
+        self.df = pd.concat([get_pickle(s) for s in self.ref_samples], axis='rows', ignore_index=True)
+        self.df = self.df[getZhbbBaseCuts(self.df)].filter(like='NN_')
+        #
+        self.out_nn_bins_dict = {}
+        quantiles = np.linspace(0,1,21)
+        for i in range(n_hl2_bins):
+            self.out_nn_bins_dict[f'NN_{i}'] = np.quantile(self.df[f'NN_{i}'], quantiles)
+            idx = (np.abs(self.out_nn_bins_dict[f'NN_{i}'] - 0.0)).argmin()
+            self.out_nn_bins_dict[f'NN_{i}'][idx] = 0.0
+            self.out_nn_bins_dict[f'NN_{i}'] = list(np.round(self.out_nn_bins_dict[f'NN_{i}'],3))
+        json.dump(self.out_nn_bins_dict, open(self.out_nn_bins_file,'w'), indent=4)
+
+        
+    def get_json_file(self):
+        _out_dict =  json.load(open(self.out_nn_bins_file,'r'))
+        return _out_dict
 
 if __name__ == '__main__':
     test = DataCardShapes([0,200,300,450],[50,80,105,145,200])

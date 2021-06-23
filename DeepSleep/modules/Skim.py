@@ -46,6 +46,7 @@ class Skim :
         self.sample = sample
         self.year   = year
         self.isData = isData
+        self.jec_sys = jec_sys
         #
         self.golden_json = golden_json
         #
@@ -54,11 +55,23 @@ class Skim :
         # prepMeta metadata factory
         self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree, jec_sys)
         # define event information
+        # apply in house jmr 
+        self.fatjets   = self.build_dict(['FatJet_pt','FatJet_msoftdrop']) # jus in case jec
+        self.tmp_fatjets = self.build_dict(cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8lvec']['TLVars_nom'], with_interp=False)
+        self.tmp_fatjets['FatJet_pt'] = self.tmp_fatjets.pop('FatJet_pt_nom') # just rename this variable
+        self.subjets    = self.build_dict(cfg.ana_vars['sjvars'])
+        self.genfatjets = self.build_dict(cfg.ana_vars['genak8jets'])
+        self.gensubjets = self.build_dict(cfg.ana_vars['gensubjets'])
+        from modules.ak8_helper import ak8_helper
+        ak8_helper(self, jec_sys)
+        self.fatjets = self.tmp_fatjets  # hand over correct ak8 info
+        del self.subjets, self.genfatjets, self.gensubjets, self.tmp_fatjets
+        ## end of in-house JMR
+        #
         self.jets      = self.build_dict(
             cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars']+(
                 [] if self.isData else cfg.ana_vars['ak4mcvars']
             ))
-        self.fatjets   = self.build_dict(cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8lvec']['TLVars'])
         self.electrons = self.build_dict(cfg.lep_sel_vars['electron']) 
         self.muons     = self.build_dict(cfg.lep_sel_vars['muon']) 
         self.events    = self.build_dict(cfg.ana_vars['event']+(
@@ -74,11 +87,6 @@ class Skim :
         # wont keep
         self.filters    = self.build_dict(cfg.ana_vars['filters_all']+cfg.ana_vars['filters_year'][self.year]) 
         # ===================== #
-        # define object criteria
-        #self.jet_mask     = self.is_a_jet()
-        #self.fatjet_mask  = self.is_a_fatjet()
-        #self.elec_mask    = self.is_a_electron()
-        #self.muon_mask    = self.is_a_muon()
         # apply object criteria
         self.soft_electrons = self.electrons[self.is_a_soft_electron()]
         self.electrons      = self.electrons[self.is_a_electron()]
@@ -306,7 +314,7 @@ class Skim :
         
 
     def get_event_selection(self): # after objects have been defined
-        return ( (self.jets['Jet_pt'].counts >= 5) &
+        return ( (self.jets['Jet_pt'].counts >= (4 if self.jec_sys is None else 5)) & # n_jets >= 5 is the norm
                  (self.fatjets['FatJet_pt'].counts >= 1) &
                  (self.events['MET_pt'] > 20) &
                  (self.electrons['Electron_pt'].counts + self.muons['Muon_pt'].counts == 1) &
@@ -349,16 +357,17 @@ class Skim :
     # === ~ Skim class === #
                 
 if __name__ == '__main__':
-    year = '2017'
+    year = '2016'
     golden_json=json.load(open(cfg.goodLumis_file[year]))
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/ttHTobb_2018/839BA380-7826-9140-8C16-C5C0903EE949_Skim_12.root'
     #test_file  = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTToSemiLeptonic_2018/D6501B6C-8B76-BF42-B677-64680733A780_Skim_19.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/DEDD55D3-8B36-3342-8531-0F2F4C462084_Skim_134.root' 
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTToSemiLeptonic_2016/CA4521C3-F903-8E44-93A8-28F5D3B8C5E8_Skim_121.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
-    #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
-    #test_file   = '/eos/uscms/store/user/bcaraway/NanoAODv7/TTZToQQ_2018/39EEAA27-A490-D244-B846-A53B2478AFD5_Skim_2.root'
-    test_file    = '/eos/uscms/store/user/bcaraway/SingleE_test_2017.root'
-    _ = Skim(test_file, 'Data_SingleElectron', year, isData=True, jec_sys=None, golden_json=golden_json)
-    AnaDict(_.get_skim()).to_pickle('SingleE_2017.pkl')
+    test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
+    #test_file  = "/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTZToQQ_2018/39EEAA27-A490-D244-B846-A53B2478AFD5_Skim_2.root"
+    #test_file  = "/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/DYJetsToLL_HT_1200to2500_2017/AF8883B9-AB0D-DC4A-82AF-4A58331EFFFA_Skim_0.root"
+    #test_file    = '/eos/uscms/store/user/bcaraway/SingleE_test_2017.root'
+    _ = Skim(test_file, 'TTZToBB', year, isData=False, jec_sys=None, golden_json=golden_json)
+    #AnaDict(_.get_skim()).to_pickle('SingleE_2017.pkl')
     
