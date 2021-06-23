@@ -8,7 +8,7 @@ attrs @ file:///tmp/build/80754af9/attrs_1604765588209/work
 awkward==0.13.0
 awkward1==0.3.1
 backcall==0.2.0
-bleach==3.2.1
+bleach==3.3.0
 blinker==1.4
 brotlipy==0.7.0
 cachetools @ file:///tmp/build/80754af9/cachetools_1611600262290/work
