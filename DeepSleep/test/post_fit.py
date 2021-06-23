@@ -11,9 +11,9 @@ import numpy as np
 np.random.seed(1)
 import re
 import uproot
-import seaborn as sns
+from scipy.stats import norm
 import config.ana_cff as cfg
-from lib.fun_library import save_pdf
+from lib.fun_library import save_pdf, getLaLabel
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib.ticker import AutoMinorLocator, FixedLocator, FormatStrFormatter
@@ -22,13 +22,22 @@ from matplotlib.patches import Patch, Rectangle
 from matplotlib import rc
 
 rc("savefig",dpi=250)
+rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 
 def main():
     # fitDiagnostics_test_2016.root, fitDiagnostics_test_2017.root, fitDiagnostics_test_2018.root, sfitDiagnostics_test_run2.root
     #PostFit("fitDiagnostics_test_2016.root").makeplots()
-    f_list = [f"fitDiagnostics_blind_{i}.root" for i in ['2016','2017','2018','run2']] # test
+    #f_list = [f"fitDiagnostics_blind_{i}.root" for i in ['2016','2017','2018','run2']] # test
+
+    f_list = ['fitDiagnostics_partblind_run2.root']
+    #f_list = ['fitDiagnostics_partblindalt_run2.root']
+
+    #f_list = ['fitDiagnostics_Zh_M_NNcuts_run2.root']
+    #f_list = ['fitDiagnostics_partblind_2017.root']
+    #f_list = ['fitDiagnostics_corrlf_run2.root']
+    
     for f in f_list:
         postfit = PostFit(f)
         save_pdf(f.replace('root','pdf'))(postfit.makeplots)() # decorator
@@ -43,12 +52,36 @@ class PostFit:
     #hists  = {}  # dictionary with format Xfit:ZhptX:process:values
     #edges  = {}  # dictionary with format ZhptX:edges
     fit_dir = 'fitdiag_roots/'
+    gof_dir = 'fitdiag_roots/gof'
 
-    def __init__(self,fitroo, kinem=None):
-        self.fitroo = fitroo
-        self.kinem = kinem
-        self.year = re.search(r'(201\d|run2)',fitroo).group()
-        self.lumi = round(cfg.Lumi[self.year],1) if self.year != 'run2' else 137
+    ch_dict = {
+        'y2016': '2016',
+        'y2017': '2017',
+        'y2018': '2018',
+        'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
+        'y2016_Zhpt1': r'2016, $200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'y2016_Zhpt2': r'2016, $300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'y2016_Zhpt3': r'2016, ${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
+        'y2017_Zhpt1': r'2017, $200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'y2017_Zhpt2': r'2017, $300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'y2017_Zhpt3': r'2017, ${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
+        'y2018_Zhpt1': r'2018, $200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
+        'y2018_Zhpt2': r'2018, $300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
+        'y2018_Zhpt3': r'2018, ${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$',
+    }
+
+    def __init__(self,fitroo, kinem=None, t_labels=None):
+        self.fitroo     = fitroo
+        self.name       = '_'.join(fitroo.replace('.root','').split('_')[1:])
+        self.gofroo     = f"{self.gof_dir}/higgsCombine_{self.name}.GoodnessOfFit.mH120.root"
+        self.gofroo_toy = f"{self.gof_dir}/higgsCombine_{self.name}_toy.GoodnessOfFit.mH120.root"
+        self.kinem      = kinem
+        self.t_labels   = np.array(t_labels) if t_labels is not None else t_labels
+        self.year       = re.search(r'(201\d|run2)',fitroo).group()
+        self.lumi       = round(cfg.Lumi[self.year],1) if self.year != 'run2' else 137
+        self.chi2_arr   = {'prefit':[], 'postfit':[]}
         self.hists = {}
         self.edges = {}
         self.load_info()
@@ -58,21 +91,29 @@ class PostFit:
             # store, prefit # shapes_prefit, shapes_fit_s
             def to_dict(p): # takes prefit or postfit
                 pp_dict = {'prefit' :'shapes_prefit',
-                           'postfit':'shapes_fit_s'}
+                           'postfit':('shapes_fit_b' if 'partblind' in self.fitroo else 'shapes_fit_s')}
                 suf = (lambda b: b.decode().split(';')[0])
                 self.hists[p] = {}
                 for ch in roo[pp_dict[p]]:
                     ch_str = suf(ch)
                     self.hists[p][ch_str] = {}
-                    if ch_str not in self.edges:
-                        self.edges[ch_str]=roo[pp_dict[p]][ch]['TTBar'].edges # dummy use of TTBar
+                    kill_empty = (lambda h_: h_[roo[pp_dict[p]][ch]['total'].values > 0]) # default non nnqc post fit 
+                    if ch_str not in self.edges and self.t_labels is None:
+                        self.edges[ch_str]=np.array(roo[pp_dict[p]][ch]['total'].edges) # dummy use of TTBar
+                        self.edges[ch_str]=np.append(self.edges[ch_str][0],self.edges[ch_str][1:][roo[pp_dict[p]][ch]['total'].values > 0]) # only kill empty right-most bin
+                    elif self.t_labels is not None:
+                        # address np.inf limit
+                        t_labels = np.where(self.t_labels != np.inf, self.t_labels,
+                                            2*self.t_labels[-2]-self.t_labels[-3])
+                        self.edges[ch_str]=t_labels
+                        kill_empty = (lambda h_: h_) # dont drop nnqc post fit bins
                     for hist in roo[pp_dict[p]][ch]:
                         hist_str = suf(hist)
                         h = roo[pp_dict[p]][ch][hist]
                         try:
-                            self.hists[p][ch_str][hist_str] = {'values':h.values,  'err':np.sqrt(h.variances)}
+                            self.hists[p][ch_str][hist_str] = {'values':kill_empty(h.values),  'err':kill_empty(np.sqrt(h.variances))}
                         except:
-                            self.hists[p][ch_str][hist_str] = {'values':h.yvalues, 'errup':h.yerrorshigh,'errdw':h.yerrorslow}
+                            self.hists[p][ch_str][hist_str] = {'values':kill_empty(h.yvalues), 'errup':kill_empty(h.yerrorshigh),'errdw':kill_empty(h.yerrorslow)}
             #
             to_dict('prefit')
             to_dict('postfit')
@@ -83,66 +124,100 @@ class PostFit:
         #self.do1Pull = do1Pull
         self.pulls = np.array([])
         for ch in self.hists['prefit']: # 'prefit is just a placeholder to loop over pt'
-            self.init_axes()
-            self.fig.suptitle(ch)
+            self.init_axes(channel=ch)
+            self.fig.suptitle(self.ch_dict[ch], fontsize=10)
             self.make_stackhist(ch)
             if doPull:
-                self.init_axes(opt='pulls')
-                self.fig.suptitle(ch)
-                self.make_pulls(ch)
+                self.init_axes(opt='pulls',channel=ch)
+                self.fig.suptitle(ch, fontsize=10)
+                self.make_pulls(ch, pre_post='postfit')
         if self.doPull:
             self.plot_1dpulls()
+            try:
+                self.plot_1dgof()
+            except FileNotFoundError:
+                pass
+        #print(f"data test statistic: prefit:{np.nansum(self.chi2_arr['prefit'])} | postfit: {np.nansum(self.chi2_arr['postfit'])}") 
+        print(f"data test statistic: prefit:{-2*np.log(np.nanprod(self.chi2_arr['prefit']))} | postfit: {-2*np.log(np.nanprod(self.chi2_arr['postfit']))}") 
 
     def plot_1dpulls(self):
-        #plt.show()
-        #plt.close('all')
-        #print(self.year)
-        #print(len(self.pulls))
-        #print(self.pulls[abs(self.pulls)>3].flatten())
-        fig, ax = plt.subplots(1,1)
-        from scipy.stats import norm
-        import seaborn as sns
+        fig, ax = plt.subplots()
+        print(self.pulls)
         self.pulls = self.pulls[(~np.isnan(self.pulls)) & (self.pulls != 0)]
         mu, std = norm.fit(self.pulls.flatten())
-        #h = ax.hist(self.pulls.flatten(), 
-        #            histtype='step',
-        #            #bins=[-4,-3.5,-3.0,-2.5,-2.0,-1.25,-0.75,-0.25,
-        #            #0.25,0.75,1.25,2.0,2.5,3,3.5,4])#[-4,-3,-2,-1,1,2,3,4])
-        #            bins = 40,
-        #            density=True)
-        #xmin, xmax = ax.get_xlim()
         xmin, xmax = np.min(self.pulls), np.max(self.pulls)
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mu, std)
         ax.plot(x, p, 'k', linewidth=2)
-        #sns.distplot(self.pulls, fit=norm, kde=False,ax=ax)
-                #bins=[0,1,2,3,4])
-        #print('mean:',self.pulls.flatten())
-        #print('mean:',np.nanmean(self.pulls.flatten()))
-        #print('std:',np.nanstd(self.pulls.flatten()))
+        h = ax.hist(self.pulls.flatten(), 
+                    histtype='step',
+                    #bins=[-4,-3.5,-3.0,-2.5,-2.0,-1.25,-0.75,-0.25,
+                    #0.25,0.75,1.25,2.0,2.5,3,3.5,4])#[-4,-3,-2,-1,1,2,3,4])
+                    bins = 20,
+                    density=True)
+        fig.text(x=.60,
+                 y=.75,
+                 s=f'mean:{mu:7.3f}\nstd:{std:9.3f}')
         fig.text(x=.75,
                  y=.75,
-                 s=f'Mean: {np.nanmean(self.pulls.flatten()):.3f}\nStd   : {np.nanstd(self.pulls.flatten()):.3f}')
-        ax.set_xlabel('Pull'+('' if self.kinem is None else f' ({self.kinem})'))
+                 color='tab:blue',
+                 s=f'mean:{np.nanmean(self.pulls.flatten()):7.3f}\nrms:{np.sqrt(np.nanmean(self.pulls.flatten()**2)):9.3f}')
+        self.end_pullsgof(fig, ax, title='Pulls')
+        #ax.set_xlabel('Pull'+('' if self.kinem is None else f' ({self.kinem})'))
+        #ax.set_ylabel('Norm. / bin')
+        #ax.xaxis.set_minor_locator(AutoMinorLocator())
+        #ax.yaxis.set_minor_locator(AutoMinorLocator())
+        #ax.grid(False)
+        #fig.text(0.15,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 12)
+        #fig.text(0.70,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
+        #ax.set_title(f'Pulls in {self.year}')
+
+        #fig.suptitle(f'Pulls in {self.year}')
+        #plt.show()
+
+    def plot_1dgof(self):
+        fig, ax = plt.subplots()
+        t     = uproot.open(self.gofroo)['limit']
+        t_toy = uproot.open(self.gofroo_toy)['limit']
+        gof_data =  t.array('limit')[0]
+        gof_toy  =  t_toy.array('limit')
+        mu, std = norm.fit(gof_toy.flatten())
+        xmin, xmax = np.min(gof_toy), np.max(gof_toy)
+        x = np.linspace(xmin, xmax, 100)
+        p = norm.pdf(x, mu, std)
+        ax.plot(x, p, 'k', linewidth=2)
+        ax.hist(gof_toy.flatten(), 
+                histtype='step',density=True)
+        #print(gof_data)
+        data_stat = gof_data# - mu)/std
+        pscore    = len(gof_toy[gof_toy>=gof_data])/len(gof_toy)
+        fig.text(
+            x=.65,
+            y=.75,
+            s=f'Data Stat: {data_stat:.3f}\nP-score: {pscore:.3f}')
+        ax.axvline(x=data_stat, color='red', linewidth='1', linestyle='-')
+        self.end_pullsgof(fig, ax, title='GOF')
+
+    def end_pullsgof(self, fig, ax, title='Pulls'):
+        ax.set_xlabel(title+('' if self.kinem is None else f' ({self.kinem})'), fontsize=8)
         ax.set_ylabel('Norm. / bin')
         ax.xaxis.set_minor_locator(AutoMinorLocator())
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         ax.grid(False)
-        fig.text(0.15,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 12)
-        fig.text(0.70,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
-        ax.set_title(f'Pulls in {self.year}')
-        #fig.suptitle(f'Pulls in {self.year}')
-        #plt.show()
+        fig.text(0.15,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 10)
+        fig.text(0.70,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+        #ax.set_title(f'{title} for {self.year}')
     #
-    def init_axes(self, opt=''):
+    def init_axes(self, opt='', channel=''):
         # init fig and four axes
         #fig, (ax1t, ax1b, ax2t, ax2b) = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
         fig_ax_map = {
-                '' : (lambda _ : plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # 
-            'pulls': (lambda _ : plt.subplots(2,1, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # just 1 axes for pulls
+                '' : (lambda  : plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # 
+            'pulls': (lambda  : plt.subplots(2,1, sharex=True, gridspec_kw={'height_ratios':[3,1]})), # just 1 axes for pulls
+            'blind' : plt.subplots
         }
         #fig, axs = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
-        fig, axs = fig_ax_map[opt](None)
+        fig, axs = fig_ax_map[opt]()
         fig.subplots_adjust(
             top=0.88,
             bottom=0.11,
@@ -152,15 +227,26 @@ class PostFit:
             wspace=0.3
         )
         self.fig = fig
-        self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 12)
-        self.fig.text(0.70,0.89, f'{self.lumi}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
+        #lumi = cfg.Lumi[re.search(r'201\d',channel).group()]
+        lumi= self.lumi
+        if opt == 'pulls':
+            self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 10)
+            self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+        elif opt == 'blind':
+            self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
+            self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+        else:
+            self.fig.text(0.085,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 8)
+            self.fig.text(0.55,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 8)
+            self.fig.text(0.30,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 8)
+            self.fig.text(0.765,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 8)
         self.axs = np.array(axs) # [1:[t,b],2:[t,b]]
     #
     def do_stack(self, d, top_axs, ch):
-
         ycumm = None
         # stack portion
-        ordered_list = re.findall(rf'tt[H,Z]\d', ' '.join(list(d.keys()))) + ['other','Vjets','ttX','tt_2b','tt_bb','TTBar']
+        #ordered_list = re.findall(rf'tt[H,Z]\d', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_2b','tt_bb','TTBar']
+        ordered_list = re.findall(rf'tt[H,Z]\d', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_B','TTBar']
         #colors =  plt.cm.gist_rainbow(np.linspace(0,1,len(ordered_list)))
         colors =  plt.cm.tab20c(np.linspace(0,1,20))[:8]
         colors = np.append(colors, plt.cm.gist_rainbow(np.linspace(0,1,6)), axis=0)
@@ -176,8 +262,9 @@ class PostFit:
                 ycumm = y 
             c = colors[j]
             #c = colors[j + (len(colors)//2)*(j % 2) - 1*((j+1)%2)]
+            label = getLaLabel(k)[0]
             top_axs.fill_between(self.edges[ch],ycumm,ycumm-y,step="post", 
-                                 linewidth=0, color=c, label=k)
+                                 linewidth=0, color=c, label=label)
             # add total error and data points
         top_axs.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=d['data']['values'],
                      xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[d['data']['errdw'],d['data']['errup']], 
@@ -193,6 +280,11 @@ class PostFit:
             d = self.hists[p][ch]
             ## stack plot here
             self.do_stack(d, axt, ch)
+            # --- for testing 
+            #self.chi2_arr[p] = np.append(self.chi2_arr[p], np.power(d['data']['values']-d['total']['values'],2)/d['data']['values'])
+            #self.chi2_arr[p] = np.append(self.chi2_arr[p], (np.power((d['data']['values']-d['total']['values']),2))/d['data']['values'])
+            self.chi2_arr[p] = np.append(self.chi2_arr[p], np.exp( -1*np.power(d['data']['values']-d['total']['values'],2) / (2*(d['total']['values']-np.power(d['total']['err'],2))) ))
+            # --- end testing 
             # add data/mc plot underneath
             y       =  d['data']['values']/d['total']['values']
             yerrdw  =  d['data']['errdw'] /d['total']['values']
@@ -205,17 +297,28 @@ class PostFit:
             #
             self.endaxs(axt,axb,p, ch=ch)
             self.addlegend()
+        #
         #plt.show()
     #
-    def make_pulls(self,ch):
+    def make_pulls(self,ch, pre_post='postfit'):
         # only for post fit
         axt = self.axs[0]
         axb = self.axs[1]
-        d = self.hists['postfit'][ch]
+        d = self.hists[pre_post][ch]
         ## stack portion
         self.do_stack(d, axt ,ch)
         # Pull def = (Data - Pred.) / sqrt( Pred. + Pred.err^2 )
-        y =        (d['data']['values'] - d['total']['values']) / np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2))
+        #y =        (d['data']['values'] - d['total']['values']) / np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2))
+        
+        num = np.subtract(d['data']['values'], d['total']['values'])
+        den = np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2) ) # Kens definition
+        #den = np.sqrt( abs(np.subtract( d['total']['values'], np.power( d['total']['err'] ,2) ))) # Desy definition
+
+
+        #y = (d['data']['values'] - d['total']['values']) / np.sqrt( d['total']['values'] - np.power( d['total']['err'] ,2))
+        y = num/den
+        #print('Pull: ',y)
+        #print(y)
         self.pulls = np.append(self.pulls, y)
         #yerrdw  =  (d['data']['errdw'] ) / np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2))
         #yerrup  =  (d['data']['errup'] ) / np.sqrt( d['total']['values'] + np.power( d['total']['err'] ,2))
@@ -224,55 +327,63 @@ class PostFit:
                      fmt='.', label='data', color='k')
         #self.make_error_boxes(axb, (self.edges[ch][1:]+self.edges[ch][:-1])/2, np.ones_like(d['total']['values']),
         #                      xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err']/d['total']['values'], label='stat+sys')
-        self.endaxs(axt,axb,'postfit',self.doPull, ch)
+        self.endaxs(axt,axb,pre_post,self.doPull, ch)
         self.addlegend(opt='pulls')
         
 
     def endaxs(self,axt,axb,p,doPull=False, ch='Zhpt1'):
         #axt
-        axt.set_xlim(0,self.edges[ch][-1])
+        axt.set_xlim(self.edges[ch][0],self.edges[ch][-1])
         axt.set_ylim(0.)
 
-        if axt.get_ylim()[1] > 1000:
-            axt.set_yscale('log')
-            axt.set_ylim(ymin=1., ymax=axt.get_ylim()[1] * 10)
-        else:
-            axt.yaxis.set_minor_locator(AutoMinorLocator())
+        #if axt.get_ylim()[1] > 1000:
+        axt.set_yscale('log')
+        axt.set_ylim(ymin=1., ymax=axt.get_ylim()[1] * 10)
+        #else:
+        #     axt.yaxis.set_minor_locator(AutoMinorLocator())
 
-        axt.set_ylabel('Events / bin')
-        axt.set_title(rf'${p}$', y=1.0, pad=-14)
-        axt.xaxis.set_minor_locator(AutoMinorLocator())
+        axt.set_ylabel('Events / bin', fontsize=8)
+        axt.set_title(rf'${p}$', y=1.0, pad=-14, fontsize=8)
+        axt.xaxis.set_minor_locator(AutoMinorLocator(5))
 
         axt.tick_params(which='both', direction='in', top=True, right=True)
         #axb
 
-        axb.xaxis.set_minor_locator(AutoMinorLocator())
+        axb.xaxis.set_minor_locator(AutoMinorLocator(5))
         axb.yaxis.set_minor_locator(AutoMinorLocator())
         axb.tick_params(which='both', direction='in', top=True, right=True)
         if not doPull:
             axb.axhline(1, color='k', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
-            axb.set_ylim(0.5,1.5)
-            axb.yaxis.set_major_locator(FixedLocator([.75,1,1.25]))
+            axb.set_ylim(0.0,2.00)
+            axb.yaxis.set_major_locator(FixedLocator([.5,1,1.5]))
             axb.yaxis.set_major_formatter(FormatStrFormatter('%g'))
-            axb.set_ylabel('data/MC' if 'post' not in p else 'data/pred.')
+            axb.set_ylabel('data/MC' if 'post' not in p else 'data/pred.', fontsize=8)
         else:
-            axb.set_ylabel('Pull')
-        axb.set_xlabel(('' if self.kinem is None else self.kinem+' ')+'bin #')
+            axb.axhline(0, color='red', linewidth='1', linestyle='--', dashes=(4,8), snap=True)
+            axb.set_ylim(-5.0,5.0)
+            axb.yaxis.set_major_locator(FixedLocator([-4,-2,0.0,2,4]))
+            axb.yaxis.set_major_formatter(FormatStrFormatter('%g'))
+            axb.set_ylabel('Pull', fontsize=8)
+        axb.set_xlabel(('' if self.kinem is None else self.kinem+' ')+('bin #' if self.t_labels is None else ''), fontsize=8)
         axb.grid(True)
         
     def addlegend(self, opt=''):
         leg_map = {
-            '': (lambda _: self.axs[0,1]), # defualt
-            'pulls': (lambda _: self.axs[0]), # pulls
+            ''     : (lambda : self.axs[0,1]), # defualt
+            'pulls': (lambda : self.axs[0]), # pulls
+            'blind': (lambda : self.axs), # pulls
             }
         #ax = self.axs[0,1]
-        ax = leg_map[opt](None)
+        ax = leg_map[opt]()
         handles, labels = ax.get_legend_handles_labels()
         hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w')
         handles = handles + [hatch_patch]
         labels  = labels + ['stat+sys.']
-        ax.legend(handles,labels, bbox_to_anchor=(1.00,1), 
-                  fontsize='xx-small', framealpha = 0, loc='upper left')
+        ax.legend(handles,labels, bbox_to_anchor=(1.00,.90), 
+                  handlelength=0.7, handletextpad=0.25, handleheight=0.7,
+                  ncol=2,
+                  fontsize='xx-small', framealpha = 0, loc='upper right')
+        #plt.show()
 
 
     @staticmethod

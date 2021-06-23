@@ -1,7 +1,7 @@
 # Main data container for analysis 
 # created by: Bryan Caraway
 from collections import UserDict
-import pickle
+import pickle5 as pickle
 
 
 class AnaDict (UserDict): # may want to move this to different file
@@ -13,6 +13,12 @@ class AnaDict (UserDict): # may want to move this to different file
     # methods
     def loc(self,keys):
         return self({k: self.data[k] for k in keys})
+    def pad(self, _i):
+        # i is the amount to pad
+        return self({k: self.data[k].pad(_i) for k in self.data})
+    def fillna(self, _i):
+        # i is the value to fill na
+        return self({k: self.data[k].fillna(_i) for k in self.data})
     def sum(self):
         return sum(self.data.values())
     def values(self):
@@ -29,6 +35,7 @@ class AnaDict (UserDict): # may want to move this to different file
     #class methods
     @classmethod
     def read_pickle(cls,input_name):
+        print(input_name)
         with open(input_name, 'rb') as handle:
             return cls(pickle.load(handle))
     @classmethod

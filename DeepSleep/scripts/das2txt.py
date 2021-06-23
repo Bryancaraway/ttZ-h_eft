@@ -38,6 +38,7 @@ def das_from_cfg(cfg_file):
         print(f"\nWriting to: {ofile_name}\n")
         #outf.writelines(out_text)
         json.dump(out_text, outf, indent=4)
+    check_other_end(ofile_name)
         
     
         
@@ -135,5 +136,5 @@ def check_xrdcp(roo):
 if __name__ == '__main__':
     if not os.path.exists(sys.argv[1]) : raise NameError(sys.argv[1]) 
     i_file = sys.argv[1]
-    #das_from_cfg(cfg_file)
-    check_other_end(i_file)
+    das_from_cfg(i_file)
+    #check_other_end(i_file)

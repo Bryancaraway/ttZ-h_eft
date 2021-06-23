@@ -30,7 +30,7 @@ import config.ana_cff as cfg
 import config.process_norms as p_norms
 from lib.fun_library import weighted_quantile, getZhbbBaseCuts, getZhbbWeight, t2Run
 from lib.TH1 import export1d
-from lib.datacard_shapes import DataCardShapes
+from lib.datacard_shapes import DataCardShapes, DataCardShapes_NN
 from makeDatacard import MakeDataCard, Systematic, ShapeSystematic
 #
 import uproot
@@ -50,54 +50,87 @@ use datacardshapes class to create nn bins
 '''
 
 #
-target = sys.argv[1]
+target = ''
+if len(sys.argv) > 1:
+    target = sys.argv[1]
 doNNcuts = False
 if len(sys.argv) > 2: # means do nn cuts
     doNNcuts = True
+
+#nn = 'NN'
+nn = cfg.nn
     
 # only targets listed here may be used
-tbins_map = {
-    #'Zh_M' :[50,80,105,145,200],
+tbins_map = {**DataCardShapes_NN().out_nn_bins_dict,**{
+    'Zh_M' : np.arange(50,210,10),
     #'Zh_pt':[200,300,450,np.inf],
     #'nBottoms_drLeptonCleaned':[1.5,2.5,3.5,4.5,10],
 
     # NN variables onward
-    'max_lb_dr':[0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf], # NN
-    'max_lb_invM':[0,50,100,150,200,np.inf], # NN
-    'n_Zh_btag_sj':[-0.5,0.5,1.5,2.5], #NN
+    'outZH_b1_pt':[30,60,90,150,210,300,500,np.inf],
+    'outZH_b2_pt':[30,60,90,150,210,np.inf],
+    'outZH_b1_score':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'outZH_b2_score':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],    
+    'outZh_q1_pt':[30,60,90,150,210,300,500,np.inf],
+    'outZh_q2_pt':[30,60,90,150,210,300,500,np.inf],
+    'outZh_q1_btag':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'outZh_q2_btag':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],    
+    'outZH_b1_q_mindr':[0.4, 0.8, 1.2, 2.4, np.inf],
+    'outZH_b2_q_mindr':[0.4, 0.8, 1.2, 2.4, np.inf],
+    'outZH_q_q_dr_nearb1': [0.4, 0.8, 1.2, 2.4, 3.6, np.inf],
+    'outZH_q_q_dr_nearb2': [0.4, 0.8, 1.2, 2.4, 3.6, np.inf],
+    'outZH_qq_M_nearb1':[0,50,100,150,200,np.inf],
+    'outZH_qq_M_nearb2':[0,50,100,150,200,np.inf],
+    'outZH_b1q_M':[0,50,100,150,200,np.inf],
+    'outZH_b1_qq_dr': [0.0, 1.2, 2.4, np.inf], 
+    'outZH_b2_qq_dr': [0.0, 1.2, 2.4, np.inf], 
+    'outZH_b1qq_M': [0,50,100,150,200,np.inf],
+    'outZH_b2qq_M': [0,50,100,150,200,np.inf],
+    'ZH_b1qq_dr':  [0.0, 0.8, 1.2, 2.4, 3.6, np.inf], 
+    'ZH_b2qq_dr':  [0.0, 0.8, 1.2, 2.4, 3.6, np.inf], 
+    'ZH_lbb1qq_dr': [0.0, 0.8, 1.2, 2.4, 3.6, np.inf], 
+    'ZH_lbb2qq_dr': [0.0, 0.8, 1.2, 2.4, 3.6, np.inf], 
+    'l_b2_mtb': [0,50,100,150,200,np.inf],
+    'Zh_closeb_invM': [0,100,150,200,300,np.inf],  
+    'n_ak8jets':[-0.5,0.5,1.5,2.5,np.inf],    
     'n_ak4jets':[3.5,4.5,5.5,6.5,7.5,np.inf], # NN
-    'Zh_score':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0], # NN
-    'best_rt_score':[0,.70,.8,.9,1], # NN
-    'n_q_outZh':[-0.5,0.5,1.5,2.5,3.5,4.5,np.inf],# NN
-    'n_b_outZh':[-0.5,0.5,1.5,2.5,3.5,4.5,np.inf], 
-    'Zh_l_dr':[0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf],
-    'n_Zh_sj':[-0.5,0.5,1.5,np.inf],
-    'n_b_inZh':[-0.5,0.5,1.5,np.inf], # NN
+    'n_ak8_Zhbb':[-0.5,0.5,1.5,np.inf],
+    'outZh_max_ak8sdM' : [50,100,150,200,np.inf],
+    'outZh_b12_m' : [0,50,100,150,200,np.inf],
+    'outZh_b12_dr': [0.4, 1.2, 2.4, 3.6, np.inf],
+    'ht_b': [0,200,300,500,700,900,1500,np.inf],
+    'ht_outZh': [0,300,500,700,900,1500,np.inf],
+    'n_Zh_btag_sj':[-0.5,0.5,1.5,np.inf],
     'Zh_bestb_sj':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
     'Zh_worstb_sj':[0,.25,.5,.75,1.0],
-    'Zh_eta':[-2.4,-2.0,-1.6,-1.2,-0.8,-0.4,0.0,0.4,0.8,1.2,1.6,2.0,2.4],
-    'Zh_deepB':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
-    'b1_outZh_score':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
-    'best_Zh_b_invM_sd':[50,100,125,150,175,200,300,np.inf],
-    'Zh_b1_invM_sd':[50,100,125,150,175,200,300,np.inf],
-    'Zh_b2_invM_sd':[50,100,125,150,175,200,300,np.inf],
+    'ak4_bestb_inZH':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
+    'ak4_worstb_inZH':[0,.25,.5,.75,1.0],
+    'nonZhbb_b1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
+    'nonZhbb_q1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
+    'inZhb_outZhb_dr': [0.0, 0.8, 1.2, 1.6, 2.0, 2.4, np.inf], 
+    'Zh_l_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
     'Zh_l_invM_sd':[50,100,125,150,175,200,np.inf],
-    'Zh_Wscore':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
-    'Zh_Tscore':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
-    'n_ak8_Zhbb':[-0.5,0.5,1.5,np.inf],
-    'n_ak8jets':[-0.5,0.5,1.5,2.5,np.inf],
-    'nonZhbb_b1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf],
-    'nonZhbb_b2_dr':[0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, np.inf],
-    'Zh_bbscore_sj':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0,1.25,1.50,1.75,2.00],
-    'b1_over_Zhpt':[0.0,0.2,0.4,0.6,0.8,1.0],
-    'bb_over_Zhpt':[0.0,0.2,0.4,0.6,0.8,1.0],
-    'spher':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
-    'aplan':[0,.025,.05,.075,.1,.15,.20,.25,.30,.35,np.inf],
-    'n_q_inZh':[-0.5,0.5,1.5,np.inf]
-    
-}
-if target not in tbins_map:
+    'l_b1_invM':[50,100,125,150,175,200,np.inf],
+    'l_b2_invM':[50,100,125,150,175,200,np.inf],
+    'l_b1_dr':[0.4,0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
+    'l_b2_dr':[0.4, 1.2, 1.6, 2.0, 2.4, np.inf],
+    'spher':[0,.1,.2,.3,.4,.5,.6,.7,.8,1.0],
+    'aplan':[0,.025,.05,.075,.1,.15,.20,.25,.30,np.inf],
+    'n_b_inZh':[-0.5,0.5,1.5,np.inf], # NN
+    'n_q_inZh':[-0.5,0.5,1.5,np.inf],
+    'n_q_outZh':[-0.5,0.5,1.5,2.5,3.5,4.5,np.inf],# NN
+    'n_b_outZh':[1.5,2.5,3.5,4.5,np.inf], 
+    'Zh_bbvLscore':[.8,.85,.9,1.0], # NN
+    # ---
+    # Control Plots
+    # ---
+}}
+
+
+
+if target not in tbins_map and __name__ == '__main__':
     raise KeyError(f"{target} not in 'tbins_map'!!!\nOnly the following are available: {list(tbins_map.keys())}")
+
     
 def get_sumw_sumw2(df, weights, year):
     #ret_target = (lambda df: (df['NN'].to_numpy(), df['Zh_M'].to_numpy()))
@@ -149,7 +182,7 @@ class MakeQCDataCard(MakeDataCard):
         #self.years = ['2018']
         self.isblind = isblind
         self.dc_bins = 1 #len(tbins_map[target])#len(pt_bins[1:])
-        self.bkg_v  = super().weights + super().weight_sys + ['process',target]
+        self.bkg_v  = super().weights + super().weight_sys + ['process','sample',target]
         self.sig_v  = self.bkg_v + ['genZHpt']
         self.data_v = ['process',target]
         #
@@ -175,29 +208,49 @@ class MakeQCDataCard(MakeDataCard):
         
     def updatedict(self, p, v, y=''):
         if doNNcuts:
-            v = v +['NN']
+            v = v +[nn] + ([] if 'n_ak4jets' in v else ['n_ak4jets']) + ([] if 'Zh_pt' in v else ['Zh_pt'])
         sub_f_dir = 'data_files' if 'Data' in p else 'mc_files'
         if not os.path.exists(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl'): return 
-        df = pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(items=v)
-        if 'TTbb' in p : df = pd.concat([df,pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(regex=r'\w*_weight')],axis='columns') # to get special ttbb normalizations
-        if 'Data' not in p: # clip mu_rf, isr/fsr, pdf at 3sigma percentile, 99.7% (.15%,99.85%)
-            func = np.nanpercentile # because this is a long name
-            [df[v_str].clip(func(df[v_str].values,.15), func(df[v_str].values,99.85), inplace=True ) 
-             for v_str in [ f'{s}_{ud}' for s in ['mu_r','mu_f','mu_rf','ISR','FSR','pdfWeight'] for ud in ['Up','Down']] ]
+        if p in cfg.all_sys_samples:
+            v = [var for var in v if var not in self.weight_sys] # save memory
+            df = pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(items=v)
+        else:
+            df = pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(items=v)
+            if 'Data' not in p: # clip mu_rf, isr/fsr, pdf at 3sigma percentile, 99.7% (.15%,99.85%)
+                func = np.nanpercentile # because this is a long name
+                for ud in ['Up','Down']:
+                    for v_str in [ f'{s}_{ud}' for s in ['mu_r','mu_f','mu_rf','ISR','FSR','pdfWeight']]:
+                        df.loc[:,v_str] = df[v_str].clip(func(df[v_str].values,.15), func(df[v_str].values,99.85))
+
         #df['Zh_pt'].clip(pt_bins[0]+1,pt_bins[-1]+1, inplace=True)
         #df['pt_bin'] = pd.cut(df['Zh_pt'], bins=pt_bins+[500],
         #                      labels=[i_bin for i_bin in range(len(pt_bins))])
         if doNNcuts:
-            group = df[df['NN'] >= 0.0].groupby(by='process')
+            #group = df[df[nn] >= 0.0].groupby(by='process')
+            group = df[(df[nn] >= 0.0) & (df['n_ak4jets'] >= 5)].groupby(by='process') # trying >= 5 cut
+            #group = df[(df[nn] >= 0.35) & (df['n_ak4jets'] >= 5) & (df['Zh_pt'] > 300)].groupby(by='process') # trying >= 5 cut
         else:
             group = df.groupby(by='process')
+        if 'Data' not in p:
+            for n,g in group:
+                if n not in ['ttH','ttZ'] + self.accepted_bkg: 
+                    df.drop(g.index, inplace=True)
         # extract sys type (if any)
         sys = '' 
+        data_dict = {}
         if p in cfg.all_sys_samples: 
             sys =  '_'+p.split('_')[-1] # format [process_name]_[systype]
-            if 'hdamp' in sys and 'TTbb' in p: sys = sys.replace('hdamp','hdamp_ttbb') 
-            if 'JES' in sys or 'JER' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
-            #if 'JES' in sys or 'JER' in sys or 'UE' in sys or 'hdamp' in sys:   sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down') # only run this is running fully uncorrelated version
+            if 'sys' in p: # hdamp and UE here
+                data_dict.update({f"{n}_{y}_hdamp{'_ttbb' if 'ttbb' in p else ''}Up": g[g['sample'].str.contains('hdampUp')] for n,g in group})
+                data_dict.update({f"{n}_{y}_hdamp{'_ttbb' if 'ttbb' in p else ''}Down": g[g['sample'].str.contains('hdampDown')] for n,g in group})
+                if 'ttbb' not in p:
+                    data_dict.update({f'{n}_{y}_UEUp': g[g['sample'].str.contains('UEUp')] for n,g in group})
+                    data_dict.update({f'{n}_{y}_UEDown': g[g['sample'].str.contains('UEDown')] for n,g in group})
+                return data_dict
+            #if 'h' in sys and 'ttbb' in p: sys = sys.replace('hdamp','hdamp_ttbb') 
+            if 'jmr' in sys or 'jms' in sys or 'jer' in sys :   
+                sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
+            
         data_dict = {f"{n.replace('Data','data_obs')}_{y}{sys}": g for n,g in group} # iterate over name and content
         return data_dict
 
@@ -229,6 +282,7 @@ class MakeQCDataCard(MakeDataCard):
             #        to_flat = (lambda a : a[pt_bin,:,:].flatten())
             #    temp_dict = {'sumw' : to_flat(v['sumw'])}#* (1 if y != '2017' else 3.3032)}#2.2967)} # to just scale to full run2
                 #hist_name = f'Zhpt{pt_bin+1}_{process}{sys}'
+            print(p)
             hist_name = f'{target}_{process}{sys}'
             temp_dict = {'sumw' :v['sumw'],
                          'sumw2':v['sumw2']}

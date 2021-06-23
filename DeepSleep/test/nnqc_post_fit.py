@@ -12,7 +12,8 @@ import re
 import uproot
 import seaborn as sns
 import config.ana_cff as cfg
-from lib.fun_library import save_pdf
+from lib.fun_library import save_pdf, getLaLabel
+from qcDatacard import tbins_map
 from post_fit import PostFit
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -22,16 +23,21 @@ from matplotlib.patches import Patch, Rectangle
 from matplotlib import rc
 
 rc("savefig",dpi=250)
+rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
-@save_pdf('qc_nn_postfits.pdf')
+fit_vars = cfg.withbbvl_dnn_ZHgenm_vars
+fit_vars = [f'NN_{i}' for i in range(64)]
+
+#@save_pdf('qc_nn_postfits.pdf')
+@save_pdf('qc_nn_postfits_hl2.pdf')
+#@save_pdf('qc_zhm_postfit.pdf')
 def main():
-    dnn_vars = set(cfg.dnn_ZH_vars)
-    print(len(dnn_vars))
-    for v in dnn_vars:
+    print(len(fit_vars))
+    for v in fit_vars:
+        print(v)
         froo = f'fitDiagnostics_{v}_NNcuts_run2.root'
-        print(froo)
-        qc= QCNNPostFit(froo,v)
+        qc= QCNNPostFit(froo,v,tbins_map[v])
         qc.makeplots(doPull=True)
 
 class QCNNPostFit(PostFit):
@@ -40,15 +46,15 @@ class QCNNPostFit(PostFit):
     from already existing class
     '''
 
-    def __init__(self, fitroo, kinem):
-        super().__init__(fitroo, kinem=kinem)
+    def __init__(self, fitroo, kinem, t_labels):
+        super().__init__(fitroo, kinem=kinem, t_labels=t_labels)
         
-
     def do_stack(self, d, top_axs, ch):
 
         ycumm = None
         # stack portion
-        ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['other','Vjets','ttX','tt_2b','tt_bb','TTBar']
+        #ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_2b','tt_bb','TTBar']
+        ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_B','TTBar']
         #colors =  plt.cm.gist_rainbow(np.linspace(0,1,len(ordered_list)))
         colors =  plt.cm.tab10(np.linspace(0,1,10))[0:2]
         colors = np.append(colors, plt.cm.gist_rainbow(np.linspace(0,1,6)), axis=0)
@@ -64,8 +70,9 @@ class QCNNPostFit(PostFit):
                 ycumm = y 
             c = colors[j]
             #c = colors[j + (len(colors)//2)*(j % 2) - 1*((j+1)%2)]
+            label = getLaLabel(k)[0]
             top_axs.fill_between(self.edges[ch],ycumm,ycumm-y,step="post", 
-                                 linewidth=0, color=c, label=k)
+                                 linewidth=0, color=c, label=label)
             # add total error and data points
         top_axs.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=d['data']['values'],
                      xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[d['data']['errdw'],d['data']['errup']], 

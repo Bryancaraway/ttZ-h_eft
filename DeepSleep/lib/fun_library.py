@@ -52,6 +52,76 @@ def sortbyscore(vars_, score_, cut_):
         ret_vars_.append(np.take_along_axis(fillne(temp_),ind_, axis=1))
     return ret_vars_
     #
+
+def ak_crosscleaned(eta1,phi1,eta2,phi2, cut) : # cross cleaned for arbitrary length array inputs
+    # input 4 awkward arrays
+    # jet should be ph2,eta2
+    from awkward import JaggedArray as aj
+    import math
+    c1_ = np.array(eta1.counts)
+    c2_ = np.array(eta2.counts)
+    out_ = np.ones(len(eta2.flatten()))
+    args_ = eta1.flatten(), phi1.flatten(), c1_, eta2.flatten(), phi2.flatten(), c2_, cut, math.pi, out_
+    @njit(parallel=False)
+    def njit_cc(e1,p1,c1,e2,p2,c2,cut,pi,o):
+        iter1 = 0
+        iter2 = 0
+        a = c1.size
+        for i in range(a): 
+            for ij in range(c2[i]):
+                for ii in range(c1[i]):
+                    deta = e1[ii+iter1] - e2[ij+iter2]
+                    dphi = p1[ii+iter1] - p2[ij+iter2]
+                    if (dphi > pi):
+                        dphi - 2*pi
+                    elif (dphi <= -pi):
+                        dphi + 2*pi
+                    dr = (deta**2 + dphi**2)**(1/2)
+                    if dr <= cut:
+                        o[ij+iter2] = 0
+                        break
+            iter1 += c1[i]
+            iter2 += c2[i]
+        return o
+    out =  aj.fromoffsets(eta2.offsets, njit_cc(*args_)).astype(bool)
+    return out
+
+def argmatch(eta1,phi1,eta2,phi2, cut, m_idx=1): 
+    # return index where 1 matches 2
+    from awkward import JaggedArray as aj
+    import math
+    c1_ = np.array(eta1.counts).astype(int)
+    c2_ = np.array(eta2.counts).astype(int)
+    out_ = -1 * np.ones(len(eta1.flatten())) 
+    args_ = eta1.flatten(), phi1.flatten(), c1_, eta2.flatten(), phi2.flatten(), c2_, cut, math.pi, out_, m_idx
+    @njit(parallel=False)
+    def njit_match(e1,p1,c1,e2,p2,c2,cut,pi,o,m_idx):
+        iter1 = 0
+        iter2 = 0
+        a = int(c1.size)
+        for i in range(a): 
+            for j1 in range(c1[i]):
+                m_iter = 0
+                for j2 in range(c2[i]):
+                    deta = float(e1[j1+iter1] - e2[j2+iter2])
+                    dphi = float(p1[j1+iter1] - p2[j2+iter2])
+                    if (dphi > pi):
+                        dphi - 2*pi
+                    elif (dphi <= -pi):
+                        dphi + 2*pi
+                    dr = float((deta**2 + dphi**2)**(.5))
+                    if dr <= float(cut):
+                        m_iter += 1
+                        if m_iter == m_idx:
+                            o[j1+iter1] = j2
+                            break
+            iter1 += c1[i]
+            iter2 += c2[i]
+        return o
+    return aj.fromoffsets(eta1.offsets, njit_match(*args_)).astype(int)
+
+                                                
+
 def deltaR(eta1,phi1,eta2,phi2):
     try:
         deta = np.subtract(eta1,eta2.T).T
@@ -155,30 +225,60 @@ def compose(*functions):
 def getZhbbBaseCuts(df_):
     import config.ana_cff as cfg
     base_cuts = (
-        (df_['n_b_outZh']   >= 2)          &
-        (df_['n_ak8_Zhbb']  >  0)          &
-        (df_['Zh_pt']       >= cfg.ZHptcut)& # 200
-        (df_['Zh_M']        >= 50)         &
-        (df_['MET_pt']      >= 20)         &
+        (df_['n_b_outZh']   >= 2)             &
+        #(df_['n_lb_outZh']   >= 2)             &
+        #(df_['n_b_outZh']   >= 1)             &
+        (df_['n_ak4jets']   >= 5)             & 
+        (df_['Zh_bbvLscore'] >= 0.8)          &
+        ( (df_['isEleE']==True) | (df_['isMuonE']==True)) & # pass sim trigger
+        (df_['passNotHadLep'] == 1) & # might add
+        (df_['Zh_pt']       >= 200)& # 200
+        (df_['MET_pt']      >= 20)            &
+        (df_['Zh_M']        >= 50)            &
         (df_['Zh_M']        <= 200))
     return base_cuts
+
+def getFakebbvlCuts(df_):
+    control_cuts = (
+        (df_['n_b_outZh']   == 1)             &
+        (df_['n_ak4jets']   >= 5)             & 
+        (df_['Zh_bbvLscore'] >= 0.0)          &
+        ( (df_['isEleE']==True) | (df_['isMuonE']==True)) & # pass sim trigger
+        (df_['passNotHadLep'] == 1) & # might add
+        (df_['Zh_pt']       >= 200)& # 200
+        (df_['MET_pt']      >= 20)            &
+        (df_['Zh_M']        >= 50)            &
+        (df_['Zh_M']        <= 200))
+    return control_cuts
+
+def getFakebbvlWeights(df_, obj):
+    return (
+        df_['weight']* np.sign(df_['genWeight'])
+        * df_['topptWeight']
+        * (df_['HEM_weight'] if obj.year == '2018' else 1.0)
+        * (df_['lep_trigeffsf'])
+        * df_['lep_sf']
+        #* df_['dak8md_bbvl_sf']
+        * df_['BTagWeight'] 
+        * df_['puWeight']  
+        * (df_['PrefireWeight'] if obj.year != '2018' else 1.0)
+    )
 
 def getZhbbWeight(df_, year):
     import config.ana_cff as cfg
     tot_weight = (df_['weight']* np.sign(df_['genWeight']) 
                   * (np.where(df_['weight']>300,0,1))
-                  #####* (1.5 if k == 'TTBarLep_pow_bb' else 1.0)
-                  #####* (df_['BC_btagSF'] if self.addBSF else 1.0)
                   ###* (cfg.Lumi['Total']/cfg.Lumi[year])
-                  * df_['Stop0l_topptWeight']
-                  * (df_['SAT_HEMVetoWeight_drLeptonCleaned']  if year == '2018' else 1.0 )
-                  #####* (v['Stop0l_topMGPowWeight'] if self.year == '2017' else 1.0)
-                  * df_['lep_trig_eff_tight_pt']
-                  ####* v['lep_trig_eff_tight_eta']
-                  * df_['lep_sf']
-                  ####* df_['BTagWeight'] 
-                  * df_['BTagWeightLight'] 
-                  * df_['BTagWeightHeavy'] 
+                  * df_['topptWeight']
+                  * (df_['HEM_weight']  if year == '2018' else 1.0 )
+                  #* (df_['lep_trigeffsf'])
+                  #* df_['lep_sf']
+                  * df_['electron_sf']
+                  * df_['muon_sf']
+                  * df_['electron_trigeffsf']
+                  * df_['muon_trigeffsf']
+                  * df_['dak8md_bbvl_sf']
+                  * df_['BTagWeight'] 
                   * df_['puWeight']  
                   * (df_['PrefireWeight'] if year != '2018' else 1.0))
     return tot_weight
@@ -235,119 +335,155 @@ def clop_pear_ci(k,n,cl=0.68, return_error=False):
     
 
 def getLaLabel(str_):
-    str_ = str_.split('_201')[0] # get rid of year suffix
+    if '_201' in str_:
+        str_ = str_.split('_201')[0] # get rid of year suffix
     la_str = ''
     col_str= ''
     la_col_map = {
+        'data_obs':       [r'Data',
+                           'black'],
         'ttZ':            [r't$\mathregular{\bar{t}}$Z',
-                             'tab:blue'],
+                           'tab:blue'],
         'ttH':            [r't$\mathregular{\bar{t}}$H',
-                             'gold'],
+                           'gold'],
         'ttH_Hbb':        [r't$\mathregular{\bar{t}}$Htobb',
                            'gold'],
         'ttH_Hnonbb':     [r't$\mathregular{\bar{t}}$HtoNonbb',
                            'indianred'],
         'ttZ_Zbb':        [r't$\mathregular{\bar{t}}$Ztobb',
-                           'tab:blue'],
+                           'blue'],
         'ttZ_Zqq':        [r't$\mathregular{\bar{t}}$Ztoqq',
                            'darkgreen'],
         'ttZ_Zllnunu':    [r't$\mathregular{\bar{t}}$Ztollnunu',
-                           'tab:olive'],
+                           'olive'],
 
         'new_ttZbb':            [r't$\mathregular{\bar{t}}$Ztobb',
-                                 'tab:cyan'],
+                                 'cyan'],
 
         'ttZbb':            [r't$\mathregular{\bar{t}}$Ztobb',
-                             'tab:blue'],
+                             'blue'],
         'ttHbb':            [r't$\mathregular{\bar{t}}$Htobb',
                              'gold'],
-        'ttX':              [r't($\mathregular{\bar{t}}$)X',
+        #'ttX':              [r't($\mathregular{\bar{t}}$)X',
+        'ttX':              [r't$\mathregular{\bar{t}}$t$\mathregular{\bar{t}}$, t$\mathregular{\bar{t}}\gamma$, t$\mathregular{\bar{t}}$W tHW, tHq',
                              'tab:red'],
-        'TTBar':            [r't$\mathregular{\bar{t}}$',
+        'single_t':         [r'single top',
+                             'tab:brown'],
+        'TTBar':            [r't$\mathregular{\bar{t}}+\mathregular{LF}$, t$\mathregular{\bar{t}}+$c$\mathregular{\bar{c}}$',
                              'tab:orange'],
+        'ttbb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
+                         'tab:green'],
+        'tt_B':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
+                             'tab:green'],
         'tt_bb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
                              'tab:green'],
         'tt_2b':        [r't$\mathregular{\bar{t}}+$2b',
                              'tab:purple'],
-        'Vjets':            [r'V$+$jets',
-                             'tab:cyan'],
-        'other':            ['other',
-                             'tab:pink'],
+        'VJets':            [r'V$+$jets',
+                             'cyan'],
+        'other':            ['VV',
+                             'green'],
         'rare':            ['Rare',
-                            'tab:pink'],
+                            'orange'],
+        'tZq_had':         ['tZq_had',
+                            'red'],
+        'TWQ':             ['tZq_had',
+                            'blue'],
+        'THW':             ['tHW',
+                            'green'],
         #
+        'ttZ_genm_Zbb':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb',
+                            'blue'],
+        'ttZ_genm_Zbb_bb':    [r't$\mathregular{\bar{t}}$Z$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{GEN\;matched}}$',
+                            'tab:blue'],
+        'ttZ_genm_Zbb_b':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb&b',
+                            'purple'],
+        'ttZ_genm_Zbb_nob':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb&nob',
+                            'tab:brown'],
+        'ttH_genm_Hbb':    [r't$\mathregular{\bar{t}}$H_genm_Hbb',
+                            'gold'],
+        'ttH_genm_Hbb_bb':    [r't$\mathregular{\bar{t}}$H$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{GEN\;matched}}$',
+                           'magenta'],
+        'ttH_genm_Hbb_b':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&b',
+                           'tab:red'],
+        'ttH_genm_Hbb_nob':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&nob',
+                            'black'],
+        'ttZ_notgenm_Zbb':    [r't$\mathregular{\bar{t}}$Z${}_\mathrm{other}$',
+                            'cyan'],
+        'ttH_notgenm_Hbb':    [r't$\mathregular{\bar{t}}$H${}_\mathrm{other}$',
+                            'tab:red'],
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
-                            'tab:blue'],
+                            'blue'],
         'TTZ_bb':          [r't$\mathregular{\bar{t}}$Ztobb_ded',
-                            'tab:orange'],
+                            'orange'],
         'TTZH':            [r't$\mathregular{\bar{t}}$Z/H',
-                            'tab:blue'],
+                            'blue'],
         'TTZH_GenMatch':   [r't$\mathregular{\bar{t}}$Z/H_genMatchedZHbb',
                             'indianred'],
         'TTZH_noGenMatch': [r't$\mathregular{\bar{t}}$Z/H_nogenMatchedZHbb',
                             'black'],
         'TTZH_genZbb':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedZbb',
-                            'tab:blue'],
+                            'blue'],
         'TTZ_genZbb':      [r't$\mathregular{\bar{t}}$Ztobb_ded_genMatched',
-                            'tab:orange'],
+                            'orange'],
         'TTZH_genZqq':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedZqq',
                             'darkgreen'],
         'TTZH_genHbb':     [r't$\mathregular{\bar{t}}$Z/H_genMatchedHbb',
                             'gold'],
         'TTZH_Zbb':        [r't$\mathregular{\bar{t}}$Ztobb',
-                            'tab:blue'],
+                            ':blue'],
         'TTZH_Zqq':        [r't$\mathregular{\bar{t}}$Ztoqq',
                             'darkgreen'],
         'TTZH_Hbb':        [r't$\mathregular{\bar{t}}$Htobb',
                             'gold'],
         'DY':              ['Drell-Yan',
-                            'tab:orange'],
+                            ':orange'],
         'DiBoson':         ['VV',
-                            'tab:olive'],
+                            ':olive'],
         'TriBoson':        ['VVV',
-                            'tab:pink'],
+                            'pink'],
         'TTX':             [r't($\mathregular{\bar{t}}$)X',
                             'tab:red'],
         'TTBarLep':        [r't$\mathregular{\bar{t}}$Lep',
-                            'tab:green'],
+                            'green'],
         'TTBarSemi_pow':        [r't$\mathregular{\bar{t}}$Semi_pow',
-                            'tab:orange'],
+                            'orange'],
         'TTBarDi_pow':        [r't$\mathregular{\bar{t}}$Di_pow',
-                            'tab:orange'],
+                            'orange'],
         'TTBarLep_bb':     [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$',
-                            'tab:pink'],
+                            'pink'],
         'TTBarLep_pow_b':     [r't$\mathregular{\bar{t}}$+b_pow',
-                            'tab:green'],
+                            'green'],
         'TTBarLep_pow_2b':     [r't$\mathregular{\bar{t}}$+2b_pow',
                             'indianred'],
         'TTBarLep_pow_bb':     [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_pow',
-                            'tab:orange'],
+                            'orange'],
         'TTbbHad_pow':       [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_dedpow',
-                            'tab:red'],
+                            'red'],
         'TTbbSemi_pow':       [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_dedpow',
-                            'tab:red'],
+                            'red'],
         'TTbbDi_pow':       [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_dedpow',
-                            'tab:red'],
+                            'red'],
         'TTBarLep_nobb':   [r't$\mathregular{\bar{t}}$',
-                            'tab:green'],
+                            'green'],
         'TTBarLep_pow_nobb':   [r't$\mathregular{\bar{t}}$_pow',
-                                'tab:brown'],
+                                'brown'],
         'TTBarLep_bbGenMatch': [r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_genMatched',
-                             'tab:grey'],
+                             'grey'],
         'TTBarLep_nobbGenMatch':[r't$\mathregular{\bar{t}}$+b$\mathregular{\bar{b}}$_nogenMatched',
-                             'tab:green'],
+                             'green'],
         'TTBarHad':        [r't$\mathregular{\bar{t}}$Had',
-                            'tab:brown'],
+                            'brown'],
         'TTBarHad_pow':        [r't$\mathregular{\bar{t}}$Had',
-                            'tab:brown'],
+                            'brown'],
         'WJets':           [r'W$+$jets',
-                            'tab:cyan'],
+                            'cyan'],
         'ZJets':           [r'Z$+$jets',
-                            'tab:gray'],
+                            'gray'],
         'QCD':             [r'QCD',
-                            'tab:purple']
+                            'purple']
     }
-    la_str, col_str = la_col_map[str_]
+    la_str, col_str = la_col_map.get(str_,[str_,'k'])
     return [la_str, col_str]
 
 # decorator to display the time it takes to run function
@@ -362,6 +498,63 @@ def t2Run(func):
 
 # decorator to save figures to given pdf
 
+
+def import_mpl_settings(i=1):
+    import matplotlib.pyplot as plt
+    plt.rc("font", size=10, family="sans-serif", **{"sans-serif" : [u'TeX Gyre Heros', u'Helvetica', u'Arial']})
+    plt.rc("xaxis", labellocation='right')
+    plt.rc("yaxis", labellocation='top')
+    plt.rc("legend", fontsize=10, scatterpoints=2, numpoints=1, borderpad=0.15, labelspacing=0.3,
+           handlelength=0.7, handletextpad=0.25, handleheight=0.7, columnspacing=0.6,
+           fancybox=False, edgecolor='none', borderaxespad=1)
+    plt.rc("savefig", dpi=200)
+    plt.rc("figure", figsize=(3.375*i, 3.375*(6./8.)*i), dpi=200)
+    plt.rc("text.latex", preamble='\n'.join([r"\usepackage{amsmath}",
+                                             r"\usepackage{helvet}",
+                                             r"\usepackage{sansmath}",
+                                             r"\sansmath"]))
+    
+
+def upperlefttext(s):
+    trans = gca().transAxes + matplotlib.transforms.ScaledTranslation(3/72, -3/72, gcf().dpi_scale_trans)
+    return text(0, 1, s, transform=trans, ha='left', va='top')
+
+def CMSlabel(fig=None, ax=None, opt=None, altax=None, lumi=None):
+    import matplotlib.pyplot as plt
+    from matplotlib import transforms
+    if fig is None:
+        fig = plt.gcf()
+    if ax is None:
+        ax = plt.gca()
+    if altax is None:
+        ax0 = ax1 = ax
+    else:
+        ax0 = ax
+        ax1 = altax
+    if opt is None:
+        opt = 'Preliminary'
+    if lumi is None:
+        lumi = 137
+    lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
+    trans = ax0.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
+    ax0.text(0, 1, rf'\textbf{{CMS}} {{\footnotesize \textit{{{opt}}}}}', usetex=True,
+             transform=trans, ha='left', va='baseline')
+    trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
+    ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
+             transform=trans, ha='right', va='baseline')
+
+def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',
+                     edgecolor='None', alpha=0.0, hatch=10*'X', label=''):
+    from matplotlib.collections import PatchCollection
+    from matplotlib.patches import Rectangle
+    errorboxes = []
+    for x, y, xe, ye in zip(xdata, ydata, xerror.T, yerror.T):
+        rect = Rectangle((x - xe, y - ye), 2*xe, 2*ye) if type(ye) is not np.ndarray else Rectangle((x - xe, y - ye[0]), 2*xe, ye[0]+ye[1])
+        errorboxes.append(rect)
+    pc = PatchCollection(errorboxes, facecolor=facecolor, alpha=alpha,
+                         edgecolor=edgecolor, hatch=hatch, label=label, zorder=1.5)
+    # Add collection to axes
+    ax.add_collection(pc)
 
 def save_pdf(pdf_name = 'dummy.pdf'):
     import matplotlib.backends.backend_pdf as matpdf 
