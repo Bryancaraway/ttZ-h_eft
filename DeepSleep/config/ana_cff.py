@@ -35,8 +35,9 @@ elif os.path.exists('/eos/uscms/') or 'condor' in _cdir: # test to see if on lpc
 else: raise("Not on Kodiak or LPC, please manually input file_path in file: ./config/ana_cff.py")
 
 ##
-#nn                = 'withbbvl_NN'
-nn                = 'NN'
+#nn                = 'NN'
+nn                 = 'newgenm_NN'
+#nn                = 'newreduced1p0_NN'
 #sdm_bins          = [50,80,115,155,200]     # old format
 sdm_bins          = [50,75,105,145,200]     # new format
 ZHptcut           = 200
@@ -219,8 +220,8 @@ ana_vars = {
                     'genTtbarId','LHE_HT','LHE_HTIncoming',], # event level identifier for ttbar+bb
 
     'event'      : ['MET_phi', 'MET_pt',
-                    'MET_T1_phi', 'MET_T1_pt',
-                    'MET_T1Smear_phi', 'MET_T1Smear_pt',
+                    #'MET_T1_phi', 'MET_T1_pt',
+                    #'MET_T1Smear_phi', 'MET_T1Smear_pt',
                     'PV_npvsGood','run','luminosityBlock','event'],
     'filters_all'    : ['Flag_goodVertices','Flag_globalSuperTightHalo2016Filter','Flag_HBHENoiseFilter',
                         'Flag_HBHENoiseIsoFilter','Flag_EcalDeadCellTriggerPrimitiveFilter',
@@ -242,8 +243,6 @@ ana_vars = {
     'dataHLT_2018'    : ['HLT_Ele35_WPTight_Gsf', 'HLT_Ele32_WPTight_Gsf_L1DoubleEG', 'HLT_Photon200', 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150',
                          'HLT_Ele32_WPTight_Gsf',
                          'HLT_OldMu100','HLT_TkMu100'],
-    'valRCvars'  : ['ResolvedTopCandidate_discriminator', 'ResolvedTopCandidate_j1Idx', 'ResolvedTopCandidate_j2Idx', 'ResolvedTopCandidate_j3Idx'],
-    'label'      : ['isTAllHad']
 }
 
 ##### DNN backend for Z/H -> bb #####

@@ -64,7 +64,8 @@ def ak8_helper(obj, jec_sys):
     obj.tmp_fatjets["FatJet_msoftdrop_nosmear"] = obj.tmp_fatjets["FatJet_msoftdrop_corr"]
     if obj.isData:
         obj.tmp_fatjets["FatJet_msoftdrop_alt"] = obj.tmp_fatjets["FatJet_msoftdrop_altnosmear"]
-        obj.tmp_fatjets["FatJet_msoftdrop"]     = obj.tmp_fatjets["FatJet_msoftdrop_nosmear"]
+        obj.tmp_fatjets["FatJet_msoftdrop"]     = obj.tmp_fatjets["FatJet_msoftdrop_nosmear"] # this is the right one!!!
+        #obj.tmp_fatjets["FatJet_msoftdrop"]     = obj.tmp_fatjets["FatJet_msoftdrop_altnosmear"] # for testing
     else:  #if not obj.isData:
         # smear mc and calc up/down jmr
         smear_corr_vals = jmr_helper(obj, opt='corr')

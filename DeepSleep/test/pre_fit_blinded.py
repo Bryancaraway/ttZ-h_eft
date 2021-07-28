@@ -9,7 +9,6 @@ import operator as op
 import pandas as pd
 import numpy as np
 import re
-import uproot
 import seaborn as sns
 import config.ana_cff as cfg
 #from lib.fun_library import save_pdf, getLaLabel

@@ -73,17 +73,17 @@ def ak_crosscleaned(eta1,phi1,eta2,phi2, cut) : # cross cleaned for arbitrary le
                     deta = e1[ii+iter1] - e2[ij+iter2]
                     dphi = p1[ii+iter1] - p2[ij+iter2]
                     if (dphi > pi):
-                        dphi - 2*pi
+                        dphi = dphi - 2*pi
                     elif (dphi <= -pi):
-                        dphi + 2*pi
-                    dr = (deta**2 + dphi**2)**(1/2)
+                        dphi = dphi + 2*pi
+                    dr = float((deta**2 + dphi**2)**(.5))
                     if dr <= cut:
                         o[ij+iter2] = 0
                         break
             iter1 += c1[i]
             iter2 += c2[i]
         return o
-    out =  aj.fromoffsets(eta2.offsets, njit_cc(*args_)).astype(bool)
+    out =  aj.fromcounts(eta2.counts, njit_cc(*args_)).astype(bool)
     return out
 
 def argmatch(eta1,phi1,eta2,phi2, cut, m_idx=1): 
@@ -106,9 +106,9 @@ def argmatch(eta1,phi1,eta2,phi2, cut, m_idx=1):
                     deta = float(e1[j1+iter1] - e2[j2+iter2])
                     dphi = float(p1[j1+iter1] - p2[j2+iter2])
                     if (dphi > pi):
-                        dphi - 2*pi
+                        dphi = dphi - 2*pi
                     elif (dphi <= -pi):
-                        dphi + 2*pi
+                        dphi = dphi + 2*pi
                     dr = float((deta**2 + dphi**2)**(.5))
                     if dr <= float(cut):
                         m_iter += 1
@@ -118,7 +118,8 @@ def argmatch(eta1,phi1,eta2,phi2, cut, m_idx=1):
             iter1 += c1[i]
             iter2 += c2[i]
         return o
-    return aj.fromoffsets(eta1.offsets, njit_match(*args_)).astype(int)
+    #return aj.fromoffsets(eta1.offsets, njit_match(*args_)).astype(int)
+    return aj.fromcounts(eta1.counts, njit_match(*args_)).astype(int)
 
                                                 
 

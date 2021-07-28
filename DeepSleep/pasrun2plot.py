@@ -195,7 +195,8 @@ def main():
         data = PlotsFromDC(
             sig= cfg.Sig_MC,
             bkg = cfg.Bkg_MC,
-            extrak= ['newgenm_NN'] + ([] if mass == 'Zh_M' else [mass]),
+            #extrak= ['newgenm_NN'] + ([] if mass == 'Zh_M' else [mass]),
+            extrak= [] if mass == 'Zh_M' else [mass],
             extrasigk=['matchedGen_ZHbb_bb']).getData()
         AnaDict(data).to_pickle(pas_data_file)
     else:

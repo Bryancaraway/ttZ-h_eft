@@ -9,7 +9,6 @@ import operator as op
 import pandas as pd
 import numpy as np
 import re
-import uproot
 import seaborn as sns
 import config.ana_cff as cfg
 from lib.fun_library import save_pdf, getLaLabel
@@ -27,10 +26,10 @@ rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 fit_vars = cfg.withbbvl_dnn_ZHgenm_vars
-fit_vars = [f'NN_{i}' for i in range(64)]
+#fit_vars = [f'NN_{i}' for i in range(64)]
 
-#@save_pdf('qc_nn_postfits.pdf')
-@save_pdf('qc_nn_postfits_hl2.pdf')
+@save_pdf('qc_nn_postfits.pdf')
+#@save_pdf('qc_nn_postfits_hl2.pdf')
 #@save_pdf('qc_zhm_postfit.pdf')
 def main():
     print(len(fit_vars))

@@ -7,10 +7,11 @@ hi:
 init:
 	@bash setup.sh
 	@pip install -r packages/requirements.txt
-	@conda install --yes numpy
-	@conda install --yes pandas
-	@conda install --yes -c conda-forge xrootd
-	@conda install --yes tensorflow
+	@conda env create -f packages/ttxenv2.0.yml
+#@conda install --yes numpy
+#@conda install --yes pandas
+#@conda install --yes -c conda-forge xrootd
+#@conda install --yes tensorflow
 
 .PHONY: hi init clean
 

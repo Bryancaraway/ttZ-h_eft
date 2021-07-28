@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(description='Run analysis over specified sample
 parser.add_argument('--mode', dest='mode', type=str, 
                     choices=['sub','exe'],
                     required=True, help='mode to run', default='sub')
+# args for exe
 parser.add_argument('--inputjson', dest='inputjson', type=str, required=False, help="input json file", default=None)
 parser.add_argument('--jnum', dest='job_number', type=int, required=False, help="job number", default=None)
 args = parser.parse_args()
@@ -56,7 +57,9 @@ def main():
         json_name = f'testdnn_{i}.json'
         with open(json_dir+json_name,'w') as jf:
             json.dump(m_info,jf)
+        #
         command = f"qsub -l nodes=1:ppn=1 -N testDNN_{i} -o {json_dir}/job_{i}.stdout -e {json_dir}/job_{i}.stderr "
+        #command = f"qsub -q hep -l nodes=gpu006:ppn=1 -N testDNN_{i} -o {json_dir}/job_{i}.stdout -e {json_dir}/job_{i}.stderr "
         command += f" -v json={json_name},jobnum={i} {sys.path[1]}/scripts/testDNN.sh"
         num_jobs_running = lambda: int(sb.check_output('qstat -u $USER | grep testDNN | wc -l', shell=True).decode())
         #num_jobs_running = lambda: int(sb.check_output('jobs | wc -l', shell=True).decode())
@@ -70,6 +73,7 @@ def run():
     from sklearn.metrics import confusion_matrix
     from sklearn.metrics import roc_auc_score
     import matplotlib.pyplot as plt
+    #
     print(args.inputjson, args.job_number)
     m_info = json.load(open(json_dir+args.inputjson,'r'))
     print(m_info)

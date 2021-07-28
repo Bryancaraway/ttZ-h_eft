@@ -30,8 +30,8 @@ sys_to_plot = ['jesRelativeSample{y}','jesHF{y}','jesAbsolute{y}','jesEC2{y}',
                'jesBBEC1{y}', 'jms_{y}', 'jmr_{y}','ak4jer_{y}', 'ak8jer_{y}',
                'jesRelativeBal', 'jesFlavorQCD', 'jesHF', 'jesAbsolute', 'jesEC2', 
                'jesBBEC1', 'fsr', 'UE', 'hdamp']
-#sample = 'TTBar'
-sample = 'tt_B'
+sample = 'TTBar'
+#sample = 'tt_B'
 #sample = 'ttZ3'
 year   = '2017'
 

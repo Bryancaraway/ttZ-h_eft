@@ -59,9 +59,8 @@ pt_bins  = [0,200,300,450]
 sdM_bins = cfg.sdm_bins     # new format
 #sdM_bins = [50,75,90,105,120,140,200] # old format
 
-#nn = 'NN'
 nn = cfg.nn
-#nn = 'reducedgenm_NN'
+print(nn)
 
 #[50, 75, 85, 100, 110, 120, 135, 150, 200]
 #hist2d = DataCardShapes(pt_bins,sdM_bins,n_NN_bins=10, isblind=isblind) # syntax np2d[year][ith_ptbin]
@@ -921,7 +920,7 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
                     for j in range(nom.shape[0]): # pt
                         up[j,:,:]   = nom[j,:,:] * np.nansum(up[j,:,:])/np.nansum(nom[j,:,:])
                         down[j,:,:]   = nom[j,:,:] * np.nansum(down[j,:,:])/np.nansum(nom[j,:,:])
-                        # dont merge variation in first 2 bins
+                        # dont merge variation in first 2 bins ===== convener question
                         #up[j,2:,:]   = nom[j,2:,:] * np.nansum(up[j,2:,:])/np.nansum(nom[j,2:,:])
                         #down[j,2:,:] = nom[j,2:,:] * np.nansum(down[j,2:,:])/np.nansum(nom[j,2:,:])
 
@@ -932,8 +931,12 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
 if __name__ == '__main__':
     #
     # initialize datacard making process
-    #hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind)# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
-    hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind, nn='newreduced1p0_NN')# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
-    exit() # not ready ========
+    #print('Old NN bins')
+    #hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind, nn='NN')# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
+    #print('New NN bins, 50 vars')
+    #hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind, nn='newgenm_NN')# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
+    #print('New NN bins, 28 vars')
+    #hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind, nn='newreduced1p0_NN')# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
+    hist2d = DataCardShapes(pt_bins,sdM_bins, isblind=isblind)# isblind false : cut out signal sensitive bins, isblind true: all bins# syntax np2d[year][ith_ptbin]
     MakeDataCard(isblind=isblind).makeDC()
 

@@ -105,7 +105,7 @@ class processAna :
         #self.applyDNN(model_file='reduced1p25_model.h5')
         #self.applyDNN(model_file='reduced1p5_model.h5')
         #
-        self.val_df['NN'] = self.val_df['withbbvlnewgenm_NN'] # hard-coded to not break anythin
+        #self.val_df['NN'] = self.val_df['withbbvlnewgenm_NN'] # hard-coded to not break anythin
         #self.val_df['NN'] = self.val_df['newgenm_NN'] # hard-coded to not break anythin
         # add hlt variables into MC and set to True for convience later
         if not self.isData:
@@ -366,11 +366,17 @@ class processAna :
         }
         resetIndex = (lambda df: df.reset_index(drop=True).copy())
         #open json nn settings
-        # --
-        m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 
-                   'other_settings': {'fl_a': [0.75, 1, 0.25], 
-                                      'fl_g': 0.25, 'lr_alpha': 0.0003}, 
-                   'n_epochs': 100, 'batch_size': 10256
+        # -- old nn
+        #m_info =  {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 
+        #           'other_settings': {'fl_a': [0.75, 1, 0.25], 
+        #                              'fl_g': 0.25, 'lr_alpha': 0.0003}, 
+        #           'n_epochs': 100, 'batch_size': 10256
+        #} 
+        # -- new nn
+        m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 
+                  'other_settings': {'fl_a': [1, 2, 0.75], 
+                                     'fl_g': 0.25, 'lr_alpha': 0.0003}, 
+                  'n_epochs': 150, 'batch_size': 10256
         }
         #
         dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
@@ -388,7 +394,8 @@ class processAna :
         self.val_df.loc[:,df_nn_name] = -1.
         self.val_df.loc[base_cuts,df_nn_name] = pred
         # only for current main NN
-        if model_file == 'withbbvlnewgenm_model.h5': # old, but may keep
+        #if model_file == 'withbbvlnewgenm_model.h5': # old, but may keep
+        if df_nn_name == cfg.nn: # a bit more robust
             #if model_file == 'newgenm_model.h5': # new
             explain_model = dnn.Build_New_Model(len(dnn_vars[model_file]), nn_model) # output size 64
             if len(pred_df) > 0:

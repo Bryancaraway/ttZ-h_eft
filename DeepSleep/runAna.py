@@ -43,7 +43,7 @@ def runAna():
         pool = multiprocessing.Pool(4)
         p_cfg = [s for s in process_cfg[args.sample] if (args.year == '2017' and 'QCD_HT_2000toInf' == s) == False]
         _ = pool.map(analyzer, p_cfg) # ...
-        pool.close()
+        #pool.close()
         # run post job
         post_job(p_cfg)
 

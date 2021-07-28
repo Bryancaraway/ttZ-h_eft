@@ -50,27 +50,30 @@ class Skim :
         #
         self.golden_json = golden_json
         #
-        self.ana_vars = AnaVars(year,isData, jec_sys=jec_sys) 
-        self.tree     = self.set_tree_from_roofile(roofile)
+        self.startSkim()
+    @t2Run
+    def startSkim(self):
+        self.ana_vars = AnaVars(self.year, self.isData, jec_sys=self.jec_sys) 
+        self.tree     = self.set_tree_from_roofile(self.roofile)
         # prepMeta metadata factory
-        self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree, jec_sys)
+        self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree, self.jec_sys)
         # define event information
         # apply in house jmr 
-        self.fatjets   = self.build_dict(['FatJet_pt','FatJet_msoftdrop']) # jus in case jec
+        self.fatjets   = self.build_dict(['FatJet_pt','FatJet_msoftdrop']) # just in case jec
         self.tmp_fatjets = self.build_dict(cfg.ana_vars['ak8vars']+cfg.ana_vars['ak8lvec']['TLVars_nom'], with_interp=False)
-        self.tmp_fatjets['FatJet_pt'] = self.tmp_fatjets.pop('FatJet_pt_nom') # just rename this variable
+        self.tmp_fatjets['FatJet_pt'] = self.tmp_fatjets.pop('FatJet_pt_nom') # rename this variable
         self.subjets    = self.build_dict(cfg.ana_vars['sjvars'])
         self.genfatjets = self.build_dict(cfg.ana_vars['genak8jets'])
         self.gensubjets = self.build_dict(cfg.ana_vars['gensubjets'])
         from modules.ak8_helper import ak8_helper
-        ak8_helper(self, jec_sys)
+        ak8_helper(self, self.jec_sys)
         self.fatjets = self.tmp_fatjets  # hand over correct ak8 info
         del self.subjets, self.genfatjets, self.gensubjets, self.tmp_fatjets
         ## end of in-house JMR
         #
         self.jets      = self.build_dict(
             cfg.ana_vars['ak4vars']+cfg.ana_vars['ak4lvec']['TLVars']+(
-                [] if self.isData else cfg.ana_vars['ak4mcvars']
+                [] if self.isData else (cfg.ana_vars['ak4mcvars'] if self.jec_sys is None else ['Jet_btagSF_deepcsv_shape'])
             ))
         self.electrons = self.build_dict(cfg.lep_sel_vars['electron']) 
         self.muons     = self.build_dict(cfg.lep_sel_vars['muon']) 
@@ -86,6 +89,8 @@ class Skim :
         #self.subjets    = self.build_dict(cfg.ana_vars['ak8sj'])
         # wont keep
         self.filters    = self.build_dict(cfg.ana_vars['filters_all']+cfg.ana_vars['filters_year'][self.year]) 
+        del self.precut
+        self.f.close()
         # ===================== #
         # apply object criteria
         self.soft_electrons = self.electrons[self.is_a_soft_electron()]
@@ -132,7 +137,6 @@ class Skim :
         self.soft_muons      = self.soft_muons[    self.btag_event_mask]
         self.hlt             = self.hlt[           self.btag_event_mask]
         self.events          = self.events [       self.btag_event_mask]
-
         if not self.isData:
             self.geninfo = self.geninfo[  self.btag_event_mask]
         #
@@ -152,7 +156,7 @@ class Skim :
             __out_dict['gen'] = self.geninfo
             __out_dict['metaData'] = self.Meta.get_metadata()
         # close root file
-        self.f.close()
+        #self.f.close()
         #
         return __out_dict
             
@@ -314,7 +318,7 @@ class Skim :
         
 
     def get_event_selection(self): # after objects have been defined
-        return ( (self.jets['Jet_pt'].counts >= (4 if self.jec_sys is None else 5)) & # n_jets >= 5 is the norm
+        return ( (self.jets['Jet_pt'].counts >= (5 if self.jec_sys is None else 5)) & # n_jets >= 5 is the norm
                  (self.fatjets['FatJet_pt'].counts >= 1) &
                  (self.events['MET_pt'] > 20) &
                  (self.electrons['Electron_pt'].counts + self.muons['Muon_pt'].counts == 1) &
@@ -335,7 +339,19 @@ class Skim :
         tree         =  self.f.get('Events') # hardcoded
         self.tarray  = self.tarray_wrapper(functools.partial(tree.array,      entrystart=estart, entrystop=estop))
         self.tpandas = functools.partial(tree.pandas.df , entrystart=estart, entrystop=estop)
+        self.precut  = self.set_pre_cuts()
         return tree
+
+    def set_pre_cuts(self):
+        _c_keys = ['nJet','nFatJet','MET_pt','nMuon','nElectron']
+        executor = concurrent.futures.ThreadPoolExecutor()
+        _c_vars = AnaDict({k: self.tarray(k, executor=executor) for k in _c_keys})
+        _precut = ( (_c_vars['nMuon'] + _c_vars['nElectron'] >= 1) &
+                    (_c_vars['nJet'] >= 5)  &
+                    (_c_vars['nFatJet'] >= 1) &
+                    (_c_vars['MET_pt'] >= 20) )
+        return _precut
+        
 
     @staticmethod
     def tarray_wrapper(tarray):
@@ -351,23 +367,40 @@ class Skim :
     def build_dict(self, keys, with_interp=True):
         executor = concurrent.futures.ThreadPoolExecutor()
         if with_interp:
-            return AnaDict({k: self.tarray(self.ana_vars[k], executor=executor) for k in keys})
+            return AnaDict({k: self.tarray(self.ana_vars[k], executor=executor)[self.precut] for k in keys})
+            #return AnaDict({k: self.tarray(self.ana_vars[k], executor=executor) for k in keys})
         else:
-            return AnaDict({k: self.tarray(k, executor=executor) for k in keys})
+            return AnaDict({k: self.tarray(k, executor=executor)[self.precut] for k in keys})
+            #return AnaDict({k: self.tarray(k, executor=executor) for k in keys})
     # === ~ Skim class === #
+    # extra local test stuff
+    def local_test(self):
+        for i,j,k in zip(self.events['luminosityBlock'],self.events['event'],self.events['run']):
+            print(f"Run {k}, LS {i}, event {j}")
+        #print(self.Meta.get_metadata())
+        print(f"{len(self.events['event'])} events passed")
+        #print(self.fatjets[self.events['event']==804875471])
+        #print(self.events[ self.events['event']==804875471]['Lep_eta'],
+        #      self.events[ self.events['event']==804875471]['Lep_phi'])
                 
 if __name__ == '__main__':
-    year = '2016'
+    year = '2017'
     golden_json=json.load(open(cfg.goodLumis_file[year]))
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/ttHTobb_2018/839BA380-7826-9140-8C16-C5C0903EE949_Skim_12.root'
+    sample='TTToSemiLeptonic'
     #test_file  = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTToSemiLeptonic_2018/D6501B6C-8B76-BF42-B677-64680733A780_Skim_19.root'
+    test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/B8B652A8-ED88-2F48-9979-637E36F30138_Skim_72.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/DEDD55D3-8B36-3342-8531-0F2F4C462084_Skim_134.root' 
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTToSemiLeptonic_2016/CA4521C3-F903-8E44-93A8-28F5D3B8C5E8_Skim_121.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
-    test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
+    #sample= 'TTZToBB'
+    #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
+    #sample = 'Data_SingleMuon'
+    #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/Data_SingleMuon_2017_PeriodD/9A53E75E-4E0E-5A4A-A8C3-A91333DA906D_Skim_8.root'
     #test_file  = "/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTZToQQ_2018/39EEAA27-A490-D244-B846-A53B2478AFD5_Skim_2.root"
     #test_file  = "/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/DYJetsToLL_HT_1200to2500_2017/AF8883B9-AB0D-DC4A-82AF-4A58331EFFFA_Skim_0.root"
     #test_file    = '/eos/uscms/store/user/bcaraway/SingleE_test_2017.root'
-    _ = Skim(test_file, 'TTZToBB', year, isData=False, jec_sys=None, golden_json=golden_json)
+    _ = Skim(test_file, sample, year, isData='Data' in sample, jec_sys='jesHFUp', golden_json=golden_json)
+    _.local_test()
     #AnaDict(_.get_skim()).to_pickle('SingleE_2017.pkl')
     

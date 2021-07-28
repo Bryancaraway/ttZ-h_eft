@@ -33,8 +33,6 @@ from lib.TH1 import export1d
 from lib.datacard_shapes import DataCardShapes, DataCardShapes_NN
 from makeDatacard import MakeDataCard, Systematic, ShapeSystematic
 #
-import uproot
-#import uproot_methods
 #from ROOT import TFile, TDirectory, TH1F
 #import coffea.hist as hist
 import numpy as np
@@ -127,13 +125,11 @@ tbins_map = {**DataCardShapes_NN().out_nn_bins_dict,**{
 }}
 
 
-
 if target not in tbins_map and __name__ == '__main__':
     raise KeyError(f"{target} not in 'tbins_map'!!!\nOnly the following are available: {list(tbins_map.keys())}")
 
     
 def get_sumw_sumw2(df, weights, year):
-    #ret_target = (lambda df: (df['NN'].to_numpy(), df['Zh_M'].to_numpy()))
     #sumw = np.array([
     #    hist2d[year][i_bin]( *ret_x_y(df[df['pt_bin']==i_bin]), 
     #                         weights=weights[df['pt_bin']==i_bin])[0] 
@@ -174,7 +170,10 @@ class MakeQCDataCard(MakeDataCard):
                  years = cfg.Years, 
                  isblind=False):
         # start getting signal and bkg 
-        super().__init__(sig,bkg,years,isblind,get_sumw_sumw2)
+        super().__init__(sig=sig,bkg=bkg,
+                         years=years,isblind=isblind,
+                         cut = (lambda x : x[nn] >= 0.0) if doNNcuts else (lambda x : x),
+                         sumw_sumw2=get_sumw_sumw2)
         self.sig = sig
         self.bkg = bkg
         self.data = cfg.Data_samples
@@ -182,9 +181,9 @@ class MakeQCDataCard(MakeDataCard):
         #self.years = ['2018']
         self.isblind = isblind
         self.dc_bins = 1 #len(tbins_map[target])#len(pt_bins[1:])
-        self.bkg_v  = super().weights + super().weight_sys + ['process','sample',target]
+        self.bkg_v  = super().weights + super().weight_sys + ['process','sample',target] + ([nn] if target != nn else [])
         self.sig_v  = self.bkg_v + ['genZHpt']
-        self.data_v = ['process',target]
+        self.data_v = ['process',target] + ([nn] if target != nn else [])
         #
         #self.getdata()
 
@@ -207,8 +206,8 @@ class MakeQCDataCard(MakeDataCard):
         super().close_dc()
         
     def updatedict(self, p, v, y=''):
-        if doNNcuts:
-            v = v +[nn] + ([] if 'n_ak4jets' in v else ['n_ak4jets']) + ([] if 'Zh_pt' in v else ['Zh_pt'])
+        #if doNNcuts:
+        #    v = v +[nn] + ([] if 'n_ak4jets' in v else ['n_ak4jets']) + ([] if 'Zh_pt' in v else ['Zh_pt'])
         sub_f_dir = 'data_files' if 'Data' in p else 'mc_files'
         if not os.path.exists(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl'): return 
         if p in cfg.all_sys_samples:
@@ -221,20 +220,18 @@ class MakeQCDataCard(MakeDataCard):
                 for ud in ['Up','Down']:
                     for v_str in [ f'{s}_{ud}' for s in ['mu_r','mu_f','mu_rf','ISR','FSR','pdfWeight']]:
                         df.loc[:,v_str] = df[v_str].clip(func(df[v_str].values,.15), func(df[v_str].values,99.85))
-
-        #df['Zh_pt'].clip(pt_bins[0]+1,pt_bins[-1]+1, inplace=True)
-        #df['pt_bin'] = pd.cut(df['Zh_pt'], bins=pt_bins+[500],
-        #                      labels=[i_bin for i_bin in range(len(pt_bins))])
-        if doNNcuts:
-            #group = df[df[nn] >= 0.0].groupby(by='process')
-            group = df[(df[nn] >= 0.0) & (df['n_ak4jets'] >= 5)].groupby(by='process') # trying >= 5 cut
-            #group = df[(df[nn] >= 0.35) & (df['n_ak4jets'] >= 5) & (df['Zh_pt'] > 300)].groupby(by='process') # trying >= 5 cut
-        else:
-            group = df.groupby(by='process')
+        # 
+        #if doNNcuts:
+        #    df = df[(df[nn] >= 0.0) & (df['n_ak4jets'] >= 5)]
+        df = df.astype({k:'float32' for k in df if df[k].dtype == 'float64'}) # save more memory 
+        df = df[self.cut(df)]
+        group = df.groupby(by='process')
         if 'Data' not in p:
             for n,g in group:
                 if n not in ['ttH','ttZ'] + self.accepted_bkg: 
                     df.drop(g.index, inplace=True)
+        group = df.groupby(by='process')
+        del df
         # extract sys type (if any)
         sys = '' 
         data_dict = {}
@@ -250,7 +247,6 @@ class MakeQCDataCard(MakeDataCard):
             #if 'h' in sys and 'ttbb' in p: sys = sys.replace('hdamp','hdamp_ttbb') 
             if 'jmr' in sys or 'jms' in sys or 'jer' in sys :   
                 sys = sys.replace('Up',f'_{y}Up').replace('Down',f'_{y}Down')
-            
         data_dict = {f"{n.replace('Data','data_obs')}_{y}{sys}": g for n,g in group} # iterate over name and content
         return data_dict
 
@@ -282,7 +278,6 @@ class MakeQCDataCard(MakeDataCard):
             #        to_flat = (lambda a : a[pt_bin,:,:].flatten())
             #    temp_dict = {'sumw' : to_flat(v['sumw'])}#* (1 if y != '2017' else 3.3032)}#2.2967)} # to just scale to full run2
                 #hist_name = f'Zhpt{pt_bin+1}_{process}{sys}'
-            print(p)
             hist_name = f'{target}_{process}{sys}'
             temp_dict = {'sumw' :v['sumw'],
                          'sumw2':v['sumw2']}

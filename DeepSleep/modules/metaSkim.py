@@ -7,8 +7,6 @@
 ########################
 ##
 #
-
-import uproot
 from uproot_methods import TLorentzVectorArray
 import os
 import re
@@ -36,7 +34,7 @@ class SkimMeta :
     #nanoAODv7_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
     #sample  = None
 
-    def __init__(self, sample, year, isData, tree, jec_sys=None):
+    def __init__(self, sample, year, isData, tree, jec_sys=None, run_norm=True):
         self.sample = sample
         self.year   = year
         self.isData = isData
@@ -49,18 +47,26 @@ class SkimMeta :
         #                 'xs': sample_cfg[self.sample]['xs'], 'kf': sample_cfg[self.sample]['kf']}
         self.metadata = {}
         #
-        if not self.isData:
-            if self.isttbar or self.isttbb:
-                self.ttbar_ttbb_normalization()
-            elif self.issig:
-                self.event_signal_normalization()
-            else:
-                self.event_var_normalization()
+        if run_norm:
+            if not self.isData:
+                if jec_sys is None:
+                    if self.isttbar or self.isttbb:
+                        self.ttbar_ttbb_normalization()
+                    elif self.issig:
+                        self.event_signal_normalization()
+                    else:
+                        self.event_var_normalization()
+                else:
+                    self.jec_var_normalization()
 
     ## main functions    
     
     def get_metadata(self):
         return self.metadata
+
+    def jec_var_normalization(self):
+        results = np.array(self.jec_worker(self.tree))
+        self.metadata.update({'tot_events':results[0]})
 
     def event_var_normalization(self): # 1,2,4
         results = np.array(self.event_worker(self.tree))
@@ -109,6 +115,12 @@ class SkimMeta :
     
 
     ## worker functions 
+    @staticmethod
+    def jec_worker(t):
+        gw = t.array('genWeight')
+        tot_count= sum(gw>=0.0) - sum(gw<0.0)
+        return [tot_count]
+
     @staticmethod
     def event_worker(t):
         scps_helper = (lambda arr: np.clip(np.nanpercentile(arr,.15), np.nanpercentile(arr,99.85), arr))

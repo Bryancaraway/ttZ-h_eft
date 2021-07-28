@@ -147,8 +147,8 @@ def train_model(m_info):
         print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
         plot_history(history)
         print('here')
-        #model.save_weights(cfg.dnn_ZH_dir+'/'+'newgenm_model'+'.h5')
-        model.save_weights(cfg.dnn_ZH_dir+'/'+'newreduced1p0_model'+'.h5')
+        model.save_weights(cfg.dnn_ZH_dir+'/'+'newgenm_model'+'.h5')
+        #model.save_weights(cfg.dnn_ZH_dir+'/'+'newreduced1p0_model'+'.h5')
         print('here')
         
     return model, testX, testY
@@ -238,8 +238,8 @@ def prep_model_data(m_info):
     #
     m_class = DNN_model(m_info['sequence'],m_info['other_settings'])  
     #model = m_class.Build_Model(len(cfg.withbbvl_dnn_ZHgenm_vars), )#load_weights='ttzh_model.h5')
-    #dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
-    dnn_vars = cfg.reduced1p0genm_vars
+    dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
+    #dnn_vars = cfg.reduced1p0genm_vars
     #dnn_vars = cfg.withbbvl_dnn_ZH_1p5vars
     model = m_class.Build_Model(len(dnn_vars), )#load_weights='ttzh_model.h5') 
     return (
@@ -252,7 +252,11 @@ if __name__ == "__main__":
     import sys
     json_dir = f'{sys.path[1]}/log/nn/'
 
-    m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.5]], "other_settings": {"fl_a": [0.75, 1, 0.25], "fl_g": 0.5, "lr_alpha": 0.0003}, "n_epochs": 140, "batch_size": 10256}
-    
+    # === old NN
+    #m_info = {"sequence": [["Dense", 128], ["Dense", 64], ["Dropout", 0.5]], "other_settings": {"fl_a": [0.75, 1, 0.25], "fl_g": 0.5, "lr_alpha": 0.0003}, "n_epochs": 140, "batch_size": 10256}
+    # === new NN
+    #m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 2, 0.75], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 150, 'batch_size': 10256}
+    m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 1.5, 1], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 150, 'batch_size': 10256}
+
     local_test(m_info)
 
