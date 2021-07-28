@@ -69,7 +69,7 @@ class TrigSkim(Skim) :
             __out_dict['gen'] = self.geninfo
             __out_dict['metaData'] = self.Meta.get_metadata()
         # close root file
-        self.f.close()
+        #self.f.close()
         #
         return __out_dict
 
@@ -78,6 +78,21 @@ class TrigSkim(Skim) :
 
     def is_a_muon(self):
         return cfg.lep_sel['nosip3d_muon'](self.muons)
+        
+    def set_pre_cuts(self): # to speed things up?
+        _c_keys = ['nJet','nFatJet','MET_pt','nMuon','nElectron']
+        import concurrent.futures
+        from modules.AnaDict import AnaDict
+        executor = concurrent.futures.ThreadPoolExecutor()
+        _c_vars = AnaDict({k: self.tarray(k, executor=executor) for k in _c_keys})
+        _precut = ( (_c_vars['nMuon'] >= 1) &
+                    (_c_vars['nElectron'] >= 1) &
+                    (_c_vars['nJet'] >= 4)  &
+                    #(_c_vars['nFatJet'] >= 1) &
+                    (_c_vars['MET_pt'] >= 20) )
+
+        return _precut    
+
 
 if __name__ == '__main__':
     year = '2016'

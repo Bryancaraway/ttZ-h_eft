@@ -2,7 +2,6 @@ import sys
 if __name__ == '__main__':
     import subprocess as sb
     sys.path.insert(1, sb.check_output('echo $(git rev-parse --show-cdup)', shell=True).decode().strip('\n')+'DeepSleep/')
-import uproot
 import numpy as np
 import pandas as pd
 import json

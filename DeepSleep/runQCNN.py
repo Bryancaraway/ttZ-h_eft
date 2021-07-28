@@ -17,6 +17,7 @@ parser.add_argument('--nn_inputs', dest='nn_inputs', type=str,
                     choices=['nodak8md_dnn_ZH_vars','withbbvl_dnn_ZH_vars','allvars_dnn_ZH_vars','hl2'],
                     required=False, help='model input set', default='withbbvl_dnn_ZHgenm_vars')
 parser.add_argument('--rerun', action='store_true', required=False, help='Rerun files which failed (expert use only)', default=False)
+parser.add_argument('-q', dest='queue', type=str, required=False, help='Queue to submit jobs to', choices=['hep','econ','james'], default=None)
 
 args = parser.parse_args()
 
@@ -33,7 +34,13 @@ def runQC():
     for nn_input in input_dict[args.nn_inputs]:
         if args.rerun and check_for_file(nn_input) == True:
             continue
-        command = f"qsub -l nodes=1:ppn=8 -N runQCNN_{nn_input} "
+        nodes = '1'
+        if args.queue is not None:
+            add_queue = f'-q {args.queue}'
+            nodes = 'gpu006' if args.queue == 'hep' else '1'
+        else:
+            add_queue = ''
+        command = f"qsub {add_queue} -l nodes={nodes}:ppn=8 -N runQCNN_{nn_input} "
         #command = f"qsub -q hep -l nodes=gpu006:ppn=8 -N runQCNN_{nn_input} "
         command += f" -o log/nn/{nn_input}.stdout -e log/nn/{nn_input}.stderr "
         command += f'-v nn_input={nn_input} scripts/runQCNN.sh'

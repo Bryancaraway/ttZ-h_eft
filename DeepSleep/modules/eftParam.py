@@ -27,8 +27,6 @@ import config.ana_cff as cfg
 #from lib.TH1 import export1d
 #from lib.datacard_shapes import DataCardShapes
 #
-#import uproot
-#import uproot_methods
 #from ROOT import TFile, TDirectory, TH1F
 #import coffea.hist as hist
 from collections import OrderedDict
@@ -93,7 +91,11 @@ class EFTFitParams():
             for s in self.sig: # hardcoded to break processes up by signal
                 eft_file = f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl'
                 if not os.path.exists(eft_file): continue
-                df = pd.read_pickle(  eft_file).filter( regex=f"EFT|process|{self.ptKinem}|{nn}|n_ak4jets", axis='columns')
+                #df = pd.read_pickle(  eft_file).filter( regex=f"EFT|process|{self.ptKinem}|{nn}|n_ak4jets", axis='columns')
+                df = pd.concat([
+                    pd.read_pickle(eft_file).filter( regex=f"EFT", axis='columns'),
+                    pd.read_pickle(eft_file).filter( items=["process",f"{self.ptKinem}",f"{nn}","n_ak4jets"], axis='columns')], axis='columns')
+                print([k for k in df.keys()])
                 df['pt_bin'] = pd.cut(df[self.ptKinem].clip(self.pt_bins[self.ptKinem][0]+1,self.pt_bins[self.ptKinem][-1]-1), bins=self.pt_bins[self.ptKinem],
                                       labels=[i_bin for i_bin in range(len(self.pt_bins[self.ptKinem])-1)])
                 #df = self.calcBeta(df[df[nn]>=0.0], s)
@@ -110,7 +112,10 @@ class EFTFitParams():
     def __ttbb_worker(self,year):
         ttbb_eft_file = f'{self.file_dir}{year}/{self.mc_dir}TTbb_EFT_val.pkl'
         if not os.path.exists(ttbb_eft_file): return 0
-        df = pd.read_pickle(  ttbb_eft_file).filter( regex=f"EFT|process|{nn}|n_ak4jets", axis='columns')
+        #df = pd.read_pickle(  ttbb_eft_file).filter( regex=f"EFT|process|{nn}|n_ak4jets", axis='columns')
+        df = pd.concat([
+            pd.read_pickle(eft_file).filter( regex=f"EFT", axis='columns'),
+            pd.read_pickle(eft_file).filter( items=["process",f"{nn}","n_ak4jets"], axis='columns')], axis='columns')
         #for sub_s in ['tt_bb','tt_2b']: # hardcoded ttbb processes 
         for sub_s in ['tt_B']: # hardcoded ttbb processes 
             cut_for_fit = (lambda x: ((x[nn]>=0.0) & (x['n_ak4jets'] >=5) & (x['EFT183'] < 100) & (x['process'] == sub_s)))
@@ -173,12 +178,20 @@ class TestEFTFitParams(EFTFitParams):
                 eft_file = f'{self.file_dir}{y}/{self.mc_dir}{self.val_dict[s]}_EFT_val.pkl'
                 if not os.path.exists(eft_file): continue
                 if s == 'ttZ' or s == 'ttH': 
-                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|genZHstxs|genZHpt|{nn}|n_ak4jets", axis='columns')
+                    #df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|genZHstxs|genZHpt|{nn}|n_ak4jets", axis='columns')
+                    df = pd.concat([
+                        pd.read_pickle(eft_file).filter( regex=f"EFT", axis='columns'),
+                        pd.read_pickle(eft_file).filter( items=["genZHstxs","genZHpt",*kinem,f"{nn}","n_ak4jets"], axis='columns')], axis='columns')
                     df['gen_pt_bin'] = pd.cut(df['genZHpt'].clip(self.pt_bins[0]+.0001,self.pt_bins[-1]-.0001), bins=self.pt_bins,
                                               labels=[i_bin for i_bin in range(len(self.pt_bins)-1)])
                 else:
-                    df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|{nn}|n_ak4jets", axis='columns')
-
+                    #df = pd.read_pickle(  eft_file).filter( regex=f"EFT|{'|'.join(kinem)}|{nn}|n_ak4jets", axis='columns')
+                    df = pd.concat([
+                        pd.read_pickle(eft_file).filter( regex=f"EFT", axis='columns'),
+                        pd.read_pickle(eft_file).filter( items=[*kinem,f"{nn}","n_ak4jets"], axis='columns')], axis='columns')
+                print(s)
+                print(["genZHstxs","genZHpt",*kinem,f"{nn}","n_ak4jets"])
+                print([k for k in df.keys()])
                 df['reco_pt_bin'] = pd.cut(df['Zh_pt'].clip(self.pt_bins[0]+.0001,self.pt_bins[-1]-.0001), bins=self.pt_bins,
                                            labels=[i_bin for i_bin in range(0,len(self.pt_bins)-1)])
                 df['reco_m_bin']  = pd.cut(df['Zh_M'].clip(self.m_bins[0]+.0001,self.m_bins[-1]-.0001), bins=self.m_bins,
@@ -195,11 +208,14 @@ class TestEFTFitParams(EFTFitParams):
         if force_year is None: force_year = year
         out_dict = {}
         pqr_s = re.findall(r'(?<!pro)(?<!re)c\w*',' '.join(self.eft_df[force_year]['ttH'].keys()))
+        print(pqr_s)
         p_dict = {'ttZ':'ttZ','ttH':'ttH','ttbb':'tt_B','ttbbjet':'tt_B'}
         #print(self.eft_df.keys()) # 2016, 2017, 2018
         #print(self.eft_df['2018'].keys()) # ttbb, ttZ, ttH
         for k in self.eft_df[force_year]:
             df = self.eft_df[force_year][k]
+            print(k)
+            print(df.filter(like='NN').keys())
             for i in range(len(self.pt_bins)-1): # pt_bin
                 pt_cut = (lambda df_: df_[df_['reco_pt_bin']==i])
                 #print(k,i,pt_cut(df))
@@ -362,8 +378,8 @@ def forDatacard(doReco):
     #out_file = 'EFT_Parameterization_v5.npy' # gen pt sep ttH, ttZ .... no tt+bb
     out_file = 'EFT_Parameterization_v7.npy' # reco pt sep ttH, ttZ, and tt+bb
     eft = EFTParam(doReco=False) if not doReco else TestEFTFitParams(['ttbb','ttZ','ttH'])
-    eft.save_helper(year='2016', force_year='2018')
-    eft.save_helper(year='2017', force_year='2018')
+    eft.save_helper(year='2016', force_year='2016')
+    eft.save_helper(year='2017', force_year='2017')
     eft.save_helper(year='2018', force_year='2018')
     for k in eft.out_dict:
         for i in eft.out_dict[k]:
@@ -380,7 +396,7 @@ if __name__ == '__main__':
     #forTesting()
     
     # -- to make parameterizations for datacard workspace
-    
+
     forDatacard(doReco=True)
 
     # -- end

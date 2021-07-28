@@ -39,7 +39,7 @@ sample_dict = {'all' : [k for k in process_cfg.keys() if 'Data' not in k]+cfg.Da
 }
 
 q_limit = {
-    'hep'  : 20, 
+    'hep'  : 30, 
     'econ' : 20,
     'james': 20,
 }

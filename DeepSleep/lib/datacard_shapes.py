@@ -26,11 +26,11 @@ class DataCardShapes():
     nn = cfg.nn
     hist_dict = {}
     #
-    def __init__(self, recopt_bins, recosdM_bins, n_NN_bins=10, nn='NN', isblind=True): # will have to change isblind for final fit
+    def __init__(self, recopt_bins, recosdM_bins, n_NN_bins=10, nn=None, isblind=True): # will have to change isblind for final fit
         self.pt_bins = recopt_bins+[500]
         self.sdM_bins = recosdM_bins
         #self.n_NN_bins = n_NN_bins
-        self.nn = nn
+        self.nn = cfg.nn if nn is None else nn
         self.isblind = isblind
         #
         self.init_hist_funcs()
