@@ -21,7 +21,8 @@ import config.ana_cff as cfg
 
 @save_pdf('statcorr_dnn.pdf')
 def main():
-    trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/oldtrainXY.pkl')
+    #trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/oldtrainXY.pkl')
+    trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/trainXY.pkl')
     trainXY['sig_label'] = np.stack(trainXY['label'].values)[:,2]
     trainXY['ttbar_label'] = np.stack(trainXY['label'].values)[:,0]
     trainXY['ttbb_label'] = np.stack(trainXY['label'].values)[:,1]
@@ -48,47 +49,47 @@ def main():
         fig.suptitle(f"Pearson Correlation Matrix ({title})")
         #
         #
-        chi2_score, chi_2_p_value = chi2(abs(df),df_target)
+        #chi2_score, chi_2_p_value = chi2(abs(df),df_target)
         #_out = pd.DataFrame(chi2_score, index=df.keys(), columns=[f'{title} Mut Info'])
         #return _out
 
-        f_score, f_p_value = f_classif(df,df_target)        
+        #f_score, f_p_value = f_classif(df,df_target)        
         mut_info_score = mutual_info_classif(df,df_target)
-        #_out = pd.DataFrame(mut_info_score, index=df.keys(), columns=[f'{title}_Mut_Info'])
-        #_out.drop(index=['sig_label','ttbb_label','ttbar_label'] ,inplace=True)
-        #_out[f'{title}_rank'] = _out[f'{title}_Mut_Info'].rank() 
-        #return _out
+        _out = pd.DataFrame(mut_info_score, index=df.keys(), columns=[f'{title}_Mut_Info'])
+        _out.drop(index=['sig_label','ttbb_label','ttbar_label'] ,inplace=True)
+        _out[f'{title}_rank'] = _out[f'{title}_Mut_Info'].rank() 
+        return _out
         #stat_sum_df = pd.DataFrame(
         #    [abs(p_corr[target_label].values),abs(chi2_score),abs(chi_2_p_value),abs(f_score),abs(f_p_value)],
         #    columns = df.keys(), index = ['P_corr','Chi2','Chi2_p','Fscore','Fscore_p']).transpose()
-        stat_sum_df = pd.DataFrame(
-            [abs(p_corr[target_label].values),abs(chi2_score),10**(chi_2_p_value),abs(f_score),10**(f_p_value),abs(mut_info_score)],
-            columns = df.keys(), index = ['P_corr','Chi2','10^_Chi2_p','Fscore','10^_Fscore_p','mut_info']).transpose()
-        plot_heatmap(stat_sum_df, f'Statistical Test Metric Summary ({title})', col_norm=False)
+        #stat_sum_df = pd.DataFrame(
+        #    [abs(p_corr[target_label].values),abs(chi2_score),10**(chi_2_p_value),abs(f_score),10**(f_p_value),abs(mut_info_score)],
+        #    columns = df.keys(), index = ['P_corr','Chi2','10^_Chi2_p','Fscore','10^_Fscore_p','mut_info']).transpose()
+        #plot_heatmap(stat_sum_df, f'Statistical Test Metric Summary ({title})', col_norm=False)
     #
     # compare sig vs all
-    testing_df = pd.concat([trainXY[trainXY['sig_label'] == 0], trainXY[trainXY['sig_label'] == 1].sample(sum(trainXY['sig_label'] == 0))],ignore_index=True) # equal amounts of signal and background
-    #mut_info = test_target('sig_label', 'SIGvsBKG', testing_df)
-    test_target('sig_label', 'SIGvsBKG', testing_df)
+    testing_df = pd.concat([trainXY[trainXY['sig_label'] == 0].sample(sum(trainXY['sig_label'] == 1)), trainXY[trainXY['sig_label'] == 1]],ignore_index=True) # equal amounts of signal and background
+    mut_info = test_target('sig_label', 'SIGvsBKG', testing_df)
+    #test_target('sig_label', 'SIGvsBKG', testing_df)
     #print(mut_info)
     del testing_df
     # now compare only looking at sig vs tt+bb
     testing_df = pd.concat([trainXY[trainXY['ttbb_label'] == 1], trainXY[trainXY['sig_label'] == 1].sample(sum(trainXY['ttbb_label'] == 1))],ignore_index=True) # equal amounts of signal and tt+bb
-    #mut_info = pd.concat([mut_info,test_target('sig_label', 'SIGvsTTBB', testing_df)], axis='columns')
-    test_target('sig_label', 'SIGvsTTBB', testing_df)
+    mut_info = pd.concat([mut_info,test_target('sig_label', 'SIGvsTTBB', testing_df)], axis='columns')
+    #test_target('sig_label', 'SIGvsTTBB', testing_df)
     #print(mut_info)
     del testing_df
     # now compare only looking at sig vs ttbar
     testing_df = pd.concat([trainXY[trainXY['ttbar_label'] == 1], trainXY[trainXY['sig_label'] == 1].sample(sum(trainXY['ttbar_label'] == 1))],ignore_index=True) # equal amounts of signal and ttbar
-    #mut_info = pd.concat([mut_info, test_target('sig_label', 'SIGvsTTBar', testing_df)], axis='columns')
-    test_target('sig_label', 'SIGvsTTBar', testing_df)
+    mut_info = pd.concat([mut_info, test_target('sig_label', 'SIGvsTTBar', testing_df)], axis='columns')
+    #test_target('sig_label', 'SIGvsTTBar', testing_df)
     #print(mut_info)
     del testing_df
     #
-    #mut_info.sort_values(by='SIGvsTTBB_rank', inplace=True)
-    #mut_info.index.name = 'Inputs'
+    mut_info.sort_values(by='SIGvsTTBB_rank', inplace=True)
+    mut_info.index.name = 'Inputs'
     #plot_heatmap(mut_info, 'Pear Corr', cmap=False)
-    #plot_heatmap(mut_info, 'Mut Info', cmap=False)
+    plot_heatmap(mut_info, 'Mut Info', cmap=False)
 
             
 

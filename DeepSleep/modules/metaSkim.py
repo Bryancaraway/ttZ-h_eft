@@ -34,11 +34,12 @@ class SkimMeta :
     #nanoAODv7_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
     #sample  = None
 
-    def __init__(self, sample, year, isData, tree, jec_sys=None, run_norm=True):
+    def __init__(self, sample, year, isData, tree, jec_sys=None, pdf=None, run_norm=True):
         self.sample = sample
         self.year   = year
         self.isData = isData
         self.tree   = tree
+        self.pdf    = pdf
         #
         self.isttbar = 'TTTo' in self.sample or 'TTJets' in self.sample
         self.isttbb  = 'TTbb' in self.sample
@@ -58,11 +59,20 @@ class SkimMeta :
                         self.event_var_normalization()
                 else:
                     self.jec_var_normalization()
+        #print(self.metadata)
 
     ## main functions    
     
     def get_metadata(self):
         return self.metadata
+
+    def add_otc_pdf_to_metaData(self):
+        gw = np.sign(self.tree.array('genWeight'))
+        self.pdf = np.array([sum(self.pdf[:,i]*gw) for i in range(max(self.pdf.counts))])
+        #print(sum(np.power(self.pdf[1:-2]-self.pdf[0],2))**(.5)/self.pdf[0])
+        #print(self.metadata['pdf_down_tot']/self.metadata['tot_events'])
+        #print(self.metadata['pdf_up_tot']/self.metadata['tot_events'])
+        self.metadata['pdfweights'] = self.pdf
 
     def jec_var_normalization(self):
         results = np.array(self.jec_worker(self.tree))
@@ -77,6 +87,9 @@ class SkimMeta :
             'murf_up_tot':results[5], 'murf_down_tot':results[6],
             'pdf_up_tot' :results[7], 'pdf_down_tot' :results[8],
         })
+        if self.pdf is not None:
+            self.metadata['pdfweights_tot'] = results[9] 
+
     def event_signal_normalization(self): # 1,2,4
         results = np.array(self.signal_worker(self.tree, self.sample))
         genpt_bins = [0,200,300,450,np.inf]
@@ -84,6 +97,9 @@ class SkimMeta :
                 'mur_up_tot','mur_down_tot','muf_up_tot','muf_down_tot','murf_up_tot','murf_down_tot',
                 'isr_up_tot','isr_down_tot','fsr_up_tot','fsr_down_tot',
                 'pdf_up_tot','pdf_down_tot']
+        if self.pdf is not None:
+            keys += ['pdfweights_tot']
+
         _upd_dict = {}
         for i,ptbin in enumerate(genpt_bins):
             s_format = (lambda x: x.replace('_tot',f'_{i-1}')) if i > 0 else (lambda x:x)
@@ -112,6 +128,10 @@ class SkimMeta :
             'fsr_up_ttbb' :results[22],'fsr_down_ttbb' :results[23],
             'pdf_up_ttbb' :results[24],'pdf_down_ttbb' :results[25],
         })
+        if self.pdf is not None: # add pdf weights
+            self.metadata['pdfweights_tot'] = results[26]
+            self.metadata['pdfweights_ttbb'] = results[27]
+            
     
 
     ## worker functions 
@@ -121,8 +141,8 @@ class SkimMeta :
         tot_count= sum(gw>=0.0) - sum(gw<0.0)
         return [tot_count]
 
-    @staticmethod
-    def event_worker(t):
+
+    def event_worker(self,t):
         scps_helper = (lambda arr: np.clip(np.nanpercentile(arr,.15), np.nanpercentile(arr,99.85), arr))
         gw = t.array('genWeight')#, executor=executor, blocking=True)
         try:
@@ -132,7 +152,7 @@ class SkimMeta :
         pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
         pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
         #
-        sc_tot = [ sum( scps_helper(scale[:,i] )) for i in range(9)]
+        sc_tot = [ sum( scps_helper(scale[:,i] ) ) for i in range(9)]
         mur_up_tot, mur_down_tot   = sc_tot[7], sc_tot[1]
         muf_up_tot, muf_down_tot   = sc_tot[5], sc_tot[3]
         murf_up_tot, murf_down_tot = sc_tot[8], sc_tot[0]
@@ -141,13 +161,19 @@ class SkimMeta :
         #
         tot_count= sum(gw>=0.0) - sum(gw<0.0)
         #
-        return [tot_count,        # 0
-                mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 1-6
-                pdf_up_tot, pdf_down_tot, # 7-8
+        __out = [
+            tot_count,        # 0
+            mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 1-6
+            pdf_up_tot, pdf_down_tot, # 7-8
         ]
+        if self.pdf is not None:
+            pdfw = self.pdf*np.sign(gw) 
+            pdfw_tot  = np.array([sum(pdfw[:,i]) for i in range(max(pdfw.counts))])
+            __out.append(pdfw_tot) # 9
+        
+        return __out
 
-    @staticmethod
-    def signal_worker(t, sample):
+    def signal_worker(self, t, sample):
         scps_helper = (lambda arr: np.clip(np.nanpercentile(arr,.15), np.nanpercentile(arr,99.85), arr))
         genpt_bins = [0,200,300,450,np.inf] # 500 is overflow
         gen_id, gen_st, gen_mom = [t.array(k) for k in ['GenPart_pdgId','GenPart_status','GenPart_genPartIdxMother']]
@@ -192,31 +218,36 @@ class SkimMeta :
             #
             #print(len(gw),len(pt_cut), len(zh_pt), len(zhcut), len(id_cut))
             #65459 1705123 1705123 65459 71774
+            ana_cut = ((pt_cut==True) & (stxs_cut==True))
             genpt_tot = sum(gw[pt_cut==True]>=0.0) - sum(gw[pt_cut==True]<0.0) 
-            genpt_rap_tot = sum(gw[(pt_cut==True) & (stxs_cut==True)]>=0.0) - sum(gw[(pt_cut==True) & (stxs_cut==True)]<0.0) 
-            ps_tot = [ sum( ps[:,i][(pt_cut==True) & (stxs_cut==True)] ) for i in range(4) ]
-            #ps_tot = [ sum( scps_helper(ps[:,i][(pt_cut==True) & (stxs_cut==True)]) ) for i in range(4) ]
+            genpt_rap_tot = sum(gw[ana_cut]>=0.0) - sum(gw[ana_cut]<0.0) 
+            ps_tot = [ sum( ps[:,i][ana_cut] ) for i in range(4) ]
+            #ps_tot = [ sum( scps_helper(ps[:,i][ana_cut]) ) for i in range(4) ]
             isr_up_tot, isr_down_tot = ps_tot[2], ps_tot[0]
             fsr_up_tot, fsr_down_tot = ps_tot[3], ps_tot[1]
             #[0] is ISR=0.5 FSR=1; [1] is ISR=1 FSR=0.5; [2] is ISR=2 FSR=1; [3] is ISR=1 FSR=2
             #
-            #sc_tot = [ sum( scps_helper(scale[:,i][(pt_cut==True) & (stxs_cut==True)]) ) for i in range(9)]
-            sc_tot = [ sum( scale[:,i][(pt_cut==True) & (stxs_cut==True)] ) for i in range(9)]
+            #sc_tot = [ sum( scps_helper(scale[:,i][ana_cut]) ) for i in range(9)]
+            sc_tot = [ sum( scale[:,i][ana_cut] ) for i in range(9)]
             mur_up_tot, mur_down_tot   = sc_tot[7], sc_tot[1]
             muf_up_tot, muf_down_tot   = sc_tot[5], sc_tot[3]
             murf_up_tot, murf_down_tot = sc_tot[8], sc_tot[0]
             #
-            pdf_up_tot, pdf_down_tot = map((lambda x : sum(x[(pt_cut==True) & (stxs_cut==True)])), [pdf_up,pdf_down])
+            pdf_up_tot, pdf_down_tot = map((lambda x : sum(x[ana_cut])), [pdf_up,pdf_down])
             #
             out_list += [genpt_tot, genpt_rap_tot, 
                          mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot,
                          isr_up_tot, isr_down_tot, fsr_up_tot, fsr_down_tot,
                          pdf_up_tot, pdf_down_tot] 
+            if self.pdf is not None:
+                pdfw = self.pdf[id_cut]*np.sign(gw) 
+                pdfw_tot  = np.array([sum(pdfw[ana_cut][:,i]) for i in range(max(pdfw.counts))])
+                out_list.append(pdfw_tot)
+        
         #
         return out_list
         
-    @staticmethod
-    def ttbb_worker(t):
+    def ttbb_worker(self,t):
         scps_helper = (lambda arr: np.clip(np.nanpercentile(arr,.15), np.nanpercentile(arr,99.85), arr))
         gw    = t.array('genWeight'  )
         ttbb  = t.array('genTtbarId')
@@ -251,15 +282,25 @@ class SkimMeta :
         pdf_up_tot, pdf_down_tot = sum(pdf_up), sum(pdf_down)
         pdf_up_ttbb, pdf_down_ttbb = sum(pdf_up[(ttbb>=51)]), sum(pdf_down[(ttbb>=51)])
         #
-        return [tot_count,  # 0
-                mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 1-6
-                isr_up_tot, isr_down_tot, fsr_up_tot, fsr_down_tot, # 7-10
-                pdf_up_tot, pdf_down_tot, # 11-12
-                ttbb_count,  # 13
-                mur_up_ttbb, mur_down_ttbb, muf_up_ttbb, muf_down_ttbb, murf_up_ttbb, murf_down_ttbb, # 14-19
-                isr_up_ttbb, isr_down_ttbb, fsr_up_ttbb, fsr_down_ttbb,# 20-23
-                pdf_up_ttbb, pdf_down_ttbb, # 24-25
+        __out = [
+            tot_count,  # 0
+            mur_up_tot, mur_down_tot, muf_up_tot, muf_down_tot, murf_up_tot, murf_down_tot, # 1-6
+            isr_up_tot, isr_down_tot, fsr_up_tot, fsr_down_tot, # 7-10
+            pdf_up_tot, pdf_down_tot, # 11-12
+            ttbb_count,  # 13
+            mur_up_ttbb, mur_down_ttbb, muf_up_ttbb, muf_down_ttbb, murf_up_ttbb, murf_down_ttbb, # 14-19
+            isr_up_ttbb, isr_down_ttbb, fsr_up_ttbb, fsr_down_ttbb,# 20-23
+            pdf_up_ttbb, pdf_down_ttbb, # 24-25
         ]
+        if self.pdf is not None:
+            pdfw = self.pdf*np.sign(gw) 
+            pdfw_tot  = np.array([sum(pdfw[:,i]) for i in range(max(pdfw.counts))])
+            pdfw_ttbb = np.array([sum(pdfw[(ttbb>=51)][:,i]) for i in range(max(pdfw.counts))])
+            __out.append(pdfw_tot) # 26
+            __out.append(pdfw_ttbb) # 27
+            
+        return __out
+        
         
     def add_btagweightsf_counts(self, jets, events, geninfo):
         # need to only count certain processes/sub-processes for later

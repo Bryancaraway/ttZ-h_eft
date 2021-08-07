@@ -21,12 +21,13 @@ pdfDir            = _wdir+'pdf/'
 preproc_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PreProcessed/'
 postproc_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/'
 postSkim_dir = '/cms/data/store/user/ttxeft/NanoAODv7/Skim/'
+pdfNtuples_dir = '/cms/data/store/user/ttxeft/NanoAODv7/PDF/'
 # NN dir
 DNNoutputDir      = dataDir+'/NN_files/'
 # Overhead #
 import os
 if   os.path.exists('/cms/data/store/user/ttxeft/') : # test to see if on kodiak
-    file_path         = '/cms/data/store/user/ttxeft/Skim_nanoAOD/' # for kodiak
+    file_path         = postSkim_dir # for kodiak
 elif os.path.exists('/eos/uscms/') or 'condor' in _cdir: # test to see if on lpc will need to fix for condor on kodiak i think
     file_path        = 'root://cmseos.fnal.gov//store/user/bcaraway/skimAnaSamples/'
     preproc_dir  = preproc_dir.replace('/cms/data','/eos/uscms').replace('ttxeft','bcaraway')

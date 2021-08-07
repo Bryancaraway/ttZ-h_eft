@@ -1,6 +1,5 @@
 import os
 import sys
-import numpy 
 from uproot_methods import TLorentzVectorArray 
 import config.ana_cff as cfg
 import lib.fun_library as lib
@@ -48,7 +47,7 @@ puppicorr_massReso_0eta1p3   = (lambda x: 1.0927351+(4.1426227e-05)*x+(-1.373680
 puppicorr_massReso_1p3eta2p5 = (lambda x: 1.1649278+(-0.00012678903)*x+(1.0594037e-07)*np.power(x,2)+(6.0720870e-12)*np.power(x,3)+(-1.9924275e-14)*np.power(x,4)+(3.6440065e-18)*np.power(x,5))
 
 @t2Run
-def ak8_helper(obj, jec_sys):
+def ak8jmsjmr_helper(obj, jec_sys):
     # apply some preliminary cleaning to fatjet variables
     init_cut = (
         (obj.tmp_fatjets["FatJet_pt"]>20) &

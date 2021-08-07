@@ -2,6 +2,7 @@
 # created by: Bryan Caraway
 from collections import UserDict
 import pickle5 as pickle
+import pandas as pd
 
 
 class AnaDict (UserDict): # may want to move this to different file
@@ -23,6 +24,11 @@ class AnaDict (UserDict): # may want to move this to different file
         return sum(self.data.values())
     def values(self):
         return self.data.values()
+    @property
+    def size(self): # returns the size of the first key (assumes every entry has the same size)
+        return len(self.data[next(iter(self.data))])
+    def to_df(self):
+        return pd.DataFrame.from_dict(self.data)
     def to_pickle(self, out_name):
         with open(out_name, 'wb') as handle:
             pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)

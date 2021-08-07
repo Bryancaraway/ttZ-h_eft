@@ -915,7 +915,7 @@ class ShapeSystematic(Systematic): # Class to handle Datacard shape systematics
                                 down[j,2:,i] = nom[j,2:,i] * np.nansum(down[j,2:,i])/np.nansum(nom[j,2:,i])
 
 
-                else: # dedicated sample sys, # sum across sdm and NN
+                else: # dedicated sample sys: hdamp or UE # sum across sdm and NN
                     #for i in range(nom.shape[-1]):
                     for j in range(nom.shape[0]): # pt
                         up[j,:,:]   = nom[j,:,:] * np.nansum(up[j,:,:])/np.nansum(nom[j,:,:])

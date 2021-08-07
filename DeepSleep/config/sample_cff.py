@@ -40,8 +40,8 @@ process_cfg = {
                     'ST_tW_antitop',
                     'ST_s_lep',
                     'ST_t_top',     
-                    'ST_t_antitop',
-                    'tZq_ll',],# might move this to ttX
+                    'ST_t_antitop',],
+    #'tZq_ll',],# might move this to ttX
     #'rare'       : [#'tZq_had',
     #                'THW',
     #                'THQ'],
@@ -50,7 +50,8 @@ process_cfg = {
                     'TTTT',  
                     'TTGJets',
                     'THW',
-                    'THQ'],
+                    'THQ',
+                    'tZq_ll',],
     'VJets'      : [#'WJetsToLNu_HT_70to100',
                     #'WJetsToLNu_HT_100to200',  
                     #'WJetsToLNu_HT_200to400',  
@@ -152,13 +153,15 @@ sample_cfg = {
     'ST_s_lep'      : {'out_name' : 'single_t',     'xs' : 6.96,    'kf' : 1.0,},
     'ST_t_top'      : {'out_name' : 'single_t',     'xs' : 136.065, 'kf' : 1.0,},
     'ST_t_antitop'  : {'out_name' : 'single_t',     'xs' : 80.97,   'kf' : 1.0,},
-    'tZq_ll'        : {'out_name' : 'single_t',     'xs' : 0.0758,  'kf' : 1.0,},
-    'tZq_had'       : {'out_name' : 'rare',     'xs' : 0.1518,  'kf' : 1.0,},
+    #'tZq_ll'        : {'out_name' : 'single_t',     'xs' : 0.0758,  'kf' : 1.0,},
+
+    'tZq_had'       : {'out_name' : 'rare',     'xs' : 0.1518,  'kf' : 1.0,}, # not avail for all years
     # ttX
-    'TTWJetsToLNu' : {'out_name' : 'ttX',     'xs' : 0.1793,  'kf' : 1.0,},
-    'TTWJetsToQQ'  : {'out_name' : 'ttX',     'xs' : 0.3708,  'kf' : 1.0,},
-    'TTTT'         : {'out_name' : 'ttX',     'xs' : 0.009103,'kf' : 1.0,},
-    'TTGJets'      : {'out_name' : 'ttX',     'xs' : 3.697,   'kf' : 1.0,},
+    'tZq_ll'       : {'out_name' : 'ttX',     'xs' : 0.0758,   'kf' : 1.0,},
+    'TTWJetsToLNu' : {'out_name' : 'ttX',     'xs' : 0.1793,   'kf' : 1.0,},
+    'TTWJetsToQQ'  : {'out_name' : 'ttX',     'xs' : 0.3708,   'kf' : 1.0,},
+    'TTTT'         : {'out_name' : 'ttX',     'xs' : 0.009103, 'kf' : 1.0,},
+    'TTGJets'      : {'out_name' : 'ttX',     'xs' : 3.697,    'kf' : 1.0,},
     'THW'          : {'out_name' : 'ttX',     'xs' : 0.01517,  'kf' : 1.0,},
     'THQ'          : {'out_name' : 'ttX',     'xs' : 0.07425,  'kf' : 1.0,},
     # Vjets

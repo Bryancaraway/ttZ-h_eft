@@ -137,10 +137,11 @@ def get_tot_yields():
     return _out_dict
             
 def main():
+    nn = cfg.nn
     import_mpl_settings(i=1)
     sel_y      = get_sel_yields()
-    sigsens_y  = get_sel_yields(sel_cuts = {'ttZ':(lambda df : df[((df['NN']>0.8) & (df['Zh_M']>80)  & (df['Zh_M']<115))]),
-                                            'ttH':(lambda df : df[((df['NN']>0.8) & (df['Zh_M']>115) & (df['Zh_M']<155))])})
+    sigsens_y  = get_sel_yields(sel_cuts = {'ttZ':(lambda df : df[((df[nn]>0.8) & (df['Zh_M']>80)  & (df['Zh_M']<115))]),
+                                            'ttH':(lambda df : df[((df[nn]>0.8) & (df['Zh_M']>115) & (df['Zh_M']<155))])})
     tot_y      = get_tot_yields()
     #
     make_stxs_yeilds(tot_y,sel_y)

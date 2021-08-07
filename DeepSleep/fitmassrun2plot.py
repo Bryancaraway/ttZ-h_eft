@@ -220,20 +220,22 @@ def main():
         data = AnaDict.read_pickle(pas_data_file)
     #
     import_mpl_settings(2)
+    #cut_str = r'$\mathrm{deepTagMD\;WvsQCD}>0.0$'+'\n'+r'${p}_{\mathrm{T}}^{\mathrm{AK8\;jet}} > 200$'
+    cut_str = r'${p}_{\mathrm{T}}^{\mathrm{AK8\;jet}} > 200$'
     for year in cfg.Years:
         initDF(
             data, 
             #add_cut=(lambda x_ : (x_['fjetpt_1'] > 300)),
             add_cut = (lambda x_ : (x_['fjetwmdscore_1'] > 0.0)),
-            add_cut_str=r'$\mathrm{deepTagMD\;WvsQCD}>0.0$'+'\n'+r'${p}_{\mathrm{T}}^{\mathrm{AK8\;jet}} > 200$',
+            add_cut_str=cut_str,
             years=[year],
         )
     initDF(
-            data, 
-            #add_cut=(lambda x_ : (x_['fjetpt_1'] > 300)),
-            add_cut = (lambda x_ : (x_['fjetwmdscore_1'] > 0.0)),
-            add_cut_str=r'$\mathrm{deepTagMD\;WvsQCD}>0.0$'+'\n'+r'${p}_{\mathrm{T}}^{\mathrm{AK8\;jet}} > 200$',
-            years=cfg.Years,
+        data, 
+        #add_cut=(lambda x_ : (x_['fjetpt_1'] > 300)),
+        add_cut = (lambda x_ : (x_['fjetwmdscore_1'] > 0.0)),
+        add_cut_str=cut_str,
+        years=cfg.Years,
     )
 
 

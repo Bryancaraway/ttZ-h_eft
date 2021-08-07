@@ -26,11 +26,11 @@ rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 gof_dir = 'fitdiag_roots/gof'
-#fit_vars = cfg.withbbvl_dnn_ZHgenm_vars
-fit_vars = [f'NN_{i}' for i in range(64)]
+fit_vars = cfg.withbbvl_dnn_ZHgenm_vars
+#fit_vars = [f'NN_{i}' for i in range(64)]
 
-#@save_pdf("qcnn_pscores.pdf")
-@save_pdf("qcnn_pscores_hl2.pdf")
+@save_pdf("qcnn_pscores.pdf")
+#@save_pdf("qcnn_pscores_hl2.pdf")
 def main():
     #dnn_vars = cfg.withbbvl_dnn_ZH_vars
 
