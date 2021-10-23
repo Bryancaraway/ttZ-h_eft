@@ -136,5 +136,5 @@ def check_xrdcp(roo):
 if __name__ == '__main__':
     if not os.path.exists(sys.argv[1]) : raise NameError(sys.argv[1]) 
     i_file = sys.argv[1]
-    das_from_cfg(i_file) # pass mini --> get nano
-    #check_other_end(i_file) # pass nano --> get nano_v2
+    #das_from_cfg(i_file) # pass mini --> get nano
+    check_other_end(i_file) # pass nano --> get nano_v2

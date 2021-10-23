@@ -44,6 +44,7 @@ class SkimMeta :
         self.isttbar = 'TTTo' in self.sample or 'TTJets' in self.sample
         self.isttbb  = 'TTbb' in self.sample
         self.issig   = 'TTZ' in self.sample or 'ttH' in self.sample or 'TTH' in self.sample
+        self.iseft   = 'EFT' in self.sample
         #self.metadata = {'sample': self.sample, 'year': self.year, 
         #                 'xs': sample_cfg[self.sample]['xs'], 'kf': sample_cfg[self.sample]['kf']}
         self.metadata = {}
@@ -66,13 +67,13 @@ class SkimMeta :
     def get_metadata(self):
         return self.metadata
 
-    def add_otc_pdf_to_metaData(self):
-        gw = np.sign(self.tree.array('genWeight'))
-        self.pdf = np.array([sum(self.pdf[:,i]*gw) for i in range(max(self.pdf.counts))])
-        #print(sum(np.power(self.pdf[1:-2]-self.pdf[0],2))**(.5)/self.pdf[0])
-        #print(self.metadata['pdf_down_tot']/self.metadata['tot_events'])
-        #print(self.metadata['pdf_up_tot']/self.metadata['tot_events'])
-        self.metadata['pdfweights'] = self.pdf
+    #def add_otc_pdf_to_metaData(self): # does not run atm!!!!!!!! which is fine
+    #    gw = np.sign(self.tree.array('genWeight'))
+    #    self.pdf = np.array([sum(self.pdf[:,i]*gw) for i in range(max(self.pdf.counts))])
+    #    #print(sum(np.power(self.pdf[1:-2]-self.pdf[0],2))**(.5)/self.pdf[0])
+    #    #print(self.metadata['pdf_down_tot']/self.metadata['tot_events'])
+    #    #print(self.metadata['pdf_up_tot']/self.metadata['tot_events'])
+    #    self.metadata['pdfweights'] = self.pdf
 
     def jec_var_normalization(self):
         results = np.array(self.jec_worker(self.tree))
@@ -135,22 +136,23 @@ class SkimMeta :
     
 
     ## worker functions 
-    @staticmethod
-    def jec_worker(t):
-        gw = t.array('genWeight')
-        tot_count= sum(gw>=0.0) - sum(gw<0.0)
+    def jec_worker(self,t):
+        eft_sm_w = t.array('LHEReweightingWeight')[:,183] if self.iseft else 1.0 # eft sample proof 
+        gw = np.sign(t.array('genWeight')) * eft_sm_w
+        tot_count= sum(gw)
         return [tot_count]
 
 
     def event_worker(self,t):
         scps_helper = (lambda arr: np.clip(np.nanpercentile(arr,.15), np.nanpercentile(arr,99.85), arr))
-        gw = t.array('genWeight')#, executor=executor, blocking=True)
+        eft_sm_w = t.array('LHEReweightingWeight')[:,183] if self.iseft else 1.0 # eft sample proof     
+        gw = np.sign(t.array('genWeight')) * eft_sm_w
         try:
-            scale = t.array('LHEScaleWeight').pad(9).fillna(1) * np.sign(gw)
+            scale = t.array('LHEScaleWeight').pad(9).fillna(1) * gw
         except:
             scale = np.ones(shape=(len(gw),9))
-        pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
-        pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
+        pdf_up   = t.array('pdfWeight_Up') * gw
+        pdf_down = t.array('pdfWeight_Down') * gw
         #
         sc_tot = [ sum( scps_helper(scale[:,i] ) ) for i in range(9)]
         mur_up_tot, mur_down_tot   = sc_tot[7], sc_tot[1]
@@ -159,7 +161,8 @@ class SkimMeta :
         #
         pdf_up_tot, pdf_down_tot = sum(pdf_up), sum(pdf_down)
         #
-        tot_count= sum(gw>=0.0) - sum(gw<0.0)
+        #tot_count= sum(gw>=0.0) - sum(gw<0.0)
+        tot_count= sum(gw)
         #
         __out = [
             tot_count,        # 0
@@ -167,7 +170,7 @@ class SkimMeta :
             pdf_up_tot, pdf_down_tot, # 7-8
         ]
         if self.pdf is not None:
-            pdfw = self.pdf*np.sign(gw) 
+            pdfw = self.pdf*gw 
             pdfw_tot  = np.array([sum(pdfw[:,i]) for i in range(max(pdfw.counts))])
             __out.append(pdfw_tot) # 9
         
@@ -182,19 +185,19 @@ class SkimMeta :
         if sample == 'TTZToQQ':
             isqq_fromZ = (((abs(gen_id) <  5) & (gen_id[gen_mom] == 23) & (gen_st[gen_mom] == 62)).sum() == 2).flatten()
             id_cut = ((id_cut==True) & (isqq_fromZ==True))
-        #print(len(zhcut), len(id_cut), len(zhcut[id_cut]))
         zhcut = zhcut[id_cut]
         tarray = (lambda k : t.array(k)[id_cut])
         del gen_id, gen_st
-        gw = tarray('genWeight')#, executor=executor, blocking=True)
+        eft_sm_w = tarray('LHEReweightingWeight')[:,183] if self.iseft else 1.0 # eft sample proof
+        gw = np.sign(tarray('genWeight')) * eft_sm_w
         zh_pt, zh_eta, zh_phi, zh_mass = [tarray(k)[zhcut].flatten() for k in ['GenPart_pt','GenPart_eta','GenPart_phi','GenPart_mass']]
         getTLVm = TLorentzVectorArray.from_ptetaphim
         zh_tlv   = getTLVm(zh_pt,zh_eta,zh_phi,zh_mass)
         stxs_cut = abs(zh_tlv.rapidity) <= 2.5
         del zh_tlv, zh_eta, zh_phi, zh_mass
         #
-        pdf_up   = tarray('pdfWeight_Up') * np.sign(gw)
-        pdf_down = tarray('pdfWeight_Down') * np.sign(gw)
+        pdf_up   = tarray('pdfWeight_Up') * gw
+        pdf_down = tarray('pdfWeight_Down') * gw
         try:
             scale = tarray('LHEScaleWeight').pad(9).fillna(1)
         except:
@@ -204,10 +207,10 @@ class SkimMeta :
         except:
             ps = np.ones(shape=(len(gw),4))
         #
-        #ps = ps * np.sign(gw)
-        #scale = scale * np.sign(gw)
-        ps    = np.array([scps_helper(ps[:,i]) * np.sign(gw) for i in range(4)]).T
-        scale = np.array([scps_helper(scale[:,i]) * np.sign(gw) for i in range(9)]).T
+        #ps = ps * gw
+        #scale = scale * gw
+        ps    = np.array([scps_helper(ps[:,i]) * gw for i in range(4)]).T
+        scale = np.array([scps_helper(scale[:,i]) * gw for i in range(9)]).T
         #print(ps.shape)
         out_list = []
         for i,ptbin in enumerate(genpt_bins):
@@ -219,8 +222,10 @@ class SkimMeta :
             #print(len(gw),len(pt_cut), len(zh_pt), len(zhcut), len(id_cut))
             #65459 1705123 1705123 65459 71774
             ana_cut = ((pt_cut==True) & (stxs_cut==True))
-            genpt_tot = sum(gw[pt_cut==True]>=0.0) - sum(gw[pt_cut==True]<0.0) 
-            genpt_rap_tot = sum(gw[ana_cut]>=0.0) - sum(gw[ana_cut]<0.0) 
+            #genpt_tot = sum(gw[pt_cut==True]>=0.0) - sum(gw[pt_cut==True]<0.0) 
+            genpt_tot = sum(gw[pt_cut==True])
+            #genpt_rap_tot = sum(gw[ana_cut]>=0.0) - sum(gw[ana_cut]<0.0) 
+            genpt_rap_tot = sum(gw[ana_cut])
             ps_tot = [ sum( ps[:,i][ana_cut] ) for i in range(4) ]
             #ps_tot = [ sum( scps_helper(ps[:,i][ana_cut]) ) for i in range(4) ]
             isr_up_tot, isr_down_tot = ps_tot[2], ps_tot[0]
@@ -240,7 +245,7 @@ class SkimMeta :
                          isr_up_tot, isr_down_tot, fsr_up_tot, fsr_down_tot,
                          pdf_up_tot, pdf_down_tot] 
             if self.pdf is not None:
-                pdfw = self.pdf[id_cut]*np.sign(gw) 
+                pdfw = self.pdf[id_cut]*gw 
                 pdfw_tot  = np.array([sum(pdfw[ana_cut][:,i]) for i in range(max(pdfw.counts))])
                 out_list.append(pdfw_tot)
         
@@ -249,19 +254,20 @@ class SkimMeta :
         
     def ttbb_worker(self,t):
         scps_helper = (lambda arr: np.clip(np.nanpercentile(arr,.15), np.nanpercentile(arr,99.85), arr))
-        gw    = t.array('genWeight'  )
+        eft_sm_w = t.array('LHEReweightingWeight')[:,183] if self.iseft else 1.0 # eft sample proof
+        gw    = np.sign(t.array('genWeight')) * eft_sm_w
         ttbb  = t.array('genTtbarId')
         ttbb  = ttbb % 100
         scale = t.array('LHEScaleWeight').pad(9).fillna(1) 
         ps    = t.array('PSWeight'      ).pad(4).fillna(1) 
         # need pdf as well
-        pdf_up   = t.array('pdfWeight_Up') * np.sign(gw)
-        pdf_down = t.array('pdfWeight_Down') * np.sign(gw)
-        tot_count= sum(gw>=0.0) - sum(gw<0.0)
+        pdf_up   = t.array('pdfWeight_Up') * gw
+        pdf_down = t.array('pdfWeight_Down') * gw
+        tot_count= sum(gw)
         #
-        ttbb_count = sum((gw>=0.0) & (ttbb>=51)) - sum((gw<0.0) & (ttbb>=51))
+        ttbb_count = sum(gw[ttbb>=51])
         #
-        scale = np.sign(gw) * scale
+        scale = gw * scale
         sc_tot = [ sum( scps_helper(scale[:,i] )) for i in range(9)]
         mur_up_tot, mur_down_tot   = sc_tot[7], sc_tot[1]
         muf_up_tot, muf_down_tot   = sc_tot[5], sc_tot[3]
@@ -271,7 +277,7 @@ class SkimMeta :
         muf_up_ttbb, muf_down_ttbb   = sc_ttbb[5], sc_ttbb[3]
         murf_up_ttbb, murf_down_ttbb = sc_ttbb[8], sc_ttbb[0]
         #
-        ps = np.sign(gw) * ps
+        ps = gw * ps
         ps_tot = [ sum( scps_helper(ps[:,i] )) for i in range(4) ]
         isr_up_tot, isr_down_tot = ps_tot[2], ps_tot[0]
         fsr_up_tot, fsr_down_tot = ps_tot[3], ps_tot[1]
@@ -293,14 +299,14 @@ class SkimMeta :
             pdf_up_ttbb, pdf_down_ttbb, # 24-25
         ]
         if self.pdf is not None:
-            pdfw = self.pdf*np.sign(gw) 
+            pdfw = self.pdf*gw 
             pdfw_tot  = np.array([sum(pdfw[:,i]) for i in range(max(pdfw.counts))])
             pdfw_ttbb = np.array([sum(pdfw[(ttbb>=51)][:,i]) for i in range(max(pdfw.counts))])
             __out.append(pdfw_tot) # 26
             __out.append(pdfw_ttbb) # 27
             
         return __out
-        
+    
         
     def add_btagweightsf_counts(self, jets, events, geninfo):
         # need to only count certain processes/sub-processes for later
@@ -312,7 +318,7 @@ class SkimMeta :
             n_ak4jets = np.clip(0, 9, active_mask(events['n_ak4jets']))
             ht        = np.clip(0,1500, active_mask(jets['Jet_pt']).sum())
             b_score   = np.clip(0,1, active_mask(jets['Jet_btagDeepB'])[:,0])
-            gw_np     = active_mask(np.sign(events['genWeight']))
+            gw_np     = active_mask(np.sign(events['genWeight']) * (events['EFT183'] if 'EFT' in self.sample else 1.0)) # EFT sample proof
             #print(n_ak4jets.shape, ht.shape, b_score.shape, gw_np.shape)
             n,_ = np.histogram(n_ak4jets, bins=np.arange(-0.5,10.5,1), weights=gw_np)
             ht_vs_n,*_ = np.histogram2d(x=n_ak4jets, y=ht, bins=[np.arange(-0.5,10.5,1),np.arange(0,1550,50)], weights=gw_np)

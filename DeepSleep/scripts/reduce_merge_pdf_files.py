@@ -17,9 +17,9 @@ pdfweight and event matching
 '''
 
 #YEARS   = ['2016','2017','2018']
-YEARS = ['2018']
+YEARS = ['2016','2018']
 PDF_DIR = '/cms/data/store/user/bcaraway/NanoAODv7/PDF/'
-KEEP_VARS = ['run','luminosityBlock','event','LHEPdfWeight', 'LHE_HT']
+KEEP_VARS = ['run','luminosityBlock','event','LHEPdfWeight', 'LHE_HT', 'LHE_HTIncoming']
 OUT_DIR = '/cms/data/store/user/ttxeft/NanoAODv7/PDF/'
 
 def main():
@@ -34,6 +34,7 @@ def process_dir(s_dir):
     metaData = {'lhapdf':''} # store LHA ID here
     pdfData = {} # store vars here
     for i, roofile in enumerate(roofiles):
+        #print(i)
         with uproot.open(roofile) as roo:
             tree = roo.get('Events')
             # retieve info and concatenate into a few arrays

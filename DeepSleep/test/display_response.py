@@ -16,7 +16,8 @@ from lib.fun_library import t2Run, save_pdf, getZhbbBaseCuts, getZhbbWeight, get
 mfp = cfg.master_file_path
 ana_cuts = getZhbbBaseCuts
 
-pt_bins = [0,200,300,450,np.inf]
+#pt_bins = [0,200,300,450,np.inf]
+pt_bins = [200,300,450,np.inf]
 
 
 def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yield'):
@@ -29,6 +30,7 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
         #hspace=0.0 
         wspace=0.2
     )
+    print(df)
     #if opt_title is not None:
     #    fig.suptitle(opt_title.format(p_type))
     CMSlabel(fig, ax)
@@ -45,9 +47,9 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
     #ax.set_xscale("Log")
     ax.tick_params('both', direction='in', which='both', color='k', top=True, right=True)
     ax.set_xticks(x_bins)
-    #ax.set_xticklabels([str(i) for i in eff_dict['pt_bins']])
+    ax.set_xticklabels(['200','300','450',r'$\infty$'] if len(x_bins) == 4 else [str(i) for i in x_bins])
     ax.set_yticks(y_bins)
-    #ax.set_yticklabels([f"{i:.1f}" for i in eff_dict['eta_bins']])
+    ax.set_yticklabels(['200','300','450',r'$\infty$'] if len(y_bins) == 4 else [str(i) for i in y_bins])
     plt.minorticks_off()
     #
     ax.set_xlabel(r"Reconstructed ${p}_{\mathrm{T}}^{\mathrm{Z/H\; cand.}}$ [GeV]", fontsize=10)
@@ -63,7 +65,7 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
 @save_pdf("stxs_sigsens_yields.pdf")
 def make_stxs_sigsens_yeilds(sel):
     x_bins = [200,300,450,600]
-    y_bins = [0,200,300,450,600]
+    y_bins = [200,300,450,600] #[0,200,300,450,600]
     for p in ['ttZ','ttH']:
         r_df = sel[p]
         make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), opt_title='NN > 0.8, {} mass bin')        
@@ -71,7 +73,7 @@ def make_stxs_sigsens_yeilds(sel):
 @save_pdf("stxs_yields.pdf")
 def make_stxs_yeilds(inc,sel):
     x_bins = [200,300,450,600]
-    y_bins = [0,200,300,450,600]
+    y_bins = [200,300,450,600]#[0,200,300,450,600]
     for p in ['ttZ','ttH']:
         r_df = sel[p]
         make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''))        
@@ -79,11 +81,11 @@ def make_stxs_yeilds(inc,sel):
 @save_pdf("stxs_response.pdf")
 def make_stxs_response(inc,sel):
     x_bins = [200,300,450,600]
-    y_bins = [0,200,300,450,600]
+    y_bins = [200,300,450,600]#[0,200,300,450,600]
     for p in ['ttZ','ttH']:
-        inc_y = np.array([inc[p][p+str(i)] for i in range(4)])
+        inc_y = np.array([inc[p][p+str(i)] for i in range(1,4)])#range(4)])
         r_df = sel[p].divide(inc_y,axis='rows') * 100
-        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${\mathrm{M}}_{\mathrm{ji}}$ (%)')        
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (%)')        
 
 @save_pdf("inc_response.pdf")
 def make_inc_response(inc,sel):
@@ -100,8 +102,8 @@ def get_sel_yields(sel_cuts=None):
     sel_cuts = {'ttZ': (lambda _:_), 'ttH':(lambda _:_)} if sel_cuts is None else sel_cuts
     _out_dict = {}
     for p in ['ttZ','ttH']:
-        o_df = pd.DataFrame(np.zeros(shape=(4,3)), 
-                            columns=[(pt_bins[i-1],pt_bins[i]) for i in range(2,len(pt_bins))], # reco pt
+        o_df = pd.DataFrame(np.zeros(shape=(3,3)),#shape=(4,3)), 
+                            columns=[(pt_bins[i-1],pt_bins[i]) for i in range(1,len(pt_bins))],#range(2,len(pt_bins))], # reco pt
                             index=[(pt_bins[i-1],pt_bins[i]) for i in range(1,len(pt_bins))],   # gen  pt
         )
         for y in cfg.Years:
@@ -112,11 +114,11 @@ def get_sel_yields(sel_cuts=None):
             p_df = p_df[((p_df['genZHstxs'] == True) & (p_df['process']==p) & (ana_cuts(p_df)==True))].filter(items=['Zh_pt','genZHpt','tot_weight'])
             #p_df = p_df[(ana_cuts(p_df)==True)].filter(items=['Zh_pt','genZHpt','tot_weight'])
             for i in range(1,len(pt_bins)): # gen pt 
-                for j in range(2,len(pt_bins)): # reco pt 
+                for j in range(1,len(pt_bins)):#2,len(pt_bins)): # reco pt 
                     pt_cut = ((p_df['Zh_pt'] >= pt_bins[j-1]) & (p_df['Zh_pt'] < pt_bins[j]) &
                               (p_df['genZHpt'] >= pt_bins[i-1]) & (p_df['genZHpt'] < pt_bins[i]))
                     #
-                    o_df.iloc[i-1, j-2] = o_df.iloc[i-1, j-2] + sum(p_df.loc[(pt_cut==True), 'tot_weight'])
+                    o_df.iloc[i-1, j-1] = o_df.iloc[i-1, j-1] + sum(p_df.loc[(pt_cut==True), 'tot_weight'])
             #
         #
         _out_dict[p] = o_df
@@ -148,7 +150,7 @@ def main():
     make_stxs_sigsens_yeilds(sigsens_y)
     #
     make_stxs_response(tot_y, sel_y)
-    make_inc_response(tot_y, sel_y)
+    #make_inc_response(tot_y, sel_y)
     
 
 if __name__ == '__main__':

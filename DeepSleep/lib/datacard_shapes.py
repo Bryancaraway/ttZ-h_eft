@@ -32,7 +32,11 @@ class DataCardShapes():
         #self.n_NN_bins = n_NN_bins
         self.nn = cfg.nn if nn is None else nn
         self.isblind = isblind
+        self.nn_bins = None # normally a dict by year
         #
+        #nn_bins_file = cfg.dnn_ZH_dir+'/NN_files/run2_nn_bins.json' # need to delete if something major changes
+        #if os.path.exists(nn_bins_file):
+        #    self.nn_bins =  json.load(open(nn_bins_file,'r')) 
         self.init_hist_funcs()
     
     @t2Run

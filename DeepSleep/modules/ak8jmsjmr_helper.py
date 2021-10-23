@@ -60,19 +60,20 @@ def ak8jmsjmr_helper(obj, jec_sys):
     # data/mc puppi correction
     jms_helper(obj)
     obj.tmp_fatjets["FatJet_msoftdrop_altnosmear"] = obj.tmp_fatjets["FatJet_msoftdrop"]
-    obj.tmp_fatjets["FatJet_msoftdrop_nosmear"] = obj.tmp_fatjets["FatJet_msoftdrop_corr"]
+    obj.tmp_fatjets["FatJet_msoftdrop_nosmear"] = obj.tmp_fatjets["FatJet_msoftdrop_corr"] # jms corr
     if obj.isData:
         obj.tmp_fatjets["FatJet_msoftdrop_alt"] = obj.tmp_fatjets["FatJet_msoftdrop_altnosmear"]
-        obj.tmp_fatjets["FatJet_msoftdrop"]     = obj.tmp_fatjets["FatJet_msoftdrop_nosmear"] # this is the right one!!!
+        obj.tmp_fatjets["FatJet_msoftdrop"]     = obj.tmp_fatjets["FatJet_msoftdrop_nosmear"] # jms corr and no jmr
         #obj.tmp_fatjets["FatJet_msoftdrop"]     = obj.tmp_fatjets["FatJet_msoftdrop_altnosmear"] # for testing
     else:  #if not obj.isData:
         # smear mc and calc up/down jmr
         smear_corr_vals = jmr_helper(obj, opt='corr')
         smear_vals = jmr_helper(obj)
         jms_vals = {k:v for k,v in zip(['nom','down','up'],jmsVals[obj.year]) }
+        # old bad sdm
         obj.tmp_fatjets["FatJet_msoftdrop_alt"] = jms_vals['nom'] * smear_vals['nom'] \
-                                              * obj.tmp_fatjets['FatJet_corr_JER'] \
-                                              * obj.tmp_fatjets["FatJet_msoftdrop"]
+                                                  * obj.tmp_fatjets['FatJet_corr_JER'] \
+                                                  * obj.tmp_fatjets["FatJet_msoftdrop"]
         def apply_jmsjmr_corr(iters_):
             # loop through all jmr and jms variations
             for k,v in iters_[0].items():

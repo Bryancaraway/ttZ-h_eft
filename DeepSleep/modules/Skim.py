@@ -59,8 +59,8 @@ class Skim :
         self.ana_vars = AnaVars(self.year, self.isData, jec_sys=self.jec_sys) 
         self.tree     = self.set_tree_from_roofile(self.roofile)
         # handle pdfweight calc/matching if needed
-        if not self.isData:
-            pdf_helper = PDFHelper(self)
+        #if not self.isData:
+        pdf_helper = PDFHelper(self) # currently does nothing for EFT samples
         # prepMeta metadata factory
         self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree, self.jec_sys, pdf=pdf_helper.pdfweights)
         # define event information
@@ -387,6 +387,7 @@ class Skim :
     # extra local test stuff
     def local_test(self):
         # write to file to compare with Andrew' Skimmer
+        exit()
         out_txt_file = open(f"bryan_{self.year}.txt", "w")
         for i,j,k in zip(self.events['luminosityBlock'],self.events['event'],self.events['run']):
             print(f"Run {k}, LS {i}, event {j}")
@@ -407,10 +408,12 @@ if __name__ == '__main__':
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTToSemiLeptonic_2016/CA4521C3-F903-8E44-93A8-28F5D3B8C5E8_Skim_121.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
     #sample = "ttHTobb"
+    #sample = 'TTbb_2L2Nu'
+    #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2017/TTbb_2L2Nu_2017/prod2017MC_v7_NANO_2_Skim_11.root'
     #sample= 'TTZToBB'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
     sample = 'ttHToNonbb'
-    test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2016/ttHToNonbb_2016/F0BF6B78-4EA8-8048-8BD6-23EB9775F0C4_Skim_0.root'
+    test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2016/ttHToNonbb_2016/6D0E1ED8-6F95-FE45-8967-96805FBF1818_Skim_25.root'
     #sample = 'Data_SingleMuon'
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/Data_SingleMuon_2017_PeriodD/9A53E75E-4E0E-5A4A-A8C3-A91333DA906D_Skim_8.root'
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/Data_SingleMuon_2018_PeriodC/C8A1B18B-F06D-7D4B-80AC-3FD4774625AF_Skim_14.root'

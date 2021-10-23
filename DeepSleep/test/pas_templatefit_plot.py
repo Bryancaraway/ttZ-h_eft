@@ -28,10 +28,17 @@ rc("figure", max_open_warning=600)
 #rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 
-@save_pdf('pas_template_plots.pdf')
+pre_or_post = 'postfit'
+#pre_or_post = 'prefit'
+
+
+@save_pdf('pas_template_plots_unblind_mu0.pdf')
 def main():
-    froo = f'fitDiagnostics_inc_run2.root'
-    #froo = f'fitDiagnostics_nomerge_run2.root'
+    #froo = f'fitDiagnostics_inc_run2.root'
+    #froo = f'fitDiagnostics_inctest_run2.root'
+    ###
+    #froo = 'fitDiagnostics_unblind_SM_run2.root'
+    froo = 'fitDiagnostics_unblind_mu0_run2.root'
     pfp= PlotForPas(froo)
     pfp.makeplots()
 
@@ -46,7 +53,7 @@ class PlotForPas(PostFit):
 
     def makeplots(self):
         #self.do1Pull = do1Pull
-        ch_list = [ch for ch in self.hists['prefit']] # 'prefit is just a placeholder to loop over pt'
+        ch_list = [ch for ch in self.hists[pre_or_post]] # 'prefit is just a placeholder to loop over pt'
         ch_groups = {y: re.findall(rf'\w*{y}\w*' ,' '.join(ch_list)) for y in cfg.Years}
         #self.fig.suptitle(ch, fontsize=10) # maybe get rid of 
         for y in cfg.Years:
@@ -83,39 +90,69 @@ class PlotForPas(PostFit):
         self.make_error_boxes(ax, (self.edges[ch][1:]+self.edges[ch][:-1])/2, d['total']['values'],
                               xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err'], label='stat+sys')
         
-    def do_vlines(self, ax, i_, ch):
+    def do_data(self, d, ax, ch):
+        ax.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=d['data']['values'],
+                    xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[d['data']['errdw'],d['data']['errup']], 
+                    fmt='.', label='data', color='k')
+    def do_ratio(self, d, ax, ch):
+        y       =  d['data']['values']/d['total']['values']
+        yerrdw  =  d['data']['errdw'] /d['total']['values']
+        yerrup  =  d['data']['errup'] /d['total']['values']
+        ax.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=y,
+                     xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[yerrdw,yerrup], 
+                     fmt='.', label='data', color='k')
+        self.make_error_boxes(ax, (self.edges[ch][1:]+self.edges[ch][:-1])/2, np.ones_like(d['total']['values']),
+                              xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err']/d['total']['values'], label='stat+sys')
+        ax.set_ylim(0,2)
+        ax.set_yticks([.5,1,1.5])
+        if 'Zhpt1' in ch:
+            ax.tick_params(which='both', direction='in', bottom=True, left=True, right=False, top=False) 
+        else:
+            ax.tick_params(which='both', direction='in', bottom=True, left=False, right=False, top=False) 
+        ax.grid(True)
+        #ax.yaxis.set_minor_locator(AutoMinorLocator())
+        ax.set_xlim(0,self.edges[ch][-1])
+
+    def do_vlines(self, ax, i_, ch, isratio=False):
         m_factor = 3 if i_ == 0 else 4
         m_lines = [ self.edges[ch][i] for i in range(m_factor,len(self.edges[ch]), m_factor)]
         for l in m_lines:
-            ax.axvline(l, ymin=-.05, ymax=(0.7 if i_ != 0 else 0.8), 
+            ymax = 0.60 if i_ != 0  else 0.8
+            ymax = 1.0 if isratio else ymax
+            ax.axvline(l, ymin=-.05, ymax=ymax,
                        color='k', linewidth='0.5', linestyle='--', dashes=(4,8), snap=True)
         
 
     def make_stackhist(self, ch_list):
         axs = self.axs # # 0,0 lt # 0,1 rt
+        rat_axs = self.rat_axs
         for i, ch in enumerate(ch_list):
-            d = self.hists['prefit'][ch]
+            d = self.hists[pre_or_post][ch]
             ## stack plot here
             self.do_stack(d, axs[i], ch)
+            self.do_data(d, axs[i], ch)
+            self.do_ratio(d, rat_axs[i], ch)
             self.do_vlines(axs[i], i, ch)
+            self.do_vlines(rat_axs[i], i, ch, isratio=True)
             #
-            self.endaxs(axs[i],'prefit', ch=ch)
+            self.endaxs(axs[i],pre_or_post, ch=ch)
         #
-        axs[0].set_ylabel('Events / bin', fontsize=10)
+        axs[0].set_ylabel('Events / bin', fontsize=14)
         axs[0].set_yscale('log')
-        axs[0].set_ylim(ymin=.1, ymax=axs[0].get_ylim()[1] * 10)
-        axs[-1].set_xlabel('Analysis bins',fontsize=10)
+        axs[0].set_ylim(ymin=.05, ymax=axs[0].get_ylim()[1] * 10)
+        rat_axs[-1].set_xlabel('Analysis bins',fontsize=14)
+        rat_axs[0].set_ylabel('Data / MC', fontsize=14)
         self.nn_text_bins(axs[0])
         self.addlegend(opt='blind')
-        #plt.tight_layout()
+        #plt.tight_layout(h_pad=0,w_pad=0)
         #plt.show()
 
 
     def nn_text_bins(self, ax):
         trans = ax.transAxes + transforms.ScaledTranslation(0/72, 3/72, self.fig.dpi_scale_trans)
         ext_args = {'usetex':True, 'transform':trans}
-        ax.text(0.05, .95, r'$\textit{Prefit}$' , **ext_args)
-        ax.text(0.05, .83, r'NN${}_{\mathrm{bin}}$' , **ext_args)
+        ax.text(0.05, .92, rf"$\textit{{{'P'+pre_or_post[1:]}}}$" , **ext_args)
+        ax.text(0.05, .85, r'NN${}_{\mathrm{bin}}$' , **ext_args)
         ax.text(0.04, .80, '1', **ext_args)
         ax.text(0.215, .80, '2', **ext_args)
         ax.text(0.39, .80, '3', **ext_args)
@@ -127,7 +164,8 @@ class PlotForPas(PostFit):
 
     def init_axes(self, opt='', year=''):
         #fig, axs = plt.subplots(2,2, sharex=True, gridspec_kw={'height_ratios':[3,1]})
-        fig, axs = plt.subplots(1,3, sharey=True)
+        #fig, axs = plt.subplots(1,3, sharey=True)
+        fig, (axs,rat_axs) = plt.subplots(2,3, sharey='row', sharex='col', gridspec_kw={'height_ratios':[4,1]})
         fig.subplots_adjust(
             top=0.95,
             bottom=0.11,
@@ -140,17 +178,18 @@ class PlotForPas(PostFit):
         lumi = cfg.Lumi[re.search(r'201\d',year).group()]
         #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
         #self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
-        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1])
+        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14)
         self.axs = axs
+        self.rat_axs = rat_axs
 
     def endaxs(self,ax,p,ch='Zhpt1'):
         #axt
         ax.set_xlim(0,self.edges[ch][-1])
         #ax.set_ylim(0.)
         ch_dict = {
-            'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$',
-            'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$',
-            'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$'
+            'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$  ',
+            'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$  ',
+            'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$  '
         }
         tick_dict = { 
             'Zhpt1': [np.arange(0,19,3),np.arange(0,19,3)],
@@ -160,25 +199,33 @@ class PlotForPas(PostFit):
         #if axt.get_ylim()[1] > 1000:
         #else:
         #     axt.yaxis.set_minor_locator(AutoMinorLocator())
-        #ax.tick_params(which='both', direction='in', top=True, right=True)
+        if 'Zhpt1' in ch:
+            ax.tick_params(which='both', direction='in', bottom=True, left=True, top=False, right=False)
+        else:
+            ax.tick_params(which='both', direction='in', bottom=True, left=True, top=False, right=False)
         ax.tick_params(which='both', direction='in')
         channel = re.search(r'Zhpt\d',ch).group()
         ax.set_xticks(tick_dict[channel][0])
         ax.set_xticklabels(tick_dict[channel][1])
-        ax.set_title(f"{ch_dict[channel]}", y=1.0, pad=-25, fontsize=10, usetex=True)
+        #ax.set_title(f"{ch_dict[channel]}", loc='right', y=1.0, pad=-15, fontsize=10, usetex=True)
+        trans = ax.transAxes + transforms.ScaledTranslation(0/72, 3/72, self.fig.dpi_scale_trans)
+        ext_args = {'usetex':True, 'transform':trans}
+        ax.text( .95, .92, f"{ch_dict[channel]}", ha='right', **ext_args)
         #ax.xaxis.set_minor_locator(AutoMinorLocator(5))
 
     def addlegend(self, opt=''):
         #ax = self.axs[0,1]
         ax = self.axs[-1]
         handles, labels = ax.get_legend_handles_labels()
+        print(labels)
         hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w')
-        handles = handles + [hatch_patch]
-        labels  = labels + ['stat+sys.']
-        ax.legend(handles,labels, bbox_to_anchor=(-1.025,.685), 
-                  ncol = 2, columnspacing=2.0,
-                  fontsize=10, framealpha = 0, loc='lower left')
+        handles = handles[0:2]+handles[-3:-1]+handles[2:-3] + [handles[-1]] + [hatch_patch]
+        labels  = labels[0:2]+labels[-3:-1]+labels[2:-3] + [labels[-1]] + ['stat+sys.']
+        ax.legend(handles,labels, bbox_to_anchor=(-.505,.565), 
+                  ncol = 2, columnspacing=8.0,
+                  fontsize=10.5, framealpha = 0, loc='lower left')
 
 if __name__ == '__main__':
-    import_mpl_settings(2)
+    import_mpl_settings(1, length=2, width=3)
     main()
+

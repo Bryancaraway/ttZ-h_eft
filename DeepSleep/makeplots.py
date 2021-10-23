@@ -2,7 +2,7 @@ from modules.plotAna import Plotter, StackedHist, Hist
 import operator as op
 import numpy as np
 from modules.AnaDict import AnaDict
-from lib.fun_library import save_pdf, getFakebbvlCuts, getFakebbvlWeights
+from lib.fun_library import save_pdf, getFakebbvlCuts, getFakebbvlWeights, getWeightsWithEFT
 import config.ana_cff as cfg
 ###----=======-----###
 
@@ -18,25 +18,23 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b']
 
 #@save_pdf('control_plots_anastrat.pdf')
+#@save_pdf('EFTLO_vs_NLO.pdf')
+@save_pdf('single_top_mcstats.pdf')
 #@save_pdf('control_plots_genzhpt.pdf')
 #@save_pdf('ttzh_purity.pdf')
 #@save_pdf('Zh_info.pdf')
-
 #@save_pdf('control_plots_tight.pdf')
-
-
 #@save_pdf('ttbb_lheht.pdf')
 #@save_pdf('hl2_outputs.pdf')
 #@save_pdf('ttzbb_efficiency.pdf')
-
-
-@save_pdf('NN_compare.pdf')
+#@save_pdf('NN_compare.pdf')
 #@save_pdf('mass_compare.pdf')
 #@save_pdf('fakebbvlsf_CR.pdf')
 #@save_pdf('fakebbvlsf_CR_Andrew.pdf')
 #@save_pdf("met_withqcd.pdf")
 #@save_pdf("qcd_study_by_year_alt.pdf")
 #@save_pdf("nn_comparison.pdf")
+#@save_pdf("ttx_contamination.pdf")
 def main():
     for y in cfg.Years: 
         #for y in ['2018']: 
@@ -44,13 +42,21 @@ def main():
         #for jec in jec_list:
         #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
         #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
-        #Plotter.load_data(y, samples=['ttbb'], addBSF=False, byprocess=True)
-        Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+["QCD"], addBSF=False, byprocess=True)
+        Plotter.load_data(y, samples=['single_t'], addBSF=False, byprocess=True)
+        #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+["QCD"]+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
+        #Plotter.load_data(y, samples=cfg.Sig_MC+['ttbb']+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
         ''' LOOK AT STACKED DATA VS MC '''
+        # AN, Paper Draft
         #make_control_plots_tight()
+        #make_control_plots_anastrat()
         #make_met_withqcd()
-        make_NN_compare()
+        #make_NN_compare()
         #make_qcd_study_by_year_alt()
+        # = ==== = # 
+        # extra
+        #make_plots_ttX_cont()
+        #make_plots_EFTLO_vs_NLO(y)
+        make_plots_singlet_stats()
     return 1
         
 
@@ -93,7 +99,7 @@ def make_control_plots_tight():
 def make_control_plots_anastrat():
     # ---- ana strat
     StackedHist(processes,    'Zh_pt', xlabel=r'Z/H $p_{\mathrm{T}}$ [GeV]', bins=[200,300,450,600],  doCuts=True, doLog=True, addData=True, doShow=False)  
-    StackedHist(processes,'newgenm_NN', xlabel='DNN score', bin_range=[0,1],  n_bins=20,  add_d_cuts='newgenm_NN<=0.8',     doCuts=True, addData=True, doShow=False)  
+    StackedHist(processes,'newgenm_NN', xlabel='DNN score', bin_range=[0,1],  n_bins=20,  add_d_cuts='newgenm_NN<=1.8',     doCuts=True, addData=True, doShow=False)  
     Hist(['ttZ','ttH','TTBar','tt_B'],'newgenm_NN', xlabel='DNN score', bin_range=[0,1],  n_bins=10, doNorm=True, doLog=True, doCuts=True, addData=False, doShow=False)  
     StackedHist(processes,'Zh_M', xlabel=r'Z/H $m_{\mathrm{SD}}$ [GeV]', bin_range=[50,200],  bins=cfg.sdm_bins, doCuts=True,  doLog=True, addData=True, doShow=False)  
        #
@@ -126,6 +132,24 @@ def make_qcd_study_by_year_alt():
     #Hist(['QCD','ttZ','ttH'],'MET_pt', xlabel=r'missing $e_{T}$ (GeV), with j/psi lepton cut, Zhpt>300', bin_range=[0,500],  n_bins=25,  add_cuts='passNotHadLep==1;Zh_pt>300', sepGenOpt='sepGenMatchedSig;+',   doCuts=True, doShow=False)  
     
 #
+
+def make_plots_ttX_cont():
+    Hist(['ttX'], cfg.nn, xlabel=r'NN score', bin_range =[0,1],  n_bins=20, sepGenOpt='sepBySample',   doCuts=True, doShow=False)  
+
+
+def make_plots_EFTLO_vs_NLO(y):
+    alt_weight = getWeightsWithEFT
+    nn = cfg.nn
+    sig_processes = ['ttZ','ttH','tt_B']
+    common_kwargs =  {'alt_weight':alt_weight, 'sepGenOpt':'sepByEFT', 'doCuts':True, 'doLog':False, 'doNorm':True, 'addData':False, 'doShow':False}
+    for sig in sig_processes:
+        Hist([sig],    'Zh_pt', xlabel=r'Z/H $p_{\mathrm{T}}$ [GeV]', bins=[200,300,450,600], **common_kwargs)
+        Hist([sig], nn, xlabel='DNN score', bin_range=[0,1],  n_bins=10, **common_kwargs)
+        Hist([sig],'Zh_M', xlabel=r'Z/H $m_{\mathrm{SD}}$ [GeV]', bin_range=[50,200],  bins=cfg.sdm_bins, **common_kwargs)  
+    
+
+def make_plots_singlet_stats():
+    Hist(['single_t'], cfg.nn, xlabel=r'NN score (Z/H cand pT > 450)', bin_range =[0,1],  n_bins=10, add_cuts='Zh_pt>450', sepGenOpt='sepBySample',  doNorm=False,  doCuts=True, doShow=False)  
 
 ###########
 #StackedHist(processes,    'fjetbbvl_1', xlabel=r'leading fatjet deepAK8MD bbvL', bin_range=[0,1],  n_bins=25,     doCuts=False, addData=True, doShow=False)  
