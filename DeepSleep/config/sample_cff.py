@@ -68,9 +68,9 @@ process_cfg = {
                     'DYJetsToLL_HT_800to1200',
                     'DYJetsToLL_HT_1200to2500',
                     'DYJetsToLL_HT_2500toInf'],
-    #'VV'         : ['WW',
-    #                'WZ',
-    #                'ZZ'],
+    'VV'         : ['WW',
+                    'WZ',
+                    'ZZ'],
     #'VVV'        : ['WWW',
     #                'WWZ',
     #                'WZZ',
@@ -148,10 +148,10 @@ sample_cfg = {
     'TTbb_2L2Nu_hdampDown'        : {'out_name' : 'ttbb_sys',      'xs' : 1.0,      'kf' : 1.0,},
     'TTbb_2L2Nu_hdampUp'          : {'out_name' : 'ttbb_sys',      'xs' : 1.0,      'kf' : 1.0,},
     # singleT
-    'ST_tW_top'            : {'out_name' : 'single_t',     'xs' : 35.85,   'kf' : 1.0,},
-    'ST_tW_antitop'        : {'out_name' : 'single_t',     'xs' : 35.85,   'kf' : 1.0,},
-    'ST_tW_top_nofull'     : {'out_name' : 'single_t',     'xs' : 19.12,   'kf' : 1.0,},
-    'ST_tW_antitop_nofull' : {'out_name' : 'single_t',     'xs' : 19.12,   'kf' : 1.0,},
+    'ST_tW_top'            : {'out_name' : 'single_t',     'xs' : 19.12,   'kf' : 1.0,}, # 35.85 -> 19.12
+    'ST_tW_antitop'        : {'out_name' : 'single_t',     'xs' : 19.12,   'kf' : 1.0,}, # 35.85 -> 19.12
+    #'ST_tW_top_nofull'     : {'out_name' : 'single_t',     'xs' : 19.12,   'kf' : 1.0,},
+    #'ST_tW_antitop_nofull' : {'out_name' : 'single_t',     'xs' : 19.12,   'kf' : 1.0,},
     'ST_s_lep'      : {'out_name' : 'single_t',     'xs' : 6.96,    'kf' : 1.0,},
     'ST_t_top'      : {'out_name' : 'single_t',     'xs' : 136.065, 'kf' : 1.0,},
     'ST_t_antitop'  : {'out_name' : 'single_t',     'xs' : 80.97,   'kf' : 1.0,},

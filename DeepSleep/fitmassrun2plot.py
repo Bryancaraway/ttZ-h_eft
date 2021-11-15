@@ -29,13 +29,19 @@ from modules.AnaDict import AnaDict
 from anrun2plot import PlotsFromDC
 
 nn = cfg.nn
+# testing random things ###
 # fjetsdmnos_1 
-opt = 'nos'
-exopt = 'uncorr'
+#opt = 'nos'
+#exopt = 'uncorr'
 #opt  = 'alt'
 ##
 #opt = ''
 #exopt='corr'
+
+
+# AN plots
+opt='alt'
+exopt=''
 mass = f'fjetsdm{opt}_1'
 
 #nn = 'NN' # just to test

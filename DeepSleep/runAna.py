@@ -55,6 +55,7 @@ def analyzer(sample):
     #isSignal = re.search(r'TT[Z,H]*\w*', sample) is not None #'TTZH' in sample or 'TTZ_bb' in sample
     isSignal = re.search(r'((TT|tt)(Z|H))', sample_cfg[sample]['out_name']) is not None
     isttbar  = re.search(r'(TT|tt)((Bar)|(bb)|(Jets))', sample_cfg[sample]['out_name']) is not None
+    isST     = re.search(r'single_t', sample_cfg[sample]['out_name']) is not None
     #isttbar  = re.search(r'TT[To,bb]', sample) is not None
     #isttbar  = sample in cfg.ttbar_samples or sample in cfg.tt_sys_samples or sample in cfg.tt_eft_samples
     tag      = (args.tag + args.jec if args.jec is not None else args.tag)
@@ -82,7 +83,7 @@ def analyzer(sample):
 
     #####
     print('Running processAna...')
-    processAna_cfg = {'outDir': 'files/', 'outTag':tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar,
+    processAna_cfg = {'outDir': 'files/', 'outTag':tag, 'year':args.year, 'isData':isData, 'isSignal':isSignal, 'isttbar':isttbar, 'isST': isST,
                       'ak4_df':ak4_df, 'ak8_df':ak8_df , 'val_df':val_df, 'gen_df':gen_df, 'meta_df':meta_df, 'softe_df':softe, 'softmu_df':softmu,
                       'sample':sample, 'condor':args.condor, 'keep_all': args.keep_all}
     processAna(processAna_cfg)

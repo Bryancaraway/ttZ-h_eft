@@ -373,6 +373,11 @@ class MakeDataCard:
         Systematic('ttz_ggpdf', 'lnN', ttz_sig, 1.035)       
         Systematic('tth_qsc' ,  'lnN', tth_sig, 1.058,0.908) 
         Systematic('ttz_qsc'  , 'lnN', ttz_sig, 1.081,0.907) 
+        if 'recoeft' not in self.tag:
+            Systematic('tth_ggpdf0', 'lnN', ['ttH0'], 1.036)       
+            Systematic('ttz_ggpdf0', 'lnN', ['ttZ0'], 1.035)       
+            Systematic('tth_qsc0' ,  'lnN', ['ttH0'], 1.058,0.908) 
+            Systematic('ttz_qsc0'  , 'lnN', ['ttZ0'], 1.081,0.907) 
         # background pdf qcs
         Systematic('ggpdf', 'lnN', ttbar_mc, 1.042)          
         Systematic('qqpdf', 'lnN', ['ttX','VJets'],
@@ -487,6 +492,8 @@ class MakeDataCard:
         self.write2dc(100*'-'+'\n')
         self.write2dc('# Group definitions \n') 
         self.write2dc('sig_rtheo group = tth_qsc ttz_qsc tth_ggpdf ttz_ggpdf\n')
+        if 'recoeft' not in self.tag:
+            self.write2dc('antisig_rtheo group = tth_qsc0 ttz_qsc0 tth_ggpdf0 ttz_ggpdf0\n')
         self.write2dc('theo group = CMS_ttbbnorm tt2bxsec ttCxsec hdamp_ttbb hdamp UE toppt pdf_ttbb pdf alphas\n')
         self.write2dc('theo group += mu_f_ttbb mu_r_ttbb mu_f_tt mu_r_tt mu_f_tth mu_r_tth mu_f_ttz mu_r_ttz\n')
         self.write2dc('theo group += isr_ttbb fsr_ttbb isr_tt fsr_tt isr_tth fsr_tth isr_ttz fsr_ttz\n')

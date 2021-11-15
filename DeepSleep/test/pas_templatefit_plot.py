@@ -28,17 +28,17 @@ rc("figure", max_open_warning=600)
 #rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 
-pre_or_post = 'postfit'
-#pre_or_post = 'prefit'
+#pre_or_post = 'postfit'
+pre_or_post = 'prefit'
 
 
-@save_pdf('pas_template_plots_unblind_mu0.pdf')
+@save_pdf('pas_template_plots_unblind_SMprefit.pdf')
 def main():
     #froo = f'fitDiagnostics_inc_run2.root'
     #froo = f'fitDiagnostics_inctest_run2.root'
     ###
-    #froo = 'fitDiagnostics_unblind_SM_run2.root'
-    froo = 'fitDiagnostics_unblind_mu0_run2.root'
+    froo = 'fitDiagnostics_unblind_SM_run2.root'# unblind fixed to SM
+    #froo = 'fitDiagnostics_unblind_mu0_run2.root'# unblind constrained > 0
     pfp= PlotForPas(froo)
     pfp.makeplots()
 

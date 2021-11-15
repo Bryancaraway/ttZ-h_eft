@@ -27,71 +27,31 @@ wc_latex = {
     'cpQM' : r'$\frac{{c}_{\phi \mathrm{Q}}^{-}}{{\Lambda}^{2}}$',
 }
 wc_bf_ffl = { # best-fit value
-    'fixed':{
-        'cbW' : -2.34,
-        'cptb': 0.56,
-        'cpt' : -0.26,
-        'ctp' : 15.30,
-        'ctZ' : 0.01,
-        'ctW' : -0.05,
-        'cpQ3': -0.54,
-        'cpQM': -0.04,
-    },
-    'float':{
-        'cbW' : 2.46,
-        'cptb': 1.08,
-        'cpt' : -0.34,
-        'ctp' : 15.13,
-        'ctZ' : -0.06,
-        'ctW' : -0.07,
-        'cpQ3': -0.27,
-        'cpQM': 0.02,
-    },
+    'fixed':{'cbW' : -2.34,'cptb': 0.56,'cpt' : -0.26,'ctp' : 15.30,'ctZ' : 0.01,'ctW' : -0.05,'cpQ3': -0.54,'cpQM': -0.04,},
+    'float':{'cbW' : 2.46,'cptb': 1.08,'cpt' : -0.34,'ctp' : 15.13,'ctZ' : -0.06,'ctW' : -0.07,'cpQ3': -0.27,'cpQM': 0.02,},
 }
 wc_seight_ffl = { # 68% CL lower, upper with respect to best-fit
-    'fixed':{
-        'cbW' : [-1.21,5.86],
-        'cptb': [-5.46,5.28],
-        'cpt' : [-3.54,2.99],
-        'ctp' : [-8.65,8.50],
-        'ctZ' : [-0.58,0.58],
-        'ctW' : [-0.53,0.54],
-        'cpQ3': [-1.77,1.80],
-        'cpQM': [-2.47,2.70],
-    },
-    'float':{
-        'cbW' : [-6.05,1.19],
-        'cptb': [-5.63,5.25],
-        'cpt' : [-5.22,4.39],
-        'ctp' : [-8.15,8.08],
-        'ctZ' : [-0.88,0.92],
-        'ctW' : [-0.85,0.87],
-        'cpQ3': [-2.00,2.03],
-        'cpQM': [-3.66,4.02],
-    },
+    'fixed':{'cbW' : [-3.58,3.46],'cptb': [-5.87,5.83],'cpt' : [-3.75,2.70],'ctp' : [6.74,23.62],'ctZ' : [-0.57,0.57],'ctW' : [-0.58,0.48],'cpQ3': [-2.30,1.28],'cpQM': [-2.52,2.60],}, 
+    'float':{'cbW' : [-3.64,3.61],'cptb': [-4.49,6.35],'cpt' : [-5.55,3.91],'ctp' : [7.09,23.07],'ctZ' : [-0.96,0.83],'ctW' : [-0.93,0.77],'cpQ3': [-2.22,1.82],'cpQM': [-3.70,3.84],}, 
 }
 wc_nfive_ffl = { # 95% CL lower, upper with respect to best-fit
-    'fixed':{
-        'cbW' : [-2.21,6.86],
-        'cptb': [-10.00,9.59],
-        'cpt' : [-8.24,5.65],
-        'ctp' : [-15.17,14.88],
-        'ctZ' : [-1.00,1.01],
-        'ctW' : [-0.98,0.99],
-        'cpQ3': [-3.32,3.42],
-        'cpQM': [-4.73,5.67],
-    },
-    'float':{
-        'cbW' : [-7.06,2.16],
-        'cptb': [-10.53,9.58],
-        'cpt' : [-10.73,7.91],
-        'ctp' : [-14.63,14.50],
-        'ctZ' : [-1.47,1.54],
-        'ctW' : [-1.49,1.53],
-        'cpQ3': [-3.77,3.83],
-        'cpQM': [-6.71,7.95],
-    },
+    'fixed':{'cbW' : [-4.54,4.47],'cptb': [-9.39,10.12],'cpt' : [-8.32,5.34], 'ctp' : [0.31,29.94],'ctZ' : [-0.99,1.00],'ctW' : [-1.02,0.92],'cpQ3': [-3.86,2.90],'cpQM': [-4.77,5.54],},#fixed
+    'float':{'cbW' : [-4.60,4.57],'cptb': [-9.39,10.65],'cpt' : [-10.91,7.42],'ctp' : [0.70,29.42],'ctZ' : [-1.53,1.46],'ctW' : [-1.56,1.44],'cpQ3': [-4.01,3.61],'cpQM': [-6.71,7.72],},#float
 }
+## old 
+#wc_bf_ffl = { # best-fit value
+#    'fixed':{'cbW' : -2.34,'cptb': 0.56,'cpt' : -0.26,'ctp' : 15.30,'ctZ' : 0.01,'ctW' : -0.05,'cpQ3': -0.54,'cpQM': -0.04,},
+#    'float':{'cbW' : 2.46,'cptb': 1.08,'cpt' : -0.34,'ctp' : 15.13,'ctZ' : -0.06,'ctW' : -0.07,'cpQ3': -0.27,'cpQM': 0.02,},
+#}
+#wc_nfive_ffl = { # 95% CL lower, upper with respect to best-fit
+#    'fixed':{'cbW' : [-2.21,6.86],'cptb': [-10.00,9.59],'cpt' : [-8.24,5.65], 'ctp' : [-15.17,14.88],'ctZ' : [-1.00,1.01],'ctW' : [-0.98,0.99],'cpQ3': [-3.32,3.42],'cpQM': [-4.73,5.67],},
+#    'float':{'cbW' : [-7.06,2.16],'cptb': [-10.53,9.58],'cpt' : [-10.73,7.91],'ctp' : [-14.63,14.50],'ctZ' : [-1.47,1.54],'ctW' : [-1.49,1.53],'cpQ3': [-3.77,3.83],'cpQM': [-6.71,7.95],},
+#}
+#wc_seight_ffl = { # 68% CL lower, upper with respect to best-fit
+#    'fixed':{'cbW' : [-1.21,5.86],'cptb': [-5.46,5.28],'cpt' : [-3.54,2.99],'ctp' : [-8.65,8.50],'ctZ' : [-0.58,0.58],'ctW' : [-0.53,0.54],'cpQ3': [-1.77,1.80],'cpQM': [-2.47,2.70],},
+#    'float':{'cbW' : [-6.05,1.19],'cptb': [-5.63,5.25],'cpt' : [-5.22,4.39],'ctp' : [-8.15,8.08],'ctZ' : [-0.88,0.92],'ctW' : [-0.85,0.87],'cpQ3': [-2.00,2.03],'cpQM': [-3.66,4.02],},
+#}
+
 @save_pdf('eft_results_table.pdf')
 def main():
     fig, ax = beginPlt()
@@ -103,8 +63,10 @@ def main():
     
 
 def plot_eft_result(ax, f_fl, i_off):
-    wc_seight = np.array([np.array(wc_seight_ffl[f_fl][wc]) + wc_bf_ffl[f_fl][wc] for wc in wc_latex])
-    wc_nfive  = np.array([np.array(wc_nfive_ffl[f_fl][wc])  + wc_bf_ffl[f_fl][wc] for wc in wc_latex])
+    #wc_seight = np.array([np.array(wc_seight_ffl[f_fl][wc]) + wc_bf_ffl[f_fl][wc] for wc in wc_latex])
+    #wc_nfive  = np.array([np.array(wc_nfive_ffl[f_fl][wc])  + wc_bf_ffl[f_fl][wc] for wc in wc_latex])
+    wc_seight = np.array([np.array(wc_seight_ffl[f_fl][wc])  for wc in wc_latex])
+    wc_nfive  = np.array([np.array(wc_nfive_ffl[f_fl][wc])   for wc in wc_latex])
     y = np.arange(len(wc_latex))-(i_off*.3*np.ones(len(wc_latex)))+.15
     # plot 95% CL lines
     ax.hlines(

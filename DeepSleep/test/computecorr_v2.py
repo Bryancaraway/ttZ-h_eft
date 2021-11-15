@@ -47,6 +47,7 @@ def main():
     fdir = 'fitdiag_roots/corr/'
     dodiffCorr(fdir+'robustHesse_stxs.root', c_dict['stxs'])
     doincCorr( fdir+'robustHesse_inc.root',  c_dict['inc'])
+    doincCorr( fdir+'robustHesse_inc_blind.root',  c_dict['inc'])
 
 class TH2D:
 
@@ -157,8 +158,9 @@ def doincCorr(i_file, c_list):
             df.loc[c_i,c_j] = h_corr.getbylabels(c_i,c_j)  
     print(df)
     # print out correlation matrix between signal and tt+LF, tt+bb
+    print(['r_ttH','r_ttZ','tt_qsc','CMS_ttbbnorm'])
     for i in ['r_ttH','r_ttZ','tt_qsc','CMS_ttbbnorm']:
-        h_line = ''
+        h_line = i+': '
         for j in ['r_ttH','r_ttZ','tt_qsc','CMS_ttbbnorm']:
             h_line += str(h_corr.getbylabels(i,j))+'\t'
         print(h_line)
@@ -197,7 +199,7 @@ def doincCorr(i_file, c_list):
     cbar_ax.set_ylabel('Correlation')
     #plt.tight_layout()
     #plt.show()
-    plt.savefig("../pdf/inc_new_corr.pdf")
+    plt.savefig(f"../pdf/inc_new_corr{'_blinded' if 'blind' in i_file else ''}.pdf")
     plt.close('all')
     #plt.minorticks_off()
 

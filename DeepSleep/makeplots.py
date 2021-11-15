@@ -19,7 +19,7 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 
 #@save_pdf('control_plots_anastrat.pdf')
 #@save_pdf('EFTLO_vs_NLO.pdf')
-@save_pdf('single_top_mcstats.pdf')
+#@save_pdf('single_top_mcstats_v2.pdf')
 #@save_pdf('control_plots_genzhpt.pdf')
 #@save_pdf('ttzh_purity.pdf')
 #@save_pdf('Zh_info.pdf')
@@ -31,7 +31,7 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #@save_pdf('mass_compare.pdf')
 #@save_pdf('fakebbvlsf_CR.pdf')
 #@save_pdf('fakebbvlsf_CR_Andrew.pdf')
-#@save_pdf("met_withqcd.pdf")
+@save_pdf("met_withqcd.pdf")
 #@save_pdf("qcd_study_by_year_alt.pdf")
 #@save_pdf("nn_comparison.pdf")
 #@save_pdf("ttx_contamination.pdf")
@@ -41,22 +41,22 @@ def main():
         print(y)
         #for jec in jec_list:
         #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
-        #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC, addBSF=False, byprocess=True)
-        Plotter.load_data(y, samples=['single_t'], addBSF=False, byprocess=True)
+        Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+['QCD'], addBSF=False, byprocess=True)
+        #Plotter.load_data(y, samples=['single_t'], addBSF=False, byprocess=True)
         #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+["QCD"]+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
         #Plotter.load_data(y, samples=cfg.Sig_MC+['ttbb']+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
         ''' LOOK AT STACKED DATA VS MC '''
         # AN, Paper Draft
         #make_control_plots_tight()
         #make_control_plots_anastrat()
-        #make_met_withqcd()
+        make_met_withqcd()
         #make_NN_compare()
         #make_qcd_study_by_year_alt()
         # = ==== = # 
         # extra
         #make_plots_ttX_cont()
         #make_plots_EFTLO_vs_NLO(y)
-        make_plots_singlet_stats()
+        #make_plots_singlet_stats()
     return 1
         
 
@@ -150,6 +150,9 @@ def make_plots_EFTLO_vs_NLO(y):
 
 def make_plots_singlet_stats():
     Hist(['single_t'], cfg.nn, xlabel=r'NN score (Z/H cand pT > 450)', bin_range =[0,1],  n_bins=10, add_cuts='Zh_pt>450', sepGenOpt='sepBySample',  doNorm=False,  doCuts=True, doShow=False)  
+    Hist(['single_t'], cfg.nn, xlabel=r'NN score (Z/H cand pT > 450, Z mass)', bins =[0.0,0.34,0.71,0.79,0.87,0.92,1.0],  add_cuts='Zh_pt>450;Zh_M>75;Zh_M<105', sepGenOpt='sepBySample',  doNorm=False,  doCuts=True, doShow=False)  
+    Hist(['single_t'], cfg.nn, xlabel=r'NN score (n_w_leps > 0, Z/H pt > 300)', bin_range =[0,1],  n_bins=10, add_cuts='Zh_pt>300;n_w_leps>0',   doNorm=False,  doCuts=True, doShow=False)  
+    Hist(['single_t'], cfg.nn, xlabel=r'NN score (n_w_leps = 0, Z/H pt > 300)', bin_range =[0,1],  n_bins=10, add_cuts='Zh_pt>300;n_w_leps==0',   doNorm=False,  doCuts=True, doShow=False)  
 
 ###########
 #StackedHist(processes,    'fjetbbvl_1', xlabel=r'leading fatjet deepAK8MD bbvL', bin_range=[0,1],  n_bins=25,     doCuts=False, addData=True, doShow=False)  

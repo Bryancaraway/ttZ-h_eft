@@ -50,6 +50,7 @@ class processAna :
     isData   = False
     isSignal = False
     isttbar  = False
+    isST     = False
     #
     condor = False
     keep_all = False
@@ -89,7 +90,7 @@ class processAna :
         self.val_df['topptWeight_Up']   = 1.
         self.val_df['topptWeight_Down'] = 1.
         #
-        if self.isSignal or self.isttbar:
+        if self.isSignal or self.isttbar or self.isST: 
             self.match_gen_lep() 
             if   self.isttbar:
                 self.match_gen_tt()  
@@ -342,12 +343,17 @@ class processAna :
         gen_phi = self.gen_df['GenPart_phi']
         
         #
-        islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24)))
+        if not self.isST:
+            islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24)))
+        else :
+            islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & (abs(gen_ids[gen_mom]) ==24))
         #print('Number of leptons in sample (from W and W from Top) that pass our SingleLepton Req.')
         #print(np.unique(gen_ids[islep].counts[self.val_df['Hbb']], return_counts=True))
         lep_match_dr = deltaR(lep_eta,lep_phi,gen_eta[islep],gen_phi[islep])
         self.val_df['n_tt_leps'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13) | (abs(gen_ids) == 15)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24))).sum()
         self.val_df['n_tt_leps_notau'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24))).sum()
+        self.val_df['n_w_leps_notau'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & (abs(gen_ids[gen_mom]) ==24)).sum() # for single t samples
+        self.val_df['n_w_leps'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13) | (abs(gen_ids) == 15)) & (abs(gen_ids[gen_mom]) ==24)).sum() # for single t samples
         self.val_df['matchedGenLep'] = ((lep_match_dr <= .1).sum() > 0)
     
     @t2Run
@@ -588,7 +594,10 @@ class processAna :
             self.add_weights_to_ttbb()
             self.add_tt_2b_rate_unc()
         def handleST():
-            self.val_df['process'] = 'single_t'
+            #self.val_df['process'] = 'single_t'
+            self.val_df['process'] = 'old_single_t'
+            self.val_df.loc[((self.val_df['n_w_leps'] > 0) & (self.val_df['sample'].str.contains('tW') == True)),'process'] = 'single_t'
+            self.val_df.loc[(self.val_df['sample'].str.contains('tW') == False),'process'] = 'single_t'
         def handleTTX():
             self.val_df['process'] = 'ttX'
         def handleVjets():

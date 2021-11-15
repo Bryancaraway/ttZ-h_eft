@@ -547,7 +547,7 @@ def upperlefttext(s):
     trans = gca().transAxes + matplotlib.transforms.ScaledTranslation(3/72, -3/72, gcf().dpi_scale_trans)
     return text(0, 1, s, transform=trans, ha='left', va='top')
 
-def CMSlabel(fig=None, ax=None, opt=None, altax=None, lumi=None, fontsize=10):
+def CMSlabel(fig=None, ax=None, opt=None, altax=None, altloc=False, lumi=None, fontsize=10):
     import matplotlib.pyplot as plt
     from matplotlib import transforms
     if fig is None:
@@ -563,9 +563,11 @@ def CMSlabel(fig=None, ax=None, opt=None, altax=None, lumi=None, fontsize=10):
         opt = 'Preliminary'
     if lumi is None:
         lumi = 137
+    cms_loc = (0,1) if not altloc else (1,1.10)
+        
     lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
     trans = ax0.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
-    ax0.text(0, 1, rf'\textbf{{CMS}} {{\footnotesize \textit{{{opt}}}}}', usetex=True,
+    ax0.text(*cms_loc, s=rf'\textbf{{CMS}} {{\footnotesize \textit{{{opt}}}}}', usetex=True,
              transform=trans, ha='left', va='baseline', fontsize=fontsize)
     trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
     ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
