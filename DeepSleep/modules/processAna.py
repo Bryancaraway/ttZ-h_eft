@@ -50,6 +50,7 @@ class processAna :
     isData   = False
     isSignal = False
     isttbar  = False
+    isST     = False
     #
     condor = False
     keep_all = False
@@ -89,7 +90,7 @@ class processAna :
         self.val_df['topptWeight_Up']   = 1.
         self.val_df['topptWeight_Down'] = 1.
         #
-        if self.isSignal or self.isttbar:
+        if self.isSignal or self.isttbar or self.isST: 
             self.match_gen_lep() 
             if   self.isttbar:
                 self.match_gen_tt()  
@@ -146,8 +147,8 @@ class processAna :
         isb = ( (abs(gen_ids) == 5) & (abs(gen_ids[gen_mom]) != 5) ) 
         b_eta, b_phi =  gen_eta[isb], gen_phi[isb]
         rzh_matchb_dR = deltaR(rZh_eta, rZh_phi, b_eta, b_phi)
-        self.val_df['n_genb_matchZH'] = (rzh_matchb_dR <= 0.8).sum()
-        self.val_df['bbvl_genmatch'] = ((rzh_matchb_dR <= 0.8).sum() == 2)
+        self.val_df['n_genb_matchZH'] = (rzh_matchb_dR <= 0.6).sum()
+        self.val_df['bbvl_genmatch'] = ((rzh_matchb_dR <= 0.6).sum() == 2)
 
     @t2Run
     def finalize_btag_w(self):
@@ -295,13 +296,13 @@ class processAna :
         zh_match_dR = deltaR(zh_eta,zh_phi,rZh_eta, rZh_phi)
         rzh_matchb_dR = deltaR(rZh_eta,rZh_phi,gen_eta[(isbb_fromZ) | (isbb_fromH)], gen_phi[(isbb_fromZ) | (isbb_fromH)])
         rzh_matchtt_dR = deltaR(rZh_eta,rZh_phi,gen_eta[(istt)], gen_phi[(istt)])
-        zh_matchbb    = ((rzh_matchb_dR <= 0.8).sum() == 2)
-        zh_matchb    = ((rzh_matchb_dR <= 0.8).sum() == 1)
-        zh_nomatchb    = ((rzh_matchb_dR <= 0.8).sum() == 0)
+        zh_matchbb    = ((rzh_matchb_dR <= 0.6).sum() == 2)
+        zh_matchb    = ((rzh_matchb_dR <= 0.6).sum() == 1)
+        zh_nomatchb    = ((rzh_matchb_dR <= 0.6).sum() == 0)
         #zh_match_dR = deltaR(zh_eta,zh_phi,ak8_eta,ak8_phi)
         #zh_match = ((ak8_pt >= self.pt_cut ) & (ak8_Zhbbtag >= 0.0) &  
         #            (zh_match_dR <= 0.8) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
-        zh_match = ((zh_match_dR <= 0.8) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
+        zh_match = ((zh_match_dR <= 0.6) & (zh_pt >= ( self.pt_cut-100.)) & (zh_eta <= 2.4) & (zh_eta >= -2.4))
         #
         self.val_df['Zbb']= (isZbb.sum() > 0)
         self.val_df['Hbb']= (isHbb.sum() > 0)
@@ -329,7 +330,7 @@ class processAna :
         #
         self.val_df['matchedGen_ZHbb_nn']  = ((self.val_df['matchedGen_ZHbb'] == 1) & ((zh_matchbb  == 1)|(zh_matchb   == 1)))
         #
-        self.val_df['matchedGen_ZHbb_tt']  = np.where(self.val_df['matchedGenLep']== True, (rzh_matchtt_dR<=0.8).sum(), -1)
+        self.val_df['matchedGen_ZHbb_tt']  = np.where(self.val_df['matchedGenLep']== True, (rzh_matchtt_dR<=0.6).sum(), -1)
         #
     @t2Run
     def match_gen_lep(self):
@@ -342,12 +343,17 @@ class processAna :
         gen_phi = self.gen_df['GenPart_phi']
         
         #
-        islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24)))
+        if not self.isST:
+            islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24)))
+        else :
+            islep   = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & (abs(gen_ids[gen_mom]) ==24))
         #print('Number of leptons in sample (from W and W from Top) that pass our SingleLepton Req.')
         #print(np.unique(gen_ids[islep].counts[self.val_df['Hbb']], return_counts=True))
         lep_match_dr = deltaR(lep_eta,lep_phi,gen_eta[islep],gen_phi[islep])
         self.val_df['n_tt_leps'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13) | (abs(gen_ids) == 15)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24))).sum()
         self.val_df['n_tt_leps_notau'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & ((abs(gen_ids[gen_mom[gen_mom]]) == 6) & (abs(gen_ids[gen_mom]) ==24))).sum()
+        self.val_df['n_w_leps_notau'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13)) & (abs(gen_ids[gen_mom]) ==24)).sum() # for single t samples
+        self.val_df['n_w_leps'] = (((abs(gen_ids) == 11) | (abs(gen_ids) == 13) | (abs(gen_ids) == 15)) & (abs(gen_ids[gen_mom]) ==24)).sum() # for single t samples
         self.val_df['matchedGenLep'] = ((lep_match_dr <= .1).sum() > 0)
     
     @t2Run
@@ -374,10 +380,8 @@ class processAna :
         #} 
         # -- new nn
         m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 
-                  'other_settings': {'fl_a': [1, 2, 0.75], 
-                                     'fl_g': 0.25, 'lr_alpha': 0.0003}, 
-                  'n_epochs': 150, 'batch_size': 10256
-        }
+                  'other_settings': {'fl_a': [1, 1.5, 1], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 
+                  'n_epochs': 150, 'batch_size': 10256}
         #
         dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
         nn_model = dnn.Build_Model(len(dnn_vars[model_file]), load_weights=model_file)#'nn_ttzh_model.h5')
@@ -590,7 +594,10 @@ class processAna :
             self.add_weights_to_ttbb()
             self.add_tt_2b_rate_unc()
         def handleST():
-            self.val_df['process'] = 'single_t'
+            #self.val_df['process'] = 'single_t'
+            self.val_df['process'] = 'old_single_t'
+            self.val_df.loc[((self.val_df['n_w_leps'] > 0) & (self.val_df['sample'].str.contains('tW') == True)),'process'] = 'single_t'
+            self.val_df.loc[(self.val_df['sample'].str.contains('tW') == False),'process'] = 'single_t'
         def handleTTX():
             self.val_df['process'] = 'ttX'
         def handleVjets():

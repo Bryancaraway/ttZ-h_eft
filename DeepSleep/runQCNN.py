@@ -40,7 +40,7 @@ def runQC():
             nodes = 'gpu006' if args.queue == 'hep' else '1'
         else:
             add_queue = ''
-        command = f"qsub {add_queue} -l nodes={nodes}:ppn=8 -N runQCNN_{nn_input} "
+        command = f"qsub {add_queue} -l nodes={nodes}:ppn=16 -N runQCNN_{nn_input} "
         #command = f"qsub -q hep -l nodes=gpu006:ppn=8 -N runQCNN_{nn_input} "
         command += f" -o log/nn/{nn_input}.stdout -e log/nn/{nn_input}.stderr "
         command += f'-v nn_input={nn_input} scripts/runQCNN.sh'

@@ -264,6 +264,19 @@ def getFakebbvlWeights(df_, obj):
         * df_['puWeight']  
         * (df_['PrefireWeight'] if obj.year != '2018' else 1.0)
     )
+def getWeightsWithEFT(df_, obj):
+    return (
+        df_['weight']* np.sign(df_['genWeight'])
+        * df_['topptWeight']
+        * (df_['HEM_weight'] if obj.year == '2018' else 1.0)
+        * (df_['lep_trigeffsf'])
+        * df_['lep_sf']
+        * (df_['EFT183'] if any('EFT' in s for s in df_['sample'].unique()) else 1.0)
+        #* df_['dak8md_bbvl_sf']
+        * df_['BTagWeight'] 
+        * df_['puWeight']  
+        * (df_['PrefireWeight'] if obj.year != '2018' else 1.0)
+    )
 
 def getZhbbWeight(df_, year):
     import config.ana_cff as cfg
@@ -283,6 +296,7 @@ def getZhbbWeight(df_, year):
                   * df_['puWeight']  
                   * (df_['PrefireWeight'] if year != '2018' else 1.0))
     return tot_weight
+
 #
 def weighted_quantile(values, quantiles, sample_weight=None, 
                       values_sorted=False, old_style=False):
@@ -482,7 +496,13 @@ def getLaLabel(str_):
         'ZJets':           [r'Z$+$jets',
                             'gray'],
         'QCD':             [r'QCD',
-                            'purple']
+                            'purple'],
+        'ST_tW_top' : ['ST_tW_top', 'tab:blue'],
+        'ST_tW_antitop' : ['ST_tW_antitop', 'tab:orange'],
+        'ST_s_lep' : ['ST_s_lep', 'tab:brown'],
+        'ST_t_top' : ['ST_t_top', 'tab:red'],
+        'ST_t_antitop' : ['ST_t_antitop', 'tab:green'],
+        
     }
     la_str, col_str = la_col_map.get(str_,[str_,'k'])
     return [la_str, col_str]
@@ -500,27 +520,34 @@ def t2Run(func):
 # decorator to save figures to given pdf
 
 
-def import_mpl_settings(i=1):
+def import_mpl_settings(i=1, width=1, length=1, disable_sansmath=False, no_figsize=False):
     import matplotlib.pyplot as plt
-    plt.rc("font", size=10, family="sans-serif", **{"sans-serif" : [u'TeX Gyre Heros', u'Helvetica', u'Arial']})
+    plt.rc("font", size=10, family="sans-serif", **{"sans-serif" : 
+                                                    [u'TeX Gyre Heros', u'Helvetica', u'Arial', u'Palatino']})
     plt.rc("xaxis", labellocation='right')
     plt.rc("yaxis", labellocation='top')
     plt.rc("legend", fontsize=10, scatterpoints=2, numpoints=1, borderpad=0.15, labelspacing=0.3,
            handlelength=0.7, handletextpad=0.25, handleheight=0.7, columnspacing=0.6,
            fancybox=False, edgecolor='none', borderaxespad=1)
     plt.rc("savefig", dpi=200)
-    plt.rc("figure", figsize=(3.375*i, 3.375*(6./8.)*i), dpi=200)
-    plt.rc("text.latex", preamble='\n'.join([r"\usepackage{amsmath}",
-                                             r"\usepackage{helvet}",
-                                             r"\usepackage{sansmath}",
-                                             r"\sansmath"]))
+    if not no_figsize :
+        plt.rc("figure", figsize=(3.375*i*width, 3.375*(6./8.)*i*length), dpi=200)
+    #plt.rc("mathtext", rm='sans')
+    plt.rc("text.latex", preamble='\n'.join([
+        r"\usepackage{amsmath}",
+        #r"\usepackage{amssymb}",
+        r"\usepackage{helvet}",
+        r"\usepackage{sansmath}",
+        #r"\sansmath",
+    ])+('\n'+r'\sansmath' if not disable_sansmath else ''))
+    
     
 
 def upperlefttext(s):
     trans = gca().transAxes + matplotlib.transforms.ScaledTranslation(3/72, -3/72, gcf().dpi_scale_trans)
     return text(0, 1, s, transform=trans, ha='left', va='top')
 
-def CMSlabel(fig=None, ax=None, opt=None, altax=None, lumi=None):
+def CMSlabel(fig=None, ax=None, opt=None, altax=None, altloc=False, lumi=None, fontsize=10):
     import matplotlib.pyplot as plt
     from matplotlib import transforms
     if fig is None:
@@ -536,13 +563,15 @@ def CMSlabel(fig=None, ax=None, opt=None, altax=None, lumi=None):
         opt = 'Preliminary'
     if lumi is None:
         lumi = 137
+    cms_loc = (0,1) if not altloc else (1,1.10)
+        
     lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
     trans = ax0.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
-    ax0.text(0, 1, rf'\textbf{{CMS}} {{\footnotesize \textit{{{opt}}}}}', usetex=True,
-             transform=trans, ha='left', va='baseline')
+    ax0.text(*cms_loc, s=rf'\textbf{{CMS}} {{\footnotesize \textit{{{opt}}}}}', usetex=True,
+             transform=trans, ha='left', va='baseline', fontsize=fontsize)
     trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
     ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
-             transform=trans, ha='right', va='baseline')
+             transform=trans, ha='right', va='baseline', fontsize=fontsize)
 
 def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',
                      edgecolor='None', alpha=0.0, hatch=10*'X', label=''):
@@ -550,7 +579,8 @@ def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',
     from matplotlib.patches import Rectangle
     errorboxes = []
     for x, y, xe, ye in zip(xdata, ydata, xerror.T, yerror.T):
-        rect = Rectangle((x - xe, y - ye), 2*xe, 2*ye) if type(ye) is not np.ndarray else Rectangle((x - xe, y - ye[0]), 2*xe, ye[0]+ye[1])
+        rect = Rectangle((x - xe, y - ye), 2*xe, 2*ye) if type(ye) is not np.ndarray \
+               else Rectangle((x - xe, y - ye[0]), 2*xe, ye[0]+ye[1])
         errorboxes.append(rect)
     pc = PatchCollection(errorboxes, facecolor=facecolor, alpha=alpha,
                          edgecolor=edgecolor, hatch=hatch, label=label, zorder=1.5)

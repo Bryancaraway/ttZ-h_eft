@@ -24,8 +24,9 @@ class PostSkim :
         self.isData  = isData
         self.lumi    = cfg.Lumi[year]
         self.outfile = f"{out_dir}/{sample if not isData else sample_cfg[sample]['out_name']}{tag}.pkl"
-        self.files   = (lambda : glob(f'{out_dir}/{sample}_*{tag}*.pkl'))
+        self.files   = (lambda : re.findall(rf"{out_dir}/{sample}_\d+.{tag.lstrip('.')}(?:_{tag.lstrip('.')}_)?\d+.pkl",' '.join(glob(f'{out_dir}/{sample}_*{tag}*.pkl'))))
         print(out_dir)
+        #print(' '.join(glob(f'{out_dir}/{sample}_*{tag}*.pkl')))
         self.metaData  = {'sample':sample,'year':year,
                           'xs': sample_cfg[sample]['xs'],
                           'kf': sample_cfg[sample]['kf']}

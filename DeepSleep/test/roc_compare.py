@@ -10,7 +10,7 @@ from lib.fun_library import getZhbbBaseCuts as zh_cuts
 import config.ana_cff as cfg
 
 #nn = 'withbbvl_NN'
-nn = 'NN'
+nn = cfg.nn
 
 def get_val_info(sample):
     s_dict = {}

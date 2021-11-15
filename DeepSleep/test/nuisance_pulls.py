@@ -7,7 +7,7 @@ if __name__ == '__main__':
 import pandas as pd
 import numpy as np
 import re
-from lib.fun_library import save_pdf
+from lib.fun_library import save_pdf, import_mpl_settings, CMSlabel
 import matplotlib.pyplot as plt
 #import matplotlib.colors as colors
 from matplotlib.ticker import AutoMinorLocator
@@ -17,11 +17,9 @@ rc("figure", figsize=(8, 6*(6./8.)), dpi=200)
 import config.ana_cff as cfg
 
 #pull_txt = f'{sys.path[1]}/test/fitdiag_roots/partblind_pull_4.txt'
-#name = 'partblind_uncorrbtaglfhf_pull_'
-name = 'partblind_pull_final'
-#name = 'partblind_pull_alt'
-#name = 'partblind_pull_ouZH_b1_pt'
-#name = 'partblind_pull_Zh_M_NNcuts'
+#name = 'partblind_pull_final'
+name = 'unblind_pull_final'
+
 pull_txt = f'{sys.path[1]}/test/fitdiag_roots/{name}.txt'
 
 def main():
@@ -29,17 +27,23 @@ def main():
     with open(pull_txt, 'r') as pull_file:
         # parse name, pull, +/-
         for l in pull_file.readlines():
-            if "name" in l or '[1.00, 1.00]' in l: continue # skip first line
+            if "name" in l or '[1.00, 1.00]' in l or 'r_tt' in l: continue # skip first line
             #print(l.split()) # ['CMS_ttbbnorm', '[0.00,', '5.00]', '+1.37', '+/-', '0.20', '+1.37', '+/-', '0.20', '+0.00']
+            l_arr = l.split()
+            name = l_arr[0]
             if 'CMS' in l:
-                name, nom, bands = l.split()[0], l.split()[3], l.split()[5]
+                nom, bands = l_arr[6], float(l_arr[8])
+            elif re.search(r"prop_biny\d*_Zhpt\d_bin\d*_\w*",l_arr[0]) and float(l_arr[1]) > 0: # poisson prior
+                nom = str(1-(float(l_arr[9].strip('*!'))/float(l_arr[1]))) # to not break code
+                up_band = float(l_arr[10])/float(l_arr[2])
+                dn_band = abs(float(l_arr[11])/float(l_arr[3]))
+                bands=[dn_band,up_band]
             else:
-                name, nom, bands = l.split()[0], l.split()[4], l.split()[6]
-            #print(name,nom,bands)
-            pulls[name] = [float(nom.strip('*!')),float(bands)]
+                nom, bands = l_arr[9], float(l_arr[11])
+            nom = float(nom.strip('*!'))
+            pulls[name] = [nom,bands]
             
     pull_df = pd.DataFrame.from_dict(pulls,orient='index',columns=['nom','bands'])
-    #print(pull_df)
     #
     make_nuicance_pull_plots(pull_df)
     
@@ -55,7 +59,15 @@ def make_nuicance_pull_plots(df):
     ])
     stat_df = df.loc[df.index.str.contains('prop')]
     rest_df = df.drop(jec_btagw_df.index).drop(stat_df.index)
+    #special handling for single value bands
+    stat_poisson_df = df.filter(regex=r'\w*bin\d*_\w*',axis='index')
+    stat_poisson_df.loc[:,'bands'] = stat_poisson_df['bands'].apply( 
+        func=(lambda _x : list([_x,_x]) if type(_x) is float else _x)).copy()
+    #
+    stat_df = stat_df.drop(stat_poisson_df.index) # drop poisson uncertainties
     jec_btagw_df = jec_btagw_df[~jec_btagw_df.index.duplicated(keep='last')]
+    #
+    print(stat_df[abs(stat_df['nom']) > 0.7].index)
     #
     fig, ax = initplt()
     make_errorbar(fig, ax, jec_btagw_df)
@@ -63,17 +75,27 @@ def make_nuicance_pull_plots(df):
     make_errorbar(fig, ax, rest_df)
     fig, ax = initplt()
     make_errorbar(fig, ax, stat_df)
+    fig, ax = initplt()
+    make_errorbar(fig, ax, stat_poisson_df)
 
 
 def make_errorbar(fig,ax,df_):
+    # handling for list yerr
+    if np.array(df_['bands'].to_list()).ndim == 1:
+        yerr = df_['bands']
+    else: # handle asym errorbars
+        yerr = np.array(df_['bands'].to_list())
+        ynom = df_['nom'].to_numpy()
+        yerr = (ynom+yerr.T)
     ax.errorbar(
         x=np.arange(0,len(df_),1), y=df_['nom'], 
-        yerr=df_['bands'],
-        fmt='.', color='k', label='Fit to Sig+Bkg (blinded)')
+        yerr=yerr,
+        fmt='.', color='k', label='Fit to Sig+Bkg',zorder=2)#label='Fit to Sig+Bkg (blinded)')
     ax.tick_params(which='both', direction='in')
     ax.set_xticks(np.arange(0,len(df_),1))
     ax.set_xticklabels(df_.index, rotation=90, fontsize=4)
     endplt(fig,ax, len(df_))
+
 
 def initplt():
     fig, ax = plt.subplots()
@@ -88,17 +110,18 @@ def initplt():
     return fig, ax
 
 def endplt(fig,ax, max_):
-    fig.text(0.105,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 12)
-    fig.text(0.70,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 12)
+    CMSlabel(fig, ax, fontsize=12)
     ax.axhline(0,  color='red', linewidth='1', linestyle='-', snap=True, alpha=0.5)
-    ax.fill_between([-1,300], y1=1, y2=-1, color='k', alpha=0.1)
+    ax.fill_between([-1,300], y1=1, y2=-1, color='k', alpha=0.1,zorder=1)
     ax.set_xlim(-1,max_)
     ax.set_ylim(-2.5,2.5)
-    ax.set_ylabel(r'$\theta$')
+    ax.set_ylabel(r'$\theta_\mathrm{NP}$')
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.grid(axis='x', color='k', linestyle=':', alpha=0.25)
     ax.legend()
+    plt.tight_layout()
 
 
 if __name__ == '__main__':
+    import_mpl_settings(no_figsize=True)
     main()

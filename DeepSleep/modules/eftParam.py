@@ -393,11 +393,11 @@ if __name__ == '__main__':
     import pickle
     # -- to test different eft samples w/o channel binning
     
-    #forTesting()
+    forTesting()
     
     # -- to make parameterizations for datacard workspace
 
-    forDatacard(doReco=True)
+    #forDatacard(doReco=True)
 
     # -- end
     

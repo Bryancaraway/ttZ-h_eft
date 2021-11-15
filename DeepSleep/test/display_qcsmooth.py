@@ -25,7 +25,7 @@ rc("savefig",dpi=250)
 rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
-dcdir = f'{sys.path[1]}/Higgs-Combine-Tool/'
+
 sys_to_plot = ['jesRelativeSample{y}','jesHF{y}','jesAbsolute{y}','jesEC2{y}',
                'jesBBEC1{y}', 'jms_{y}', 'jmr_{y}','ak4jer_{y}', 'ak8jer_{y}',
                'jesRelativeBal', 'jesFlavorQCD', 'jesHF', 'jesAbsolute', 'jesEC2', 
@@ -49,11 +49,13 @@ def main():
 
 class PlotQCSmooth:
 
+    dcdir = f'{sys.path[1]}/Higgs-Combine-Tool/'
+
     def __init__(self, process, channel, year, qcsmooth='smooth'):
         self.process = process
         self.channel = channel
         self.year    = year
-        self.roofiles  = [f'{dcdir}/datacard_{opt}{qcsmooth}_{year}.root' for opt in ['no','']]
+        self.roofiles  = [f'{self.dcdir}/datacard_{opt}{qcsmooth}_{year}.root' for opt in ['no','']]
         self.hists     = {}
         self.edges     =  None
         self.sys_to_plot = [sys.replace('{y}',f'{self.year}')  for sys in sys_to_plot]
@@ -94,7 +96,9 @@ class PlotQCSmooth:
                 for ax,sm in zip(axs,self.hist_dict):
                     self.make_step(sys,ax,sm)
                 self.endPlt(fig,axs)
-            except KeyError: pass # for sys not in root file    
+            except KeyError: 
+                print(sys+" not in root file")
+                pass # for sys not in root file    
 
     def make_step(self, sys, ax, opt):
         ax.set_title(rf'${opt}$', y=1.0, pad=-14, fontsize=10)

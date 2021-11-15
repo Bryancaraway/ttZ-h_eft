@@ -95,13 +95,18 @@ class DNN_Explainability():
 
     
     def getModel(self):
-        dnn_weights = 'withbbvlnewgenm_model.h5'
+        #dnn_weights = 'withbbvlnewgenm_model.h5'
+        dnn_weights = 'newgenm_model.h5'
         dnn_vars   = cfg.withbbvl_dnn_ZHgenm_vars
-        m_info =  {
+        #m_info =  {
+        #    'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 
+        #    'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 
+        #    'n_epochs': 100, 'batch_size': 10256,
+        #}
+        m_info = {
             'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 
-            'other_settings': {'fl_a': [0.75, 1, 0.25], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 
-            'n_epochs': 100, 'batch_size': 10256,
-        }
+            'other_settings': {'fl_a': [1, 1.5, 1], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 
+            'n_epochs': 150, 'batch_size': 10256}
         dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
         self.model = dnn.Build_Model(len(dnn_vars), load_weights=dnn_weights)#'nn_ttzh_model.h5')    
         self.new_model = dnn.Build_New_Model(len(dnn_vars), self.model)

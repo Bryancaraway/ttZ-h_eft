@@ -40,7 +40,7 @@ def __worker(y):
                 handle_sig(meta, _sub_worker_dict, sf)
                 #print(_sub_worker_dict)
             else:
-                _sub_worker_dict[sf] = handle_nom(meta)
+                _sub_worker_dict[sf] = handle_nom(meta, sample_file)
             #
         if 'ttH' in mc or 'ttZ' in mc:
             handle_sig_process(_sub_worker_dict, mc, _worker_dict)
@@ -88,7 +88,7 @@ def handle_process(meta, mc, suf=''):
     return _mc_dict_out
     
 
-def handle_nom(meta):
+def handle_nom(meta, sample_file):
     #
     _out_dict = {
         'mu_r_Up'       :meta['tot_events']/meta['mur_up_tot'] ,
@@ -100,6 +100,13 @@ def handle_nom(meta):
         'pdfWeight_Up'  :meta['tot_events']/meta['pdf_up_tot'] ,
         'pdfWeight_Down':meta['tot_events']/meta['pdf_down_tot'] ,
     }
+    isTTBar = 'sys' not in sample_file and 'TTBar' in sample_file
+    if isTTBar:
+        _out_dict[f'pdfweight_Up']   = meta['tot_events']/calc_pdfas_unc(meta[f'pdfweights_tot'],'hess','Up') 
+        _out_dict[f'pdfweight_Down'] = meta['tot_events']/calc_pdfas_unc(meta[f'pdfweights_tot'],'hess','Down')
+        _out_dict[f'alphas_Up']   = meta['tot_events']/calc_pdfas_unc(meta[f'pdfweights_tot'],'alphas','Up') 
+        _out_dict[f'alphas_Down'] = meta['tot_events']/calc_pdfas_unc(meta[f'pdfweights_tot'],'alphas','Down')
+
     return _out_dict
 def handle_sig(meta, _in_dict, _sf):
     #
@@ -114,12 +121,18 @@ def handle_sig(meta, _in_dict, _sf):
             'mu_r_Down'     :meta[_f('events_rap_tot')]/meta[_f('mur_down_tot')] ,
             'mu_f_Up'       :meta[_f('events_rap_tot')]/meta[_f('muf_up_tot')] ,
             'mu_f_Down'     :meta[_f('events_rap_tot')]/meta[_f('muf_down_tot')] ,
+            'mu_rf_Up'      :meta[_f('events_rap_tot')]/meta[_f('murf_up_tot')] ,
+            'mu_rf_Down'    :meta[_f('events_rap_tot')]/meta[_f('murf_down_tot')] ,
             'ISR_Up'        :meta[_f('events_rap_tot')]/meta[_f('isr_up_tot')] ,
             'ISR_Down'      :meta[_f('events_rap_tot')]/meta[_f('isr_down_tot')] ,
             'FSR_Up'        :meta[_f('events_rap_tot')]/meta[_f('fsr_up_tot')] ,
             'FSR_Down'      :meta[_f('events_rap_tot')]/meta[_f('fsr_down_tot')] ,
             'pdfWeight_Up'  :meta[_f('events_rap_tot')]/meta[_f('pdf_up_tot')] ,
             'pdfWeight_Down':meta[_f('events_rap_tot')]/meta[_f('pdf_down_tot')] ,
+            'pdfweight_Up'  :meta[_f('events_rap_tot')]/calc_pdfas_unc(meta[_f('pdfweights_tot')], 'hess', 'Up'),
+            'pdfweight_Down':meta[_f('events_rap_tot')]/calc_pdfas_unc(meta[_f('pdfweights_tot')], 'hess', 'Down'),
+            'alphas_Up'     :meta[_f('events_rap_tot')]/calc_pdfas_unc(meta[_f('pdfweights_tot')], 'alphas', 'Up'),
+            'alphas_Down'   :meta[_f('events_rap_tot')]/calc_pdfas_unc(meta[_f('pdfweights_tot')], 'alphas', 'Down'),
         }
         alt_sf = _sf + f'_{i-1}' if i > 0 else _sf
         _in_dict[alt_sf] = _sub_out_dict
@@ -152,16 +165,41 @@ def handle_ttbb(meta,sample_file,y):
         'mu_r_Down'      : get_varnorm('mur_down',),
         'mu_f_Up'        : get_varnorm('muf_up',  ),
         'mu_f_Down'      : get_varnorm('muf_down',),
+        'mu_rf_Up'        : get_varnorm('murf_up',  ),
+        'mu_rf_Down'      : get_varnorm('murf_down',),
         #
         'pdfWeight_Up'   : get_varnorm('pdf_up',pdf=True),
         'pdfWeight_Down' : get_varnorm('pdf_down',pdf=True),
-        #
+        #x
         'ISR_Up'         : get_varnorm('isr_up',   ps=True),
         'ISR_Down'       : get_varnorm('isr_down', ps=True),
         'FSR_Up'         : get_varnorm('fsr_up',   ps=True),
         'FSR_Down'       : get_varnorm('fsr_down', ps=True),
     }
+    isSys = 'sys' in sample_file
+
+    _out_dict[f'pdfweight_Up']   = (meta['ttbb_events']/calc_pdfas_unc(meta[f'pdfweights_ttbb'],'replica','Up')) \
+                                   if not isSys else 0
+    _out_dict[f'pdfweight_Down'] = (meta['ttbb_events']/calc_pdfas_unc(meta[f'pdfweights_ttbb'],'replica','Down')) \
+                                   if not isSys else 0
     return _out_dict
+
+def calc_pdfas_unc(_pdf, _type='hess', _ud='Up'):
+    var_pdf = {
+        'hess'   : (lambda _x: np.sqrt(np.sum(np.power(_x[1:-2]-_x[0],2)))),
+        'replica': (lambda _x: (np.quantile(_x[1:],.84) - np.quantile(_x[1:],.16)) / 2),
+        'alphas' : (lambda _x: (_x[-2] - _x[-1])/2),
+    }
+    nom_pdf = {
+        'hess'   :(lambda _x: _x[0]),
+        'replica':(lambda _x: (np.quantile(_x[1:],.84) + np.quantile(_x[1:],.16)) / 2),
+        'alphas' :(lambda _x: _x[0]),
+    }
+    err = var_pdf[_type](_pdf)
+    nom = nom_pdf[_type](_pdf)
+    unc = np.nan_to_num(err/nom, nan=1)
+    _out = _pdf[0]*(1.+unc) if _ud == 'Up' else _pdf[0]*(1.-unc)
+    return _out # returns up, down
 
 if __name__ == '__main__':
     main()

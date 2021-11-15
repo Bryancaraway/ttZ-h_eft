@@ -50,13 +50,22 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
     #processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','ttX','VJets','other']
     #processes = ['ttZ','ttH','TTBar','tt_bb','tt_2b','single_t','ttX','VJets']
     processes = ['ttZ','ttH','TTBar','tt_B','single_t','ttX','VJets']
+    processes += ['data_obs'] # adding data
     #rare_p = {'ttX','VJets','other'}    
     k_list = [mass,'Zh_pt',nn,'process','n_ak4jets']
     df = pd.DataFrame()
     for p in processes:
         for y in ['2016','2017','2018']:
-            data[f'{p}_{y}']['event_weight'] = getZhbbWeight(data[f'{p}_{y}'],y)
-            data[f'{p}_{y}']['event_weight2'] = data[f'{p}_{y}']['event_weight']**2
+            if p != 'data_obs':
+                data[f'{p}_{y}']['event_weight'] = getZhbbWeight(data[f'{p}_{y}'],y)
+                #if p == 'tt_B':
+                #    data[f'{p}_{y}']['event_weight'] = 1.5*data[f'{p}_{y}']['event_weight']
+                data[f'{p}_{y}']['event_weight2'] = data[f'{p}_{y}']['event_weight']**2
+
+                    
+            else: # is data
+                data[f'{p}_{y}']['event_weight'] = np.ones(len(data[f'{p}_{y}']['Zh_pt']))
+                data[f'{p}_{y}']['event_weight2'] = data[f'{p}_{y}']['event_weight']**2
             #if p in rare_p:
             #    data[f'{p}_{y}']['process'] = 'rare'
             df = pd.concat([df,data[f'{p}_{y}'].filter(items=k_list+['event_weight','event_weight2'])], 
@@ -83,7 +92,8 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
         c = [_.replace('gold','magenta') for _ in c]
         #l   = np.array([f'{x} ({y:3.1f}+/-{z:3.1f})' for x,y,z in zip(l,i,i_err)])
         if issig is not None:
-            xfactor = [int(issig/i_p) for i_p in i]
+            #xfactor = [int(issig/i_p) for i_p in i]
+            xfactor = [10 for i_p in i]
             w = np.array([w_p*x_p for w_p,x_p in zip(w,xfactor)], dtype=object)
             l   = np.array([rf'{l_p}$\times{x_p}$' for l_p,x_p in zip(l,xfactor)])
         return h,w,w2,i,c,l
@@ -114,12 +124,20 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
             sig_h[i_],
             bins=tbins_map[mass],
             histtype='step',
-            linewidth = 1.5, # i think default is 1
+            linewidth = 1.0, # i think default is 1
             linestyle = sig_ls[i_],
             weights   = sig_w[i_],
             color     = sig_c[i_],
             label     = sig_l[i_]
     )
+    #
+    #plot step data
+    # ============
+    #data_n, edges = np.histogram(df[mass][df['process'] == 'Data'].values, bins = bins, range=(bins[0],bins[-1]))
+    #ax.errorbar(
+    #    x=(edges[1:] + edges[:-1])/2 , y=data_n,
+    #    xerr=(edges[1:] - edges[:-1])/2, yerr=np.sqrt(data_n),
+    #    fmt='.', label='data', color='k')
     #
     endplt(fig,ax,add_cut_str)
     #plt.show()
@@ -164,27 +182,30 @@ def endplt(fig,ax,add_cut_str):
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(which='both', direction='in', top=True, right=True)
-    #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
-    #fig.text(0.105,0.89, r"\textbf{CMS} {\footnotesize \textit{Simulation}}", usetex=True, fontsize = 10)
-    #fig.text(0.635,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
+    #
     CMSlabel(fig=fig, ax=ax, opt='Simulation')
-    fig.text(0.635,0.66, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=10)
-    fig.text(0.635,0.62, r'DNN score $>0.80$', usetex=True, fontsize=10)
-    ax.set_xlabel(r'${m}_{\mathrm{SD}}^{\mathrm{Z/H\; cand.}}$ [GeV]', fontsize = 10, usetex=True)
+    #fig.text(0.635,0.66, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=10)
+    #fig.text(0.635,0.62, r'DNN score $>0.80$', usetex=True, fontsize=10)
+    tex_x_corr = 0.55 if '> 450' not in add_cut_str else 0.60
+    fig.text(tex_x_corr,0.59, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=6)
+    fig.text(tex_x_corr,0.55, r'DNN score $>0.80$', usetex=True, fontsize=6)
+    ax.set_xlabel(r'${m}_{\mathrm{SD}}^{\mathrm{Z/H\; cand.}}$ [GeV]', usetex=True)
     #self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
-    ax.set_ylabel('Events / 5 GeV', fontsize=10, usetex=True) # hardcoded
+    ax.set_ylabel('Events / 5 GeV', usetex=True) # hardcoded
     #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )        
     #plt.xlim(self.bin_range)
     #ax.set_yscale('log')
     ax.set_xlim(tbins_map[mass][0],tbins_map[mass][-1])
-    #ax.set_ylim(ymin=ax.get_ylim()[0],ymax=ax.get_ylim()[1]*7.5)
-    ax.set_ylim(0,ymax=ax.get_ylim()[1]*1.1)
+    #
+    y_scale_upper = 1.7 if '300 <' in add_cut_str else 1.5
+    y_scale_upper = 1.2 if '200 <' in add_cut_str else y_scale_upper
+    ax.set_ylim(0,ymax=ax.get_ylim()[1]*y_scale_upper)
     #plt.grid(True)
     handles, labels = ax.get_legend_handles_labels()
     hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w')
     handles = handles + [hatch_patch]
     labels  = labels + ['Stat Unc.']
-    ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=10)
+    ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=6)
     plt.tight_layout()
     #plt.show()
 
@@ -202,7 +223,7 @@ def main():
     else:
         data = AnaDict.read_pickle(pas_data_file)
     #
-    import_mpl_settings(2)
+    import_mpl_settings(1)
     
     initDF(data, 
            add_cut=(lambda _df: ((_df['Zh_pt'] >= 200) & (_df['Zh_pt'] < 300)) ),

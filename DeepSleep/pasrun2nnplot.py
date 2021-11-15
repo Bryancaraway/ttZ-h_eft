@@ -140,20 +140,20 @@ def endplt(fig,ax,add_cut_str):
     #fig.text(0.105,0.89, r"\textbf{CMS} {\footnotesize \textit{Simulation}}", usetex=True, fontsize = 10)
     #fig.text(0.635,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
     CMSlabel(fig=fig, ax=ax, opt='Simulation')
-    fig.text(0.635,0.66, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=10)
+    fig.text(0.50,0.63, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=6)
     #fig.text(0.635,0.62, r'DNN score $>0.80$', usetex=True, fontsize=10)
-    ax.set_xlabel(r'DNN score', fontsize = 10, usetex=True)
+    ax.set_xlabel(r'DNN score', usetex=True)
     #self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
-    ax.set_ylabel('fraction of yield / bin', fontsize=10, usetex=True) # hardcoded
+    ax.set_ylabel('fraction of yield / bin', usetex=True) # hardcoded
     #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )        
     #plt.xlim(self.bin_range)
     ax.set_yscale('log')
     #ax.set_xlim(tbins_map['Zh_M'][0],tbins_map['Zh_M'][-1])
     ax.set_xlim(0,1)
     #ax.set_ylim(ymin=ax.get_ylim()[0],ymax=ax.get_ylim()[1]*7.5)
-    ax.set_ylim(0.001,ymax=ax.get_ylim()[1]*10)
+    ax.set_ylim(0.001,ymax=ax.get_ylim()[1]*15)
     #plt.grid(True)
-    ax.legend(framealpha = 0, ncol=2, fontsize=10)
+    ax.legend(framealpha = 0, ncol=2, fontsize=6)
     plt.tight_layout()
     #plt.show()
 
@@ -161,7 +161,7 @@ def endplt(fig,ax,add_cut_str):
 def main():
     pas_data_file = cfg.dataDir+'/pas_plot_info/pas_data_file.pkl'
     data = AnaDict.read_pickle(pas_data_file)
-    import_mpl_settings(2) 
+    import_mpl_settings(1) 
 
     plot_nn(
         data,

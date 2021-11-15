@@ -152,7 +152,8 @@ class Plotter :
                        'sepGenBkg': self.sepGenBkg,
                        'sepGenMatchedSig':self.sepGenMatchedSig,
                        'sepGenMatchedBkg':self.sepGenMatchedBkg,
-                       'sepBySample':self.sepBySample}
+                       'sepBySample':self.sepBySample,
+                       'sepByEFT':self.sepByEFT,}
         
         for k in self.sepGenOpt.split(';'):
             if k in interp_dict:
@@ -260,6 +261,18 @@ class Plotter :
         for k in kill_k:
             self.data.pop(k)
 
+    def sepByEFT(self):
+        df = self.data.copy()
+        kill_k = []
+        for k in ['ttH','ttZ','tt_B']:
+            if k not in df : continue
+            kill_k.append(k)
+            df[k+'_EFT'] = (lambda x : x[x['sample'].str.contains('EFT') == True])(df[k])
+            df[k] = (lambda x : x[x['sample'].str.contains('EFT') == False])(df[k]) # needs to come after EFT because we are updating df[k]
+        for k in kill_k: # get rid of old merged data
+            self.data.pop(k) 
+        self.data.update(df) # update with proper divided data
+
             
 
     def retData(self):
@@ -314,7 +327,7 @@ class Plotter :
             labels  = labels + ['Stat Unc.']
         self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=8)
         self.ax.set_ylim(ymin=(0 if not self.doLog else (.1 if not self.doNorm else .001)), # .1 -> .001
-                         ymax=self.ax.get_ylim()[1]*(10 if self.doLog else 1.50))
+                         ymax=(self.ax.get_ylim()[1]*(10 if self.doLog else 1.50) if not self.doNorm else 1.05))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: 
             plt.show()

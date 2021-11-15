@@ -26,6 +26,8 @@ from lib.fun_library import fillne, t2Run, deltaR, ak_crosscleaned
 from modules.AnaDict import AnaDict
 from modules.AnaVars import AnaVars
 from modules.metaSkim import SkimMeta
+from modules.ak8jmsjmr_helper import ak8jmsjmr_helper
+from modules.pdfweight_helper import PDFHelper
 #
 import numpy as np
 from awkward import JaggedArray as aj
@@ -43,6 +45,7 @@ class Skim :
     @t2Run
     def __init__(self, roofile, sample, year, isData=False, jec_sys=None, golden_json=None):
         self.roofile = roofile
+        print(roofile) # for potential debugging 
         self.sample = sample
         self.year   = year
         self.isData = isData
@@ -55,8 +58,11 @@ class Skim :
     def startSkim(self):
         self.ana_vars = AnaVars(self.year, self.isData, jec_sys=self.jec_sys) 
         self.tree     = self.set_tree_from_roofile(self.roofile)
+        # handle pdfweight calc/matching if needed
+        #if not self.isData:
+        pdf_helper = PDFHelper(self) # currently does nothing for EFT samples
         # prepMeta metadata factory
-        self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree, self.jec_sys)
+        self.Meta = SkimMeta(self.sample, self.year, self.isData, self.tree, self.jec_sys, pdf=pdf_helper.pdfweights)
         # define event information
         # apply in house jmr 
         self.fatjets   = self.build_dict(['FatJet_pt','FatJet_msoftdrop']) # just in case jec
@@ -65,9 +71,10 @@ class Skim :
         self.subjets    = self.build_dict(cfg.ana_vars['sjvars'])
         self.genfatjets = self.build_dict(cfg.ana_vars['genak8jets'])
         self.gensubjets = self.build_dict(cfg.ana_vars['gensubjets'])
-        from modules.ak8_helper import ak8_helper
-        ak8_helper(self, self.jec_sys)
+        ak8jmsjmr_helper(self, self.jec_sys) # apply corrections to softdrop mass
         self.fatjets = self.tmp_fatjets  # hand over correct ak8 info
+        if __name__ == "__main__": # if doing testing 
+            self.fatjets['FatJet_msoftdrop'] = self.tmp_fatjets["FatJet_msoftdrop_altnosmear"]
         del self.subjets, self.genfatjets, self.gensubjets, self.tmp_fatjets
         ## end of in-house JMR
         #
@@ -85,11 +92,12 @@ class Skim :
         if not self.isData:
             self.geninfo    = self.build_dict(cfg.ana_vars['genpvars']) 
             self.lheweights = self.build_dict(cfg.ana_vars['lheWeights'])
+            
         self.hlt        = self.build_dict(cfg.ana_vars['dataHLT_all']+cfg.ana_vars[f'dataHLT_{self.year}'])
         #self.subjets    = self.build_dict(cfg.ana_vars['ak8sj'])
         # wont keep
         self.filters    = self.build_dict(cfg.ana_vars['filters_all']+cfg.ana_vars['filters_year'][self.year]) 
-        del self.precut
+        #del self.precut # need later i think
         self.f.close()
         # ===================== #
         # apply object criteria
@@ -139,6 +147,9 @@ class Skim :
         self.events          = self.events [       self.btag_event_mask]
         if not self.isData:
             self.geninfo = self.geninfo[  self.btag_event_mask]
+            # add full list of weights to metaData and apply cuts
+            pdf_helper.apply_cuts(self)
+            pdf_helper.add_pdfweights_to_events(self)
         #
     #
     def get_skim(self):
@@ -375,32 +386,42 @@ class Skim :
     # === ~ Skim class === #
     # extra local test stuff
     def local_test(self):
+        # write to file to compare with Andrew' Skimmer
+        exit()
+        out_txt_file = open(f"bryan_{self.year}.txt", "w")
         for i,j,k in zip(self.events['luminosityBlock'],self.events['event'],self.events['run']):
             print(f"Run {k}, LS {i}, event {j}")
+            out_txt_file.writelines([f"Run {k}, LS {i}, event {j}\n"])
+        out_txt_file.close()
         #print(self.Meta.get_metadata())
         print(f"{len(self.events['event'])} events passed")
-        #print(self.fatjets[self.events['event']==804875471])
+        print(self.events[self.events['event']==4644390569])
         #print(self.events[ self.events['event']==804875471]['Lep_eta'],
         #      self.events[ self.events['event']==804875471]['Lep_phi'])
                 
 if __name__ == '__main__':
-    year = '2017'
-    golden_json=json.load(open(cfg.goodLumis_file[year]))
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/ttHTobb_2018/839BA380-7826-9140-8C16-C5C0903EE949_Skim_12.root'
-    sample='TTToSemiLeptonic'
+    #sample='TTToSemiLeptonic'
     #test_file  = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTToSemiLeptonic_2018/D6501B6C-8B76-BF42-B677-64680733A780_Skim_19.root'
-    test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/B8B652A8-ED88-2F48-9979-637E36F30138_Skim_72.root'
+    #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/B8B652A8-ED88-2F48-9979-637E36F30138_Skim_72.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/DEDD55D3-8B36-3342-8531-0F2F4C462084_Skim_134.root' 
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTToSemiLeptonic_2016/CA4521C3-F903-8E44-93A8-28F5D3B8C5E8_Skim_121.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
+    #sample = "ttHTobb"
+    #sample = 'TTbb_2L2Nu'
+    #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2017/TTbb_2L2Nu_2017/prod2017MC_v7_NANO_2_Skim_11.root'
     #sample= 'TTZToBB'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
+    sample = 'ttHToNonbb'
+    test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2016/ttHToNonbb_2016/6D0E1ED8-6F95-FE45-8967-96805FBF1818_Skim_25.root'
     #sample = 'Data_SingleMuon'
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/Data_SingleMuon_2017_PeriodD/9A53E75E-4E0E-5A4A-A8C3-A91333DA906D_Skim_8.root'
-    #test_file  = "/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTZToQQ_2018/39EEAA27-A490-D244-B846-A53B2478AFD5_Skim_2.root"
-    #test_file  = "/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/DYJetsToLL_HT_1200to2500_2017/AF8883B9-AB0D-DC4A-82AF-4A58331EFFFA_Skim_0.root"
+    #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/Data_SingleMuon_2018_PeriodC/C8A1B18B-F06D-7D4B-80AC-3FD4774625AF_Skim_14.root'
+    #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/Data_SingleMuon_2016_PeriodE/E1D9A669-F314-6944-9946-93C893F180A9_Skim_10.root'
     #test_file    = '/eos/uscms/store/user/bcaraway/SingleE_test_2017.root'
-    _ = Skim(test_file, sample, year, isData='Data' in sample, jec_sys='jesHFUp', golden_json=golden_json)
+    year = re.search(r"201\d", test_file).group()
+    golden_json=json.load(open(cfg.goodLumis_file[year]))
+    _ = Skim(test_file, sample, year, isData='Data' in sample, jec_sys=None, golden_json=golden_json)
     _.local_test()
     #AnaDict(_.get_skim()).to_pickle('SingleE_2017.pkl')
     

@@ -214,6 +214,8 @@ class MakeQCDataCard(MakeDataCard):
             v = [var for var in v if var not in self.weight_sys] # save memory
             df = pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(items=v)
         else:
+            if p in ['ttZ','ttH','ttbb','TTBar']:
+                v += [f'pdfweight_{i}' for i in range(103)] # NNDPF31_nnlo_hessian_pdfas or NNPDF31_nnlo_as_0118_nf_4
             df = pd.read_pickle(f'{self.file_dir}{y}/{sub_f_dir}/{p}_val.pkl').filter(items=v)
             if 'Data' not in p: # clip mu_rf, isr/fsr, pdf at 3sigma percentile, 99.7% (.15%,99.85%)
                 func = np.nanpercentile # because this is a long name
