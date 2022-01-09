@@ -18,13 +18,13 @@ from lib.fun_library import save_pdf, import_mpl_settings, upperlefttext, CMSlab
 
 wc_latex = {
     'cbW'  : r'$\frac{{c}_{\mathrm{bW}}}{{\Lambda}^{2}}$',
-    'cptb' : r'$\frac{{c}_{\phi \mathrm{tb}}}{{\Lambda}^{2}}$',
-    'cpt'  : r'$\frac{{c}_{\phi \mathrm{t}}}{{\Lambda}^{2}}$',
-    'ctp'  : r'$\frac{{c}_{\mathrm{t} \phi}}{{\Lambda}^{2}}$',
+    'cptb' : r'$\frac{{c}_{\varphi \mathrm{tb}}}{{\Lambda}^{2}}$',
+    'cpt'  : r'$\frac{{c}_{\varphi \mathrm{t}}}{{\Lambda}^{2}}$',
+    'ctp'  : r'$\frac{{c}_{\mathrm{t} \varphi}}{{\Lambda}^{2}}$',
     'ctZ'  : r'$\frac{{c}_{\mathrm{tZ}}}{{\Lambda}^{2}}$',
     'ctW'  : r'$\frac{{c}_{\mathrm{tW}}}{{\Lambda}^{2}}$',
-    'cpQ3' : r'$\frac{{c}_{\phi \mathrm{Q}}^{3}}{{\Lambda}^{2}}$',
-    'cpQM' : r'$\frac{{c}_{\phi \mathrm{Q}}^{-}}{{\Lambda}^{2}}$',
+    'cpQ3' : r'$\frac{{c}_{\varphi \mathrm{Q}}^{3}}{{\Lambda}^{2}}$',
+    'cpQM' : r'$\frac{{c}_{\varphi \mathrm{Q}}^{-}}{{\Lambda}^{2}}$',
 }
 wc_bf_ffl = { # best-fit value
     'fixed':{'cbW' : -2.34,'cptb': 0.56,'cpt' : -0.26,'ctp' : 15.30,'ctZ' : 0.01,'ctW' : -0.05,'cpQ3': -0.54,'cpQM': -0.04,},
@@ -52,7 +52,7 @@ wc_nfive_ffl = { # 95% CL lower, upper with respect to best-fit
 #    'float':{'cbW' : [-6.05,1.19],'cptb': [-5.63,5.25],'cpt' : [-5.22,4.39],'ctp' : [-8.15,8.08],'ctZ' : [-0.88,0.92],'ctW' : [-0.85,0.87],'cpQ3': [-2.00,2.03],'cpQM': [-3.66,4.02],},
 #}
 
-@save_pdf('eft_results_table.pdf')
+@save_pdf('eft_results_table_final.pdf')
 def main():
     fig, ax = beginPlt()
     for i,k in enumerate(wc_bf_ffl):
@@ -81,8 +81,8 @@ def plot_eft_result(ax, f_fl, i_off):
 def beginPlt(year=None):
     fig, ax = plt.subplots()
     fig.subplots_adjust(top=0.88,bottom=0.11,left=0.18,right=0.95,wspace=0.0)
-    CMSlabel(fig,ax,lumi=round(cfg.Lumi.get(year,137),1))
-    return fig,ax
+    CMSlabel(fig,ax,lumi= round(cfg.Lumi[year],1) if year is not None else round(cfg.Lumi['Total']), opt='')
+    return fig, ax
 
 def endPlt(fig,ax):
     ax.tick_params(which='both', direction='in', top=True)

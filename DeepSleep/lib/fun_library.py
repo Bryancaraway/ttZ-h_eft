@@ -409,7 +409,7 @@ def getLaLabel(str_):
         #
         'ttZ_genm_Zbb':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb',
                             'blue'],
-        'ttZ_genm_Zbb_bb':    [r't$\mathregular{\bar{t}}$Z$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{GEN\;matched}}$',
+        'ttZ_genm_Zbb_bb':    [r't$\mathregular{\bar{t}}$Z$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{matched}}$',
                             'tab:blue'],
         'ttZ_genm_Zbb_b':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb&b',
                             'purple'],
@@ -417,15 +417,15 @@ def getLaLabel(str_):
                             'tab:brown'],
         'ttH_genm_Hbb':    [r't$\mathregular{\bar{t}}$H_genm_Hbb',
                             'gold'],
-        'ttH_genm_Hbb_bb':    [r't$\mathregular{\bar{t}}$H$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{GEN\;matched}}$',
+        'ttH_genm_Hbb_bb':    [r't$\mathregular{\bar{t}}$H$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{matched}}$',
                            'magenta'],
         'ttH_genm_Hbb_b':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&b',
                            'tab:red'],
         'ttH_genm_Hbb_nob':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&nob',
                             'black'],
-        'ttZ_notgenm_Zbb':    [r't$\mathregular{\bar{t}}$Z${}_\mathrm{other}$',
+        'ttZ_notgenm_Zbb':    [r't$\mathregular{\bar{t}}$Z${}_\mathrm{unmatched}$',
                             'cyan'],
-        'ttH_notgenm_Hbb':    [r't$\mathregular{\bar{t}}$H${}_\mathrm{other}$',
+        'ttH_notgenm_Hbb':    [r't$\mathregular{\bar{t}}$H${}_\mathrm{unmatched}$',
                             'tab:red'],
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
                             'blue'],
@@ -562,15 +562,17 @@ def CMSlabel(fig=None, ax=None, opt=None, altax=None, altloc=False, lumi=None, f
     if opt is None:
         opt = 'Preliminary'
     if lumi is None:
-        lumi = 137
+        import config.ana_cff as cfg
+        lumi = round(cfg.Lumi['Total'])
     cms_loc = (0,1) if not altloc else (1,1.10)
         
-    lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
     trans = ax0.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
     ax0.text(*cms_loc, s=rf'\textbf{{CMS}} {{\footnotesize \textit{{{opt}}}}}', usetex=True,
              transform=trans, ha='left', va='baseline', fontsize=fontsize)
     trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
-    ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
+    if lumi:
+        lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
+        ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
              transform=trans, ha='right', va='baseline', fontsize=fontsize)
 
 def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',

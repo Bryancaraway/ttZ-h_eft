@@ -19,52 +19,66 @@ from matplotlib.patches import Patch, Rectangle
 from matplotlib import rc
 
 
+inc_dir =  '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/'
+# ttbb
+#inc_file =  'TTbb_SemiLeptonic_2018/2C7E7937-7810-6544-A12F-1CE64CB72545_Skim_1.root'
+#boost_file = cfg.master_file_path+'/2018/mc_files/ttbb_val.pkl'
+# ttbar
+inc_file = 'TTToSemiLeptonic_2018/7E1D5911-1000-3546-97BC-51870CB9A867_Skim_121.root'
+boost_file = cfg.master_file_path+'/2018/mc_files/TTBar_val.pkl'
 
-inc_dir =  '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/TTbb_SemiLeptonic_2018/'
-inc_file =  '2C7E7937-7810-6544-A12F-1CE64CB72545_Skim_1.root'
-boost_file = cfg.master_file_path+'/2018/mc_files/ttbb_val.pkl'
-
-@save_pdf("inc_vs_boost_ttbb_genbbpt.pdf")
+b_or_c_quark = 'c'
+#@save_pdf("inc_vs_boost_ttbb_genbbpt.pdf")
+@save_pdf(f"inc_vs_boost_tt{2*b_or_c_quark}_gen{2*b_or_c_quark}pt.pdf")
 def main():
-    inc_ttbb_pt = get_inc_info()
-    boost_ttbb_pt = get_boost_info()
+    inc_ttx_pt = get_inc_info(b_or_c_quark)
+    quark_boost_info = {'b': get_boost_bb_info, 'c': get_boost_cc_info}
+    boost_ttx_pt = quark_boost_info[b_or_c_quark]()
     #
     fig, ax = plt.subplots()
     ax.hist(
-        np.clip(inc_ttbb_pt, 0, 500),   
+        np.clip(inc_ttx_pt, 0, 500),   
         bins=20, histtype='step', 
-        weights=np.ones_like(inc_ttbb_pt)*1/len(inc_ttbb_pt), range=(0,500),  label='Inclusive')
+        weights=np.ones_like(inc_ttx_pt)*1/len(inc_ttx_pt), range=(0,500),  label='Inclusive')
     ax.hist(
-        np.clip(boost_ttbb_pt, 0, 500), 
+        np.clip(boost_ttx_pt, 0, 500), 
         bins=20, histtype='step', 
-        weights=np.ones_like(boost_ttbb_pt)*1/len(boost_ttbb_pt), range=(0,500),  label='Passing Selection')
+        weights=np.ones_like(boost_ttx_pt)*1/len(boost_ttx_pt), range=(0,500),  label='Passing Selection')
     #
     ax.set_xlim(0,500)
     ax.set_ylabel('fraction of yield / bin')
-    ax.set_xlabel('bb gen pt [GeV]')
+    ax.set_xlabel(f'{2*b_or_c_quark} gen pt [GeV]')
     ax.legend()
-    fig.suptitle("tt+bb: extra gen bb pt ")
+    fig.suptitle(f"tt+{2*b_or_c_quark}: extra gen {2*b_or_c_quark} pt ")
     #plt.show()
 
-def get_inc_info():
+def get_inc_info(bc_quark='b'):
     g = 'GenPart_'
     gen_vars = ['genTtbarId', g+'pdgId',g+'genPartIdxMother', g+'pt',g+'eta',g+'phi', g+'mass']
     getTLVm = TLorentzVectorArray.from_ptetaphim
+    quark_cut = {'b': (lambda gttid : (gttid % 100) >= 51), 
+                 'c': (lambda gttid : ( (gttid>=41) & (gttid<50) ))}
+    quark_id = {'b':5, 'c':4}
     with uproot.open(inc_dir+inc_file) as roo:
         t = roo.get('Events')
-        gentt_bb , gen_ids, gen_mom, gen_pt, gen_eta, gen_phi, gen_mass= map(t.array, gen_vars)
-        ext_bb = (lambda c: c[(gen_mom <= 0) & (abs(gen_ids) == 5)][(gentt_bb % 100) >= 51])
+        gentt_xx , gen_ids, gen_mom, gen_pt, gen_eta, gen_phi, gen_mass= map(t.array, gen_vars)
+        ext_xx = (lambda c: c[(gen_mom <= 0) & (abs(gen_ids) == quark_id[bc_quark])][ quark_cut[bc_quark](gentt_xx) ])
         #print(gentt_bb , gen_ids, gen_mom, gen_pt, gen_eta, gen_phi, gen_mass)
-        b1 = getTLVm(*map((lambda b: b.pad(2)[:,0]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
-        b2 = getTLVm(*map((lambda b: b.pad(2)[:,1]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
-        #return (b1+b2).pt[(gentt_bb % 100) >= 51]
-        genbb_pt = (b1+b2).pt
-        return genbb_pt[genbb_pt > 0.0]
+        x1 = getTLVm(*map((lambda _x: _x.pad(2)[:,0]), list(map(ext_xx,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+        x2 = getTLVm(*map((lambda _x: _x.pad(2)[:,1]), list(map(ext_xx,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+        genxx_pt = (x1+x2).pt
+        return genxx_pt[genxx_pt > 0.0]
         
-def get_boost_info():
+def get_boost_bb_info():
     df = pd.read_pickle(boost_file)
     df = df[(df[cfg.nn] >= 0) & (df['process'] == 'tt_B')] # events passing our selections
     return df['ttbb_genbb_pt'].to_numpy()
+
+def get_boost_cc_info():
+    df = pd.read_pickle(boost_file)
+    df = df[(df[cfg.nn] >= 0) & (df['tt_C'] == True)] # events passing our selections
+    print(df['ttcc_gencc_pt'])
+    return df['ttcc_gencc_pt'].to_numpy()
 
 if __name__ == '__main__':
     main()

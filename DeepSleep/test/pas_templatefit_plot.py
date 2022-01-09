@@ -28,11 +28,12 @@ rc("figure", max_open_warning=600)
 #rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 
-#pre_or_post = 'postfit'
-pre_or_post = 'prefit'
+pre_or_post = 'postfit'
+#pre_or_post = 'prefit'
 
 
-@save_pdf('pas_template_plots_unblind_SMprefit.pdf')
+#@save_pdf('pas_template_plots_unblind_SMprefit.pdf')
+@save_pdf('pas_template_plots_unblind_SM_final.pdf')
 def main():
     #froo = f'fitDiagnostics_inc_run2.root'
     #froo = f'fitDiagnostics_inctest_run2.root'
@@ -178,7 +179,7 @@ class PlotForPas(PostFit):
         lumi = cfg.Lumi[re.search(r'201\d',year).group()]
         #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
         #self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
-        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14)
+        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14, opt='')
         self.axs = axs
         self.rat_axs = rat_axs
 
@@ -187,9 +188,9 @@ class PlotForPas(PostFit):
         ax.set_xlim(0,self.edges[ch][-1])
         #ax.set_ylim(0.)
         ch_dict = {
-            'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$  ',
-            'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$  ',
-            'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$  '
+            'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$ GeV ',
+            'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$ GeV ',
+            'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$ GeV '
         }
         tick_dict = { 
             'Zhpt1': [np.arange(0,19,3),np.arange(0,19,3)],
@@ -218,7 +219,7 @@ class PlotForPas(PostFit):
         ax = self.axs[-1]
         handles, labels = ax.get_legend_handles_labels()
         print(labels)
-        hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w')
+        hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w', alpha=0.99)
         handles = handles[0:2]+handles[-3:-1]+handles[2:-3] + [handles[-1]] + [hatch_patch]
         labels  = labels[0:2]+labels[-3:-1]+labels[2:-3] + [labels[-1]] + ['stat+sys.']
         ax.legend(handles,labels, bbox_to_anchor=(-.505,.565), 

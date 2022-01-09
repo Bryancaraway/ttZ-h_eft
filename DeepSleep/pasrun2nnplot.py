@@ -143,8 +143,8 @@ def endplt(fig,ax,add_cut_str):
     fig.text(0.50,0.63, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=6)
     #fig.text(0.635,0.62, r'DNN score $>0.80$', usetex=True, fontsize=10)
     ax.set_xlabel(r'DNN score', usetex=True)
-    #self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
-    ax.set_ylabel('fraction of yield / bin', usetex=True) # hardcoded
+    #ax.set_ylabel('fraction of yield / bin', usetex=True) # hardcoded
+    ax.set_ylabel('a.u.', usetex=True) # hardcoded
     #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )        
     #plt.xlim(self.bin_range)
     ax.set_yscale('log')

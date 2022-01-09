@@ -202,7 +202,7 @@ def endplt(fig,ax,add_cut_str):
     ax.set_ylim(0,ymax=ax.get_ylim()[1]*y_scale_upper)
     #plt.grid(True)
     handles, labels = ax.get_legend_handles_labels()
-    hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w')
+    hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w', alpha=0.99)
     handles = handles + [hatch_patch]
     labels  = labels + ['Stat Unc.']
     ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=6)

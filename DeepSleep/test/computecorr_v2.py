@@ -223,7 +223,7 @@ def CMSlabel(fig=None, ax=None):
     ax0.text(0, 1, r"\textbf{CMS} {\footnotesize \textit{Preliminary}}",
             transform=trans, ha='left', va='baseline')
     trans = ax1.transAxes + matplotlib.transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
-    ax1.text(1, 1, r"$137\,\mathrm{fb}^{\text{-1}}$ (13 TeV)",
+    ax1.text(1, 1, r"$138\,\mathrm{fb}^{\text{-1}}$ (13 TeV)",
             transform=trans, ha='right', va='baseline')
 
 if __name__ == '__main__':
