@@ -76,13 +76,17 @@ all_sys_samples   = sig_sys_samples + bkg_sys_samples
 #
 Data_samples      = ['Data_SingleElectron','Data_SingleMuon']
 
-Lumi              = {'2016': 35.917149,
-                     '2017': 41.525338,
-                     '2018': 59.72444,
-                     '2018preHEM' : 21.1,
-                     '2018postHEM': 38.6,
-                     'run2': 137.166648,
-                     'Total': 137.166648
+Lumi              = {
+    #'2016': 35.917149,
+    #'2017': 41.525338,
+    #'2018': 59.72444,
+    '2016': 36.326,
+    '2017': 41.529,
+    '2018': 59.741,
+    '2018preHEM' : 21.1,
+    '2018postHEM': 38.6,
+    'run2': 137.596,
+    'Total': 137.596
                   } 
 goodLumis_file   = {
     '2016':dataDir+'/good_lumis/'+'Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON.txt', # re-reco

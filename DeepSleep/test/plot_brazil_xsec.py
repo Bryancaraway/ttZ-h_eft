@@ -221,7 +221,7 @@ def beginPlt():
     ax = axs if len(axs) == '1' else axs[0]
     #fig.text(0.15,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 10)
     #fig.text(0.70,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
-    CMSlabel(fig,ax)
+    CMSlabel(fig,ax, opt='')
     return fig, axs
 
 def endPlt(ax,p_type, ylabel, doLog=True, errorbox=False, ax_r=None):
@@ -275,7 +275,7 @@ def endPlt(ax,p_type, ylabel, doLog=True, errorbox=False, ax_r=None):
     else:
         plt.legend()
 
-@save_pdf("exp_diffxsec_limits_lowptfrozen_ratio.pdf")
+@save_pdf("exp_diffxsec_limits_lowptfrozen_ratio_final.pdf")
 def make_exp_xsec(p_xs, p_asymlim):
     bins = {'inc':np.array([200,600]),'stxs':np.array([200,300,450,600])}
     for p in p_xs:
@@ -340,8 +340,8 @@ def print_latex_format(y_obs, y_exp, y_theo, sigp): # formats and prints limits 
         out_string = ""
         if i == 0:
             out_string += rf"\{sigp} "
-        out_string += rf"& {pt_dict[i]:15} & ${y_obs[i]:.3g}$ (${{{y_exp[i,2]:.3g}}}_{{-{y_exp_msig[i]:.3g}}}^{{+{y_exp_psig[i]:.3g}}}$)"
-        out_string +=rf" & ${y_obs[i]/y_theo[i]:.3g}$ (${{{y_exp[i,2]/y_theo[i]:.3g}}}_{{-{y_exp_msig[i]/y_theo[i]:.3g}}}^{{+{y_exp_psig[i]/y_theo[i]:.3g}}}$) \\" 
+        out_string += rf"& {pt_dict[i]:15} & ${y_obs[i]:.3f}$ (${{{y_exp[i,2]:.3f}}}_{{-{y_exp_msig[i]:.3f}}}^{{+{y_exp_psig[i]:.3f}}}$)"
+        out_string +=rf" & ${y_obs[i]/y_theo[i]:.3f}$ (${{{y_exp[i,2]/y_theo[i]:.3f}}}_{{-{y_exp_msig[i]/y_theo[i]:.3f}}}^{{+{y_exp_psig[i]/y_theo[i]:.3f}}}$) \\" 
         if i == len(y_exp) and sigp == 'ttZ':
             out_string += r"[\cmsTabSkip]"
         print(out_string)

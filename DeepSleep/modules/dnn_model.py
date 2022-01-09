@@ -94,6 +94,31 @@ class DNN_model:
             metrics=['accuracy',tf.keras.metrics.AUC()])
         ##
         return model
+
+    def Build_Binary_Model(self, input_shape, load_weights=None):
+        #
+        main_input = keras.layers.Input(shape=[input_shape], name='input')
+        layer = keras.layers.BatchNormalization()(main_input)
+        for seq in self.sequence:
+            layer = self.seq_dict[seq[0]](seq[1])(layer)
+        #
+        output     = keras.layers.Dense(1, activation='sigmoid', name='output')(layer)
+            #
+        model      = keras.models.Model(inputs=main_input, outputs=output, name='model')
+        optimizer  = keras.optimizers.Adam(learning_rate=self.lr_alpha)
+
+        if (load_weights and os.path.exists(cfg.dnn_ZH_dir+load_weights)): 
+            model.load_weights(cfg.dnn_ZH_dir+load_weights)
+        #
+        #from focal_loss import BinaryFocalLoss
+        model.compile(
+            loss='binary_crossentropy',
+            optimizer=optimizer, 
+            #optimizer='adam', 
+            #
+            metrics=['accuracy',tf.keras.metrics.AUC()])
+        ##
+        return model
     
     def Build_New_Model(self, input_shape, model):
         main_input = keras.layers.Input(shape=[input_shape], name='input')
@@ -147,7 +172,45 @@ def train_model(m_info):
         print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
         plot_history(history)
         print('here')
+        # dont overwrite ~~~ !!!
+        exit()
         model.save_weights(cfg.dnn_ZH_dir+'/'+'newgenm_model'+'.h5')
+        # ======= testing binary
+        #model.save_weights(cfg.dnn_ZH_dir+'/'+'binary_model'+'.h5')
+        #model.save_weights(cfg.dnn_ZH_dir+'/'+'newreduced1p0_model'+'.h5')
+        print('here')
+        
+    return model, testX, testY
+
+def train_binary_model(m_info):
+    trainX, trainY, valX, valY, testX, testY, model = prep_model_data(m_info, is_binary=True)
+    # --
+    # earlystopping here?
+    cb = [tf.keras.callbacks.EarlyStopping(monitor='val_loss',patience=3,restore_best_weights=True)]
+    # --
+    print(model.summary())
+    # --
+    history = model.fit(
+        trainX,
+        trainY[:,2],
+        epochs     = 40,
+        batch_size = m_info['batch_size'],
+        validation_data = (valX, valY[:,2]),
+        callbacks = cb,
+        shuffle = True,
+        verbose = 1,
+    )
+    if __name__ == '__main__':
+        loss ,acc, auc             = model.evaluate(testX, testY[:,2])#, sample_weight = testW['DNNweight'].values)
+        tr_loss ,tr_acc, tr_auc    = model.evaluate(trainX,trainY[:,2])
+        val_loss ,val_acc, val_auc = model.evaluate(valX,  valY[:,2])
+        print("\n\n")
+        print(f"Train Set Loss: {tr_loss:10.4f}  Train Set Acc: {tr_acc:10.4f} Train Set AUC: {tr_auc:10.4f}")
+        print(f"Val   Set Loss: {val_loss:10.4f}  Val   Set Acc: {val_acc:10.4f} Val   Set AUC: {val_auc:10.4f}")
+        print(f"Test  Set Loss: {loss:10.4f}  Test  Set Acc: {acc:10.4f} Test  Set AUC: {auc:10.4f}\n\n")
+        plot_history(history)
+        print('here')
+        model.save_weights(cfg.dnn_ZH_dir+'/'+'binary_model'+'.h5')
         #model.save_weights(cfg.dnn_ZH_dir+'/'+'newreduced1p0_model'+'.h5')
         print('here')
         
@@ -180,11 +243,14 @@ def plot_history(history):
     plt.show()
     plt.close()
 
-def local_test(m_info):
+def local_test(m_info, train_binary=False):
     from sklearn.metrics import confusion_matrix
     from sklearn.metrics import roc_auc_score
     import matplotlib.pyplot as plt
-    model, testX, testY = train_model(m_info)
+    if train_binary == False:
+        model, testX, testY = train_model(m_info)
+    else:
+        model, testX, testY = train_binary_model(m_info)
     y_pred = model.predict(testX)
     weight = np.ones_like(y_pred[:,2])*.001
     weight = np.where(testY[:,0]==1,.10,weight)
@@ -220,7 +286,7 @@ def local_test(m_info):
     #plt.savefig(cfg.dnn_ZH_dir+'/test_archs/'+out_name+'.pdf')
     
     
-def prep_model_data(m_info):
+def prep_model_data(m_info, is_binary=False):
     resetIndex = (lambda df: df.reset_index(drop=True).copy())
     # 
     trainXY = pd.read_pickle(cfg.dnn_ZH_dir+'/trainXY.pkl')
@@ -241,7 +307,11 @@ def prep_model_data(m_info):
     dnn_vars = cfg.withbbvl_dnn_ZHgenm_vars
     #dnn_vars = cfg.reduced1p0genm_vars
     #dnn_vars = cfg.withbbvl_dnn_ZH_1p5vars
-    model = m_class.Build_Model(len(dnn_vars), )#load_weights='ttzh_model.h5') 
+    # ===== testing binary model
+    if is_binary:
+        model = m_class.Build_Binary_Model(len(dnn_vars), )#load_weights='ttzh_model.h5') 
+    else:
+        model = m_class.Build_Model(len(dnn_vars), )#load_weights='ttzh_model.h5') 
     return (
         trainX.filter(items=dnn_vars).to_numpy(), np.stack(trainY.values), valX.filter(items=dnn_vars).to_numpy(), np.stack(valY.values), testX.filter(items=dnn_vars).to_numpy(), np.stack(testY.values), model
     )
@@ -258,5 +328,5 @@ if __name__ == "__main__":
     #m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 2, 0.75], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 150, 'batch_size': 10256}
     m_info = {'sequence': [['Dense', 128], ['Dense', 64], ['Dropout', 0.5]], 'other_settings': {'fl_a': [1, 1.5, 1], 'fl_g': 0.25, 'lr_alpha': 0.0003}, 'n_epochs': 150, 'batch_size': 10256}
 
-    local_test(m_info)
+    local_test(m_info, train_binary=True)
 

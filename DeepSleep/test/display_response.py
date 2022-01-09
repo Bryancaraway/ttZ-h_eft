@@ -33,7 +33,7 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
     print(df)
     #if opt_title is not None:
     #    fig.suptitle(opt_title.format(p_type))
-    CMSlabel(fig, ax)
+    CMSlabel(fig, ax, opt='')
     #im = ax.matshow(df, cmap='viridian', vmin=0, vmax=df.to_numpy().max()*1.20)
     c = ax.pcolor(x_bins,y_bins,df.to_numpy(), vmin=0., vmax=df.to_numpy().max()*1.20)
     #c = ax.pcolor(eff_dict['pt_eta_sf'])
@@ -63,29 +63,45 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
 
 
 @save_pdf("stxs_sigsens_yields.pdf")
-def make_stxs_sigsens_yeilds(sel):
+def make_stxs_sigsens_yields(sel):
     x_bins = [200,300,450,600]
-    y_bins = [200,300,450,600] #[0,200,300,450,600]
+    y_bins = pt_bins[:-1] + [600]
+    #y_bins = [200,300,450,600] #[0,200,300,450,600]
     for p in ['ttZ','ttH']:
         r_df = sel[p]
         make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), opt_title='NN > 0.8, {} mass bin')        
 
-@save_pdf("stxs_yields.pdf")
-def make_stxs_yeilds(inc,sel):
+@save_pdf("stxs_sigsens_response_paper_final.pdf")
+def make_stxs_sigsens_response(inc,sel):
     x_bins = [200,300,450,600]
-    y_bins = [200,300,450,600]#[0,200,300,450,600]
+    y_bins = pt_bins[:-1] + [600]
+    #y_bins = [200,300,450,600] #[0,200,300,450,600]
+    for p in ['ttZ','ttH']:
+        inc_y = np.array([inc[p][p+str(i)] for i in range(5-len(y_bins),4)])
+        r_df = sel[p].divide(inc_y,axis='rows') * 100
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (%)')        
+
+
+@save_pdf("stxs_yields.pdf")
+def make_stxs_yields(inc,sel):
+    x_bins = [200,300,450,600]
+    y_bins = pt_bins[:-1] + [600]
+    #y_bins = [200,300,450,600]#[0,200,300,450,600]
     for p in ['ttZ','ttH']:
         r_df = sel[p]
         make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''))        
     
-@save_pdf("stxs_response.pdf")
+@save_pdf("stxs_response_paper.pdf")
 def make_stxs_response(inc,sel):
     x_bins = [200,300,450,600]
-    y_bins = [200,300,450,600]#[0,200,300,450,600]
+    #y_bins = [200,300,450,600]#[0,200,300,450,600]
+    y_bins = pt_bins[:-1] + [600]
     for p in ['ttZ','ttH']:
-        inc_y = np.array([inc[p][p+str(i)] for i in range(1,4)])#range(4)])
+        #inc_y = np.array([inc[p][p+str(i)] for i in range(1,4)])#range(4)])
+        inc_y = np.array([inc[p][p+str(i)] for i in range(5-len(y_bins),4)])
         r_df = sel[p].divide(inc_y,axis='rows') * 100
         make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (%)')        
+
 
 @save_pdf("inc_response.pdf")
 def make_inc_response(inc,sel):
@@ -102,8 +118,8 @@ def get_sel_yields(sel_cuts=None):
     sel_cuts = {'ttZ': (lambda _:_), 'ttH':(lambda _:_)} if sel_cuts is None else sel_cuts
     _out_dict = {}
     for p in ['ttZ','ttH']:
-        o_df = pd.DataFrame(np.zeros(shape=(3,3)),#shape=(4,3)), 
-                            columns=[(pt_bins[i-1],pt_bins[i]) for i in range(1,len(pt_bins))],#range(2,len(pt_bins))], # reco pt
+        o_df = pd.DataFrame(np.zeros(shape=(len(pt_bins)-1,3)),
+                            columns=[(pt_bins[i-1],pt_bins[i]) for i in range(len(pt_bins)-3,len(pt_bins))],#range(2,len(pt_bins))], # reco pt
                             index=[(pt_bins[i-1],pt_bins[i]) for i in range(1,len(pt_bins))],   # gen  pt
         )
         for y in cfg.Years:
@@ -113,12 +129,19 @@ def get_sel_yields(sel_cuts=None):
             p_df = sel_cuts[p](p_df)
             p_df = p_df[((p_df['genZHstxs'] == True) & (p_df['process']==p) & (ana_cuts(p_df)==True))].filter(items=['Zh_pt','genZHpt','tot_weight'])
             #p_df = p_df[(ana_cuts(p_df)==True)].filter(items=['Zh_pt','genZHpt','tot_weight'])
-            for i in range(1,len(pt_bins)): # gen pt 
-                for j in range(1,len(pt_bins)):#2,len(pt_bins)): # reco pt 
-                    pt_cut = ((p_df['Zh_pt'] >= pt_bins[j-1]) & (p_df['Zh_pt'] < pt_bins[j]) &
-                              (p_df['genZHpt'] >= pt_bins[i-1]) & (p_df['genZHpt'] < pt_bins[i]))
+            #for i in range(1,len(pt_bins)): # gen pt 
+            #    for j in range(1,len(pt_bins)):#2,len(pt_bins)): # reco pt 
+            #        print(i,j)
+            #        pt_cut = ((p_df['Zh_pt'] >= pt_bins[j-1]) & (p_df['Zh_pt'] < pt_bins[j]) &
+            #                  (p_df['genZHpt'] >= pt_bins[i-1]) & (p_df['genZHpt'] < pt_bins[i]))
+            #        #
+            #        o_df.iloc[i-1, j-1] = o_df.iloc[i-1, j-1] + sum(p_df.loc[(pt_cut==True), 'tot_weight'])
+            for i_index, i in enumerate(o_df.index): # gen pt 
+                for j_column, j in enumerate(o_df.columns):# reco pt 
+                    pt_cut = ((p_df['Zh_pt'] >= j[0]) & (p_df['Zh_pt'] < j[1]) &
+                              (p_df['genZHpt'] >= i[0]) & (p_df['genZHpt'] < i[1]))
                     #
-                    o_df.iloc[i-1, j-1] = o_df.iloc[i-1, j-1] + sum(p_df.loc[(pt_cut==True), 'tot_weight'])
+                    o_df.iloc[i_index, j_column] = o_df.iloc[i_index, j_column] + sum(p_df.loc[(pt_cut==True), 'tot_weight'])
             #
         #
         _out_dict[p] = o_df
@@ -146,10 +169,11 @@ def main():
                                             'ttH':(lambda df : df[((df[nn]>0.8) & (df['Zh_M']>115) & (df['Zh_M']<155))])})
     tot_y      = get_tot_yields()
     #
-    make_stxs_yeilds(tot_y,sel_y)
-    make_stxs_sigsens_yeilds(sigsens_y)
+    #make_stxs_yields(tot_y,sel_y)
+    #make_stxs_sigsens_yields(sigsens_y)
     #
-    make_stxs_response(tot_y, sel_y)
+    make_stxs_sigsens_response(tot_y,sigsens_y)
+    #make_stxs_response(tot_y, sel_y)
     #make_inc_response(tot_y, sel_y)
     
 

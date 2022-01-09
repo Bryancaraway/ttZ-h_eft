@@ -33,7 +33,9 @@ pt_name = 'genZHpt'
 pt_bins = np.linspace(0,1000,15)
 wc_bins = {'ctp':np.arange(-15, 50, 1),
            'cpt':np.arange(-20, 20, .5),
-           'ctZ':np.arange(-3,3, .05),} # cant do -8, 8
+           'ctZ':np.arange(-3,3, .2),} # cant do -8, 8
+norm_bins = {'cpt':np.arange(1,5,.1),
+             'ctZ':np.arange(1,5,.1)}
 #>>> a.max(), a.min()
 #ctW       5.949762   -5.890477
 #ctp      61.349454  -16.477814
@@ -60,7 +62,7 @@ wc_latex = {
     'cpQM' : r'${c}_{\phi \mathrm{Q}}^{-}\,/\,{\Lambda}^{2}$',
 }
 
-@save_pdf("eft_process_contours.pdf")
+@save_pdf("eft_process_contours_nolumi.pdf")
 def main():
     #eft_dict = np.load(EFT_param, allow_pickle=True)
     #
@@ -72,15 +74,20 @@ def main():
         #p_df = pd.concat([eft_dict[y][p] for y in ['2016','2017','2018']], axis='rows', ignore_index=True) 
         p_df = getBeta(p).calcBeta(eft_df,p)  
         del eft_df
-        eft_pt_zbin_content = bin_2d_eft_effects(p_df) 
-        plot_eft_contours(x= (pt_bins[1:]+pt_bins[:-1])/2, 
+        eft_pt_zbin_content, norm_pt_zbin_content = bin_2d_eft_effects(p_df) 
+        plot_eft_y_contours(x= (pt_bins[1:]+pt_bins[:-1])/2, 
                            y= wc_bins[p_to_wc[p]], 
                            z= eft_pt_zbin_content,
                            process= p)
+        plot_eft_z_contours(x= (pt_bins[1:]+pt_bins[:-1])/2, 
+                            y= norm_bins[p_to_wc[p]], 
+                            z= norm_pt_zbin_content,
+                            process= p)
+        
         #
     #
     
-def plot_eft_contours(x, y, z, process):
+def plot_eft_y_contours(x, y, z, process):
     fig, ax = beginPlt()
     #levels = [2,5,10]
     levels = [1.2,1.5,2.0]
@@ -124,6 +131,49 @@ def plot_eft_contours(x, y, z, process):
     #plt.show()
     #exit()
 
+def plot_eft_z_contours(x, y, z, process):
+    fig, ax = beginPlt()
+    #levels = [2,5,10]
+    level_dict = {'ctZ':[0.6,1.0,1.2],
+                  'cpt':[5.0,8.0,10.0]}
+    levels = level_dict[p_to_wc[process]]
+    tlabel = wc_latex[p_to_wc[process]]
+    tslabels = [tlabel+r'$=$'+str(i) for i in levels]
+    X,Y = np.meshgrid(x,y)
+    import scipy.ndimage
+    #z = scipy.ndimage.zoom(z,3)
+    z = scipy.ndimage.filters.gaussian_filter(z, sigma=.6)
+    #X = scipy.ndimage.zoom(X,3)
+    #Y = scipy.ndimage.zoom(Y,3)
+    ts = ax.contour(X, Y , z, levels=levels, colors=['orange','green','blue'], linewidths=0.5, antialiased=True,)
+    #ts = ax.contour(z, levels=levels, colors=['orange','green','blue'], linewidths=0.5, antialiased=True,)
+    ax.axhline(1, color='red', linewidth=.5, snap=True)
+    # setup labels, handles for legend
+    handles = [
+        lines.Line2D([],[], linestyle='-', linewidth=.5, color='red'),
+        lines.Line2D([],[], linestyle='-', linewidth=.5, color='orange'),
+        lines.Line2D([],[], linestyle='-', linewidth=.5, color='green'),
+        lines.Line2D([],[], linestyle='-', linewidth=.5, color='blue'),
+    ]
+    #labels = ['1.0' , '1.2' , '1.5', '2.0']
+    labels = ["0.0"]+[f'{i:.1f}' for i in levels]
+    leg = ax.legend(handles, labels, handlelength=1.0, fontsize=6.0, ncol=len(labels), framealpha=0, 
+                    loc='upper right',
+                    bbox_to_anchor=(.55, 1.05),
+                    title=tlabel+r'$=$')
+
+    leg._legend_box.align = 'left'
+    #
+    ax.set_xlim(0,600)
+    ax.set_ylim(0.5,2)
+    z_or_h = re.search(r'(Z|H)',process).group()
+    ax.set_xlabel(rf"${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
+    ax.set_ylabel(r'$\sigma_{\mathrm{EFT}}/\sigma_{\mathrm{SM}}$')
+    plt.xlim(50,600)
+    plt.tight_layout()
+    #plt.show()
+    #exit()
+
 def bin_2d_eft_effects(df):
     # create new column with pt bin labels
     df['pt_eft_bin'] = pd.cut(
@@ -135,14 +185,16 @@ def bin_2d_eft_effects(df):
     df_groups = [df[df['pt_eft_bin']==i_pt] for i_pt in sorted(df['pt_eft_bin'].unique())]
     p_wc = p_to_wc[df['process'].iloc[0]]
     #pt_vs_eft = np.array([[calc_norm(wc_v, df=df_group, wc=p_wc) for wc_v in wc_bins[p_wc] ] for df_group in df_groups])
-    pt_vs_eft = np.array([[calc_norm(wc_v, df=df_group, wc=p_wc) for wc_v in wc_bins[p_wc] ] for df_group in df_groups])
+    pt_vs_eft  = np.array([[calc_norm(wc_v, df=df_group, wc=p_wc) for wc_v in wc_bins[p_wc] ] for df_group in df_groups])
+    pt_vs_norm = np.array([[calc_wc_from_norm(norm_v, df=df_group, wc=p_wc) for norm_v in norm_bins[p_wc] ] for df_group in df_groups])
     #print(pt_vs_eft.shape)
-    return pt_vs_eft.T
+    return pt_vs_eft.T, pt_vs_norm.T
+
 
 def beginPlt():
     fig, ax = plt.subplots()
     fig.subplots_adjust(top=0.88,bottom=0.11,left=0.11,right=0.88,wspace=0.0,hspace=0.0)
-    CMSlabel(fig,ax,altloc=False,opt='Simulation')
+    CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi=False)
     return fig, ax
 
 class getBeta(TestEFTFitParams):
@@ -160,6 +212,12 @@ def calc_norm(v,df=None,wc=None):
     q = sum(df[f'{wc}']*v)
     r = sum(df['SM'])
     return p/r + q/r + r/r
+
+def calc_wc_from_norm(norm, df=None, wc=None):
+    a = sum(df[f'{wc}_{wc}'])/sum(df['SM'])
+    b = sum(df[f'{wc}'])/sum(df['SM'])
+    c = sum(df['SM'])/sum(df['SM']) - norm
+    return (-1*b + np.sqrt( np.power(b,2) - 4*a*c ))/(2*a)
 
 def __worker(lines):
     pool = Pool(8)

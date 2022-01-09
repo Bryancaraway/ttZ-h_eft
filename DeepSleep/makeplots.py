@@ -21,7 +21,7 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #@save_pdf('EFTLO_vs_NLO.pdf')
 #@save_pdf('single_top_mcstats_v2.pdf')
 #@save_pdf('control_plots_genzhpt.pdf')
-#@save_pdf('ttzh_purity.pdf')
+@save_pdf('sigbkg_purity.pdf')
 #@save_pdf('Zh_info.pdf')
 #@save_pdf('control_plots_tight.pdf')
 #@save_pdf('ttbb_lheht.pdf')
@@ -31,7 +31,7 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #@save_pdf('mass_compare.pdf')
 #@save_pdf('fakebbvlsf_CR.pdf')
 #@save_pdf('fakebbvlsf_CR_Andrew.pdf')
-@save_pdf("met_withqcd.pdf")
+#@save_pdf("met_withqcd.pdf")
 #@save_pdf("qcd_study_by_year_alt.pdf")
 #@save_pdf("nn_comparison.pdf")
 #@save_pdf("ttx_contamination.pdf")
@@ -49,7 +49,7 @@ def main():
         # AN, Paper Draft
         #make_control_plots_tight()
         #make_control_plots_anastrat()
-        make_met_withqcd()
+        #make_met_withqcd()
         #make_NN_compare()
         #make_qcd_study_by_year_alt()
         # = ==== = # 
@@ -57,6 +57,9 @@ def main():
         #make_plots_ttX_cont()
         #make_plots_EFTLO_vs_NLO(y)
         #make_plots_singlet_stats()
+        #make_genZhpt_plots()
+        make_sigbkg_purity()
+
     return 1
         
 
@@ -153,6 +156,19 @@ def make_plots_singlet_stats():
     Hist(['single_t'], cfg.nn, xlabel=r'NN score (Z/H cand pT > 450, Z mass)', bins =[0.0,0.34,0.71,0.79,0.87,0.92,1.0],  add_cuts='Zh_pt>450;Zh_M>75;Zh_M<105', sepGenOpt='sepBySample',  doNorm=False,  doCuts=True, doShow=False)  
     Hist(['single_t'], cfg.nn, xlabel=r'NN score (n_w_leps > 0, Z/H pt > 300)', bin_range =[0,1],  n_bins=10, add_cuts='Zh_pt>300;n_w_leps>0',   doNorm=False,  doCuts=True, doShow=False)  
     Hist(['single_t'], cfg.nn, xlabel=r'NN score (n_w_leps = 0, Z/H pt > 300)', bin_range =[0,1],  n_bins=10, add_cuts='Zh_pt>300;n_w_leps==0',   doNorm=False,  doCuts=True, doShow=False)  
+
+def make_genZhpt_plots():
+    Hist(['ttH','ttZ'],    'genZHpt', xlabel=r'GEN Z/H $p_{T}$ [GeV]', n_bins=30, bin_range=[0,600], doNorm=True,  doCuts=False, doLog=True, doShow=False)      
+
+def make_sigbkg_purity():
+    #Hist(['ttH','ttZ'],    'genZHpt', xlabel=r'GEN Z/H $p_{T}$ [GeV]', bins=[0,200,300,450,600], doNorm=True,  doCuts=True, doLog=False, doShow=False)      
+    Hist(['TTBar'],        'tt_C', xlabel=r'is tt_C', bins=[-0.5,0.5,1.5], doNorm=True, doCuts=True,  doLog=False, doShow=False)      
+    Hist(['tt_B'],        'tt_2b', xlabel=r'is tt_2b', bins=[-0.5,0.5,1.5], doNorm=True, doCuts=True, doLog=False, doShow=False)      
+    #
+    #Hist(['ttH','ttZ'],    'genZHpt', xlabel=r'GEN Z/H $p_{T}$ [GeV] (NN >0.8)', bins=[0,200,300,450,600], add_cuts=f'{cfg.nn}> 0.8', doNorm=True,  doCuts=True, doLog=False, doShow=False)      
+    Hist(['TTBar'],        'tt_C',    xlabel=r'is tt_C (NN >0.8)',               bins=[-0.5,0.5,1.5],      add_cuts=f'{cfg.nn}> 0.8', doNorm=True, doCuts=True,  doLog=False, doShow=False)      
+    Hist(['tt_B'],        'tt_2b',    xlabel=r'is tt_2b (NN >0.8)',              bins=[-0.5,0.5,1.5],      add_cuts=f'{cfg.nn}> 0.8', doNorm=True, doCuts=True, doLog=False, doShow=False)      
+    
 
 ###########
 #StackedHist(processes,    'fjetbbvl_1', xlabel=r'leading fatjet deepAK8MD bbvL', bin_range=[0,1],  n_bins=25,     doCuts=False, addData=True, doShow=False)  

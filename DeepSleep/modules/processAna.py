@@ -99,9 +99,10 @@ class processAna :
                 self.match_gen_sig() 
         #
         self.passHLT_by_year()
-        self.applyDNN(model_file='withbbvlnewgenm_model.h5')
+        #self.applyDNN(model_file='withbbvlnewgenm_model.h5')
         self.applyDNN(model_file='newgenm_model.h5')
         self.applyDNN(model_file='newreduced1p0_model.h5')
+        self.applyDNN(model_file='binary_model.h5')
         #self.applyDNN(model_file='reduced1p0_model.h5')
         #self.applyDNN(model_file='reduced1p25_model.h5')
         #self.applyDNN(model_file='reduced1p5_model.h5')
@@ -206,12 +207,20 @@ class processAna :
         is_tt_b  = gentt_bb == 51
         is_tt_2b = gentt_bb == 52
         is_tt_bb = gentt_bb >= 53
+        #
+        is_tt_c  = gentt_bb == 41
+        is_tt_2c = gentt_bb == 42
+        is_tt_cc = (gentt_bb >= 43) & (gentt_bb<50)
         # 
         self.val_df['tt_C'] = is_tt_C
         self.val_df['tt_B'] = is_tt_B
         self.val_df['tt_b'] = is_tt_b
         self.val_df['tt_2b'] = is_tt_2b
         self.val_df['tt_bb'] = is_tt_bb
+        #
+        self.val_df['tt_c'] = is_tt_c
+        self.val_df['tt_2c'] = is_tt_2c
+        self.val_df['tt_cc'] = is_tt_cc
         print('Total',len(is_tt_B))
         print('tt+B', sum(is_tt_B))
         print('tt+b', sum(is_tt_b))
@@ -225,6 +234,15 @@ class processAna :
         b2 = getTLVm(*map((lambda b: b.pad(2)[:,1]), list(map(ext_bb,[gen_pt,gen_eta,gen_phi, gen_mass]))))
         self.val_df['ttbb_genbb_invm'] = (b1+b2).mass
         self.val_df['ttbb_genbb_pt'] = (b1+b2).pt
+        # for cc
+        ext_cc = (lambda c: c[(gen_mom <= 0) & (abs(gen_ids) == 4)])#[((gen_mom <= 0) & (abs(gen_ids) == 5)).sum() == 2])
+        #print(gen_ids[is_tt_cc][4])
+        #print(gen_mom[is_tt_cc][4])
+        #exit()
+        c1 = getTLVm(*map((lambda c: c.pad(2)[:,0]), list(map(ext_cc,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+        c2 = getTLVm(*map((lambda c: c.pad(2)[:,1]), list(map(ext_cc,[gen_pt,gen_eta,gen_phi, gen_mass]))))
+        self.val_df['ttcc_gencc_invm'] = (c1+c2).mass
+        self.val_df['ttcc_gencc_pt'] = (c1+c2).pt
         #
         # calculate toppt weight for powheg only
         tt_pt = gen_pt[(abs(gen_ids) == 6)]
@@ -365,6 +383,7 @@ class processAna :
             'newgenm_model.h5' :      cfg.withbbvl_dnn_ZHgenm_vars, # new training
             'newreduced1p0_model.h5' : cfg.reduced1p0genm_vars,
             'withbbvlnewgenm_model.h5':      cfg.withbbvl_dnn_ZHgenm_vars, # 50 var set, old training
+            'binary_model.h5': cfg.withbbvl_dnn_ZHgenm_vars,
             # old
             'reduced1p0_model.h5' : cfg.oldreduced1p0genm_vars,
             'reduced1p25_model.h5' : cfg.oldreduced1p25genm_vars,
@@ -384,14 +403,20 @@ class processAna :
                   'n_epochs': 150, 'batch_size': 10256}
         #
         dnn = DNN_model(m_info['sequence'],m_info['other_settings']) 
-        nn_model = dnn.Build_Model(len(dnn_vars[model_file]), load_weights=model_file)#'nn_ttzh_model.h5')
+        if 'binary' in model_file:
+            nn_model = dnn.Build_Binary_Model(len(dnn_vars[model_file]), load_weights=model_file)#'nn_ttzh_model.h5')
+        else:
+            nn_model = dnn.Build_Model(len(dnn_vars[model_file]), load_weights=model_file)#'nn_ttzh_model.h5')
         #
         base_cuts = lib.getZhbbBaseCuts(self.val_df)
         #
         pred_df = resetIndex(self.val_df[dnn_vars[model_file]][base_cuts])
         print(self.sample, pred_df)
         if len(pred_df) > 0:
-            pred = nn_model.predict(pred_df)[:,2]
+            if 'binary' in model_file:
+                pred = nn_model.predict(pred_df)
+            else:
+                pred = nn_model.predict(pred_df)[:,2]
         else: 
             pred = 0
         df_nn_name = model_file.replace("model.h5",'')+'NN'
