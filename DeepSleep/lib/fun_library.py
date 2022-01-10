@@ -571,9 +571,13 @@ def CMSlabel(fig=None, ax=None, opt=None, altax=None, altloc=False, lumi=None, f
              transform=trans, ha='left', va='baseline', fontsize=fontsize)
     trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
     if lumi:
-        lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
-        ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
-             transform=trans, ha='right', va='baseline', fontsize=fontsize)
+        if lumi == 'nl':
+            ax1.text(1, 1, rf"{{\footnotesize 13 TeV}}", usetex=True,
+                     transform=trans, ha='right', va='baseline', fontsize=fontsize)
+        else:
+            lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
+            ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
+                     transform=trans, ha='right', va='baseline', fontsize=fontsize)
 
 def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',
                      edgecolor='None', alpha=0.0, hatch=10*'X', label=''):

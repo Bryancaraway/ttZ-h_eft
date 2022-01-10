@@ -52,14 +52,14 @@ p_to_wc = {
     'ttZ':'ctZ', 
     'ttH':'cpt'}
 wc_latex = {
-    'cbW'  : r'${c}_{\mathrm{bW}}\,/\,{\Lambda}^{2}$',
-    'cptb' : r'${c}_{\phi \mathrm{tb}}\,/\,{\Lambda}^{2}$',
-    'cpt'  : r'${c}_{\phi \mathrm{t}}\,/\,{\Lambda}^{2}$',
-    'ctp'  : r'${c}_{\mathrm{t} \phi}\,/\,{\Lambda}^{2}$',
-    'ctZ'  : r'${c}_{\mathrm{tZ}}\,/\,{\Lambda}^{2}$',
-    'ctW'  : r'${c}_{\mathrm{tW}}\,/\,{\Lambda}^{2}$',
-    'cpQ3' : r'${c}_{\phi \mathrm{Q}}^{3}\,/\,{\Lambda}^{2}$',
-    'cpQM' : r'${c}_{\phi \mathrm{Q}}^{-}\,/\,{\Lambda}^{2}$',
+    'cbW'  : r'${c}_{\mathrm{bW}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'cptb' : r'${c}_{\phi \mathrm{tb}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'cpt'  : r'${c}_{\phi \mathrm{t}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'ctp'  : r'${c}_{\mathrm{t} \phi}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'ctZ'  : r'${c}_{\mathrm{tZ}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'ctW'  : r'${c}_{\mathrm{tW}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'cpQ3' : r'${c}_{\phi \mathrm{Q}}^{3}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'cpQM' : r'${c}_{\phi \mathrm{Q}}^{-}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
 }
 
 @save_pdf("eft_process_contours_nolumi.pdf")
@@ -194,7 +194,7 @@ def bin_2d_eft_effects(df):
 def beginPlt():
     fig, ax = plt.subplots()
     fig.subplots_adjust(top=0.88,bottom=0.11,left=0.11,right=0.88,wspace=0.0,hspace=0.0)
-    CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi=False)
+    CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi='nl')
     return fig, ax
 
 class getBeta(TestEFTFitParams):
