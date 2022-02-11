@@ -15,6 +15,7 @@ from lib.fun_library import t2Run
 from modules.AnaDict     import AnaDict
 from modules.Skim        import Skim
 from modules.trigsf_Skim import TrigSkim # trigsf_Skim.py
+from modules.bbvleff_Skim import bbvLEffSkim # trigsf_Skim.py
 from modules.PostSkim import PostSkim
 
 parser = argparse.ArgumentParser(description='Run analysis over specified sample and era')
@@ -31,7 +32,8 @@ parser.add_argument('-t', dest='tag', type=str, required=False, help='Optional t
 parser.add_argument('--qsub', dest='qsub',  action='store_true', required=False, help='Run jobs on pbs', default=False)
 parser.add_argument('--noskim', dest='noskim',  action='store_true', required=False, help='Run Skim', default=False)
 parser.add_argument('--nopost', dest='nopost',  action='store_true', required=False, help='Run postSkim', default=False)
-parser.add_argument('--is4trig', dest='is4trig',  action='store_true', required=False, help='Run trigSkim', default=False)
+parser.add_argument('--is4trig', dest='is4trig',  action='store_true', required=False, help='Run trigger Skim', default=False)
+parser.add_argument('--is4bbvl', dest='is4bbvl',  action='store_true', required=False, help='Run bbvleff Skim', default=False)
 parser.add_argument('-q', dest='queue', type=str, required=False, help='Queue to submit jobs to', choices=['hep','econ','james'], default=None)
 args = parser.parse_args()
 
@@ -50,6 +52,9 @@ out_dir = f"{cfg.postSkim_dir}/{args.year}/"
 if args.is4trig:
     Skim = TrigSkim # run trig skim instead
     out_dir = out_dir+f"Trig_{sample_cfg[args.sample]['out_name']}"
+if args.is4bbvl:
+    Skim = bbvLEffSkim # run trig skim instead
+    out_dir = out_dir+f"bbvL_{sample_cfg[args.sample]['out_name']}"
 else:
     out_dir = out_dir+f"{sample_cfg[args.sample]['out_name']}"
 
@@ -82,7 +87,7 @@ def sequential_skim(files, out_dir, tag):
     golden_json=json.load(open(cfg.goodLumis_file[args.year]))
     import multiprocessing
     from functools import partial
-    pool = multiprocessing.Pool(4)
+    pool = multiprocessing.Pool(4 if not args.is4bbvl else 1)
     #for i, sfile in enumerate(files):
     _worker = partial( skim_worker, out_dir=out_dir,tag=tag,golden_json=golden_json)  
     _ = pool.map(_worker, zip(range(0,len(files)),files))
@@ -93,7 +98,8 @@ def skim_worker(i_sfile,out_dir,tag,golden_json):
         i, sfile = i_sfile
         out_file = f'{out_dir}/'+(args.outfile.replace('.pkl',f'_{i}.pkl') if args.outfile else f'{args.sample}_{i}{tag}.pkl')
         #
-        run_Skim = Skim(sfile, args.sample, args.year, isData, jec_sys=args.jec,  golden_json=golden_json)
+        run_Skim = Skim(sfile, args.sample, args.year, isData, is4eff=(args.is4bbvl or args.is4trig),
+                        jec_sys=args.jec,  golden_json=golden_json)
         Skim_data = run_Skim.get_skim()
         #
         AnaDict(Skim_data).to_pickle(out_file)
@@ -139,6 +145,8 @@ def parallel_skim(files, out_dir, tag):
     #
     if args.is4trig:
         add_args += f',is4trig={args.is4trig}'
+    elif args.is4bbvl:
+        add_args += f',is4bbvl={args.is4bbvl}'
     #out_name  = f'{args.sample}_{i}{tag}.pkl'
     out_name = f'{args.sample}'
     pass_args = f'-v sample={args.sample},year={args.year},infile={sfile},'

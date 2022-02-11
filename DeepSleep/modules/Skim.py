@@ -43,12 +43,13 @@ class Skim :
     3. (for data) apply golden json file
     '''
     @t2Run
-    def __init__(self, roofile, sample, year, isData=False, jec_sys=None, golden_json=None):
+    def __init__(self, roofile, sample, year, isData=False, is4eff=False, jec_sys=None, golden_json=None):
         self.roofile = roofile
         print(roofile) # for potential debugging 
         self.sample = sample
         self.year   = year
         self.isData = isData
+        self.is4eff = is4eff
         self.jec_sys = jec_sys
         #
         self.golden_json = golden_json

@@ -71,8 +71,11 @@ from multiprocessing import Pool
 #eft_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PreProcessed/2016/TTBB_13TeV_TopEFT_MINIAOD_v13_2016-v1/NanoHRT_v13/210521_205457/0000/prod2016MC_v7_NANO_*.root'
 #out_name = 'TTbb_EFT_2016.txt'
 #eft_dir = '/cms/data/store/user/hatake/TTX/TTZJetsToQQ_v1_2016/*miniaodsim*.root'
-eft_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PreProcessed/2016/TTZJetsToQQ_v1_2016-v1/NanoHRT_v1/210615_184214/0000/prod2016MC_v7_NANO_*.root'
-out_name = 'TTZToQQ_2016.txt'
+#eft_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PreProcessed/2016/TTZJetsToQQ_v1_2016-v1/NanoHRT_v1/210615_184214/0000/prod2016MC_v7_NANO_*.root'
+#out_name = 'TTZToQQ_2016.txt'
+##
+#eft_dir = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZJetsToQQ_v1_2016-v1/NanoHRT_v1/210615_184214/0000/prod2016MC_v7_NANO_*.root'
+#out_name = 'TTZToBB_2016.txt'
 
 def main():
     eft_files = glob(eft_dir)

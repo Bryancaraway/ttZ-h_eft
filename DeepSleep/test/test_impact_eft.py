@@ -7,7 +7,7 @@ if __name__ == '__main__':
 import pandas as pd
 import numpy as np
 import re
-from lib.fun_library import save_pdf
+from lib.fun_library import save_pdf, import_mpl_settings
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib import rc
@@ -26,7 +26,11 @@ nn = cfg.nn
 kbins = {
     'Zh_pt': [200,300,450,600],
     'Zh_M' : cfg.sdm_bins,
-    nn     : [0.,   0.21 , 0.58 , 0.70 , 0.82 , 0.90 , 1.00],
+    #nn     : [0.,   0.21 , 0.58 , 0.70 , 0.82 , 0.90 , 1.00],
+    nn : { # for 2018 only
+        '200':[0.0,0.17,0.51,0.63,0.78,0.88,1.00],
+        '300':[0.0,0.21,0.58,0.70,0.82,0.90,1.00],
+        '450':[0.0,0.31,0.69,0.78,0.87,0.92,1.00],},
     'reco_pt_bin': [1,2,3],
     'reco_m_bin': [0,1,2,3],
     'gen_pt_bin': [0,1,2,3],
@@ -45,7 +49,7 @@ klabel = {
                              ax.set_ylabel(r'(d$\sigma^{EFT}$$/$d$p_{T}$) $/$ (d$\sigma^{SM}$$/$d$p_{T}$)'))),
 }
          
-class main():
+class TestEFTImpact():
     fit_f   = 'EFT_Parameterization_test.npy'
     wc_ranges = {
         #old'ctW'  :[-2.44, 2.40]  ,
@@ -62,7 +66,7 @@ class main():
         'ctZ'  :[-0.99, 1.02]  ,
         'ctp'  :[0.13, 30.18],
         'cpQM' :[-4.77, 5.63],
-        'ctG'  :[-0.50, 0.48]  ,
+        #'ctG'  :[-0.50, 0.48]  ,
         'cbW'  :[-4.55, 4.65]  ,
         'cpQ3' :[-3.86, 2.88]  ,
         'cptb' :[-9.44, 10.15],
@@ -99,14 +103,14 @@ class main():
     
 
 
-    def run_singles_jon(self, kinem, samples, cut, title, year='2018', sepSig=False, sepSigreco=False):
+    def run_singles_jon(self, kinem, samples, cut, title, year='2018', sepSig=False, sepSigreco=False, pt_int='200'):
         master_s = samples[0]
         genpt_samples   = self.handle_sepSig(samples, year, 'gen_pt_bin')
         recopt_samples  = self.handle_sepSig(samples, year, 'reco_pt_bin')
         recoptm_samples = self.handle_sepSig_pt_mass(samples, year)
         for wc, r in self.wc_ranges.items():
             #ax2=ax.twinx()
-            bins = np.array(kbins[kinem])
+            bins = np.array(kbins[kinem][pt_int] if kinem == nn else kbins[kinem])
             for i in range(1,len(r)):
                 fig,ax = self.initPlot()
                 genptsc_sumw = []
@@ -181,14 +185,14 @@ class main():
                 self.endPlot(ax,title,kinem,bins)
 
     #@save_pdf('eft_bkgsig_comparison_nn09.pdf')
-    def run_singles_test(self, kinem, samples, cut, title, year='2018', sepSig=False, sepSigreco=False):
+    def run_singles_test(self, kinem, samples, cut, title, year='2018', sepSig=False, sepSigreco=False, pt_int='200'):
         if sepSig or sepSigreco:
             samples = self.handle_sepSig(samples, year, 'reco_pt_bin' if sepSigreco else 'gen_pt_bin')
         for wc, r in self.wc_ranges.items():
             fig,ax = self.initPlot()
             #ax2=ax.twinx()
             #dott2b = True
-            bins = np.array(kbins[kinem])
+            bins = np.array(kbins[kinem][pt_int] if kinem == nn else kbins[kinem])
             for j,s in enumerate(samples):                
                 #sam_text = f'{s}'
                 df = self.df[year][s]
@@ -237,7 +241,8 @@ class main():
 
     def errbar_kwargs(self,nsm, nsm2, neft, neft2, bins):
         y    = neft/nsm
-        yerr = y*np.sqrt( nsm2/np.power(nsm,2) +  neft2/np.power(neft,2) )
+        #yerr = y*np.sqrt( nsm2/np.power(nsm,2) +  neft2/np.power(neft,2) )
+        yerr = np.sqrt(neft2)/nsm
         kwargs = {'x':(bins[1:]+bins[:-1])/2, 'y':y, 'yerr':yerr, 'fmt':'.'}
         return kwargs
 
@@ -269,6 +274,7 @@ class main():
         #fig.suptitle(f'EFT impact, NN > 0.9, {wc}:{r}')
         ax.xaxis.set_minor_locator(AutoMinorLocator())
         ax.yaxis.set_minor_locator(AutoMinorLocator())
+        plt.tight_layout()
 
     def get_eftw(self, df, wc, v):
         p = df[f'{wc}_{wc}']*v*v
@@ -315,55 +321,70 @@ class main():
             self.df[year].update({f'{sig}reco{i}{j}': sub_df(self.df, i, j) for i in pt_bin_range for j in m_bin_range})
         #
         return out_
+
+@save_pdf("eft_impacts_template.pdf")
+def plot_template_impacts(eft_impacts):
+    pt_bins = [200,300,450,np.inf]
+    mass_bins = [50,75,105,145,200]
+    for sig in ['ttZ','ttH','ttbb']:
+        for i_bin in range(1,len(pt_bins)):
+            for j_bin in range(1,len(mass_bins)):
+                cut_fun = (lambda _x : _x[(_x['Zh_pt']>pt_bins[i_bin-1]) & (_x['Zh_pt']<pt_bins[i_bin]) & (_x['Zh_M']>mass_bins[j_bin-1]) & (_x['Zh_M']<mass_bins[j_bin]) & (_x[nn]>0.0)])
+                eft_impacts.run_singles_test(nn, [sig], cut_fun, f'Z/H pT {i_bin}, Z/H mass {j_bin},'+' {wc}', pt_int=str(pt_bins[i_bin-1]))
+        
+
     
 if __name__=='__main__':
-    _ = main()
-    #_.run_singles()
+    import_mpl_settings(1)
+    eft_impacts = TestEFTImpact()
+    #eft_impacts.run_singles()
     cut_nntight = (lambda x : x[(x[nn] > .8)])
     cut_nnloose = (lambda x : x[(x[nn] > 0)])
     cut_nnloose_rapid =  (lambda x : x[(x[nn] > 0) & (x['genZHstxs']==1)])
-    #_.run_singles_test(['ttH','ttZ','ttbb','ttbb'],cut)
+    plot_template_impacts(eft_impacts)
+    exit()
+    #eft_impacts.run_singles_test(['ttH','ttZ','ttbb','ttbb'],cut)
     #@save_pdf('eft_bkgsig_comparison_nn09.pdf')
-    #save_pdf('eft_ttZ_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttH_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttZ_nncomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttH_nncomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_masscomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_M', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_masscomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_M', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_nncomparison_nn00.pdf')(eft_impacts.run_singles_test)(nn, ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_nncomparison_nn00.pdf')(eft_impacts.run_singles_test)(nn, ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
     
     # ---- Jons study
-    #save_pdf('eft_ttZ_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttH_ptcomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_pt', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttZ_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttH_masscomparison4Jon_nn00.pdf')(_.run_singles_jon)('Zh_M', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttZ_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttH_nncomparison4Jon_nn00.pdf')(_.run_singles_jon)(nn, ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_ptcomparison4Jon_nn00.pdf')(eft_impacts.run_singles_jon)('Zh_pt', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_ptcomparison4Jon_nn00.pdf')(eft_impacts.run_singles_jon)('Zh_pt', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_masscomparison4Jon_nn00.pdf')(eft_impacts.run_singles_jon)('Zh_M', ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_masscomparison4Jon_nn00.pdf')(eft_impacts.run_singles_jon)('Zh_M', ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttZ_nncomparison4Jon_nn00.pdf')(eft_impacts.run_singles_jon)(nn, ['ttZ'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_nncomparison4Jon_nn00.pdf')(eft_impacts.run_singles_jon)(nn, ['ttH'],cut_nnloose_rapid, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
     # ---- Jons study
 
 
-    #save_pdf('eft_ttZ_pt_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
-    #save_pdf('eft_ttH_pt_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
-    #save_pdf('eft_ttZ_mass_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
-    #save_pdf('eft_ttH_mass_nocomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
-    #save_pdf('eft_ttZ_nn_nocomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
-    #save_pdf('eft_ttH_nn_nocomparison_nn00.pdf')(_.run_singles_test)(nn, ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttZ_pt_nocomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_pt', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttH_pt_nocomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_pt', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttZ_mass_nocomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_M', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttH_mass_nocomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_M', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttZ_nn_nocomparison_nn00.pdf')(eft_impacts.run_singles_test)(nn, ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
+    #save_pdf('eft_ttH_nn_nocomparison_nn00.pdf')(eft_impacts.run_singles_test)(nn, ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=False)
     #
     #
-    save_pdf('eft_ttbb_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    save_pdf('eft_ttbb_ptcomparison_nn00.pdf')(_.run_singles_test)('Zh_pt',  ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    save_pdf('eft_ttbb_nncomparison_nn00.pdf')(_.run_singles_test)(nn,       ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    save_pdf('eft_ttbb_masscomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_M', ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    save_pdf('eft_ttbb_ptcomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_pt',  ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    save_pdf('eft_ttbb_nncomparison_nn00.pdf')(eft_impacts.run_singles_test)(nn,       ['ttbb'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
     #
     #cut_nnloose = (lambda x : x[((x[nn] > 0) & (x['SM'] < 1))])
-    #save_pdf('eft_tt_bkg_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb', 'ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    #save_pdf('eft_tt_bkg_ptcomparison_nn00.pdf')(_.run_singles_test)('Zh_pt',  ['ttbb', 'ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    #save_pdf('eft_tt_bkg_nncomparison_nn00.pdf')(_.run_singles_test)(nn,       ['ttbb', 'ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_tt_bkg_masscomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_M', ['ttbb', 'ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_tt_bkg_ptcomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_pt',  ['ttbb', 'ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_tt_bkg_nncomparison_nn00.pdf')(eft_impacts.run_singles_test)(nn,       ['ttbb', 'ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
 
     #### OLD
-    #save_pdf('eft_ttZ_genptcomparison_nn00.pdf')(_.run_singles_test)('gen_pt_bin', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_ttH_genptcomparison_nn00.pdf')(_.run_singles_test)('gen_pt_bin', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
-    #save_pdf('eft_bkgsig_masscomparison_nn08.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
-    #save_pdf('eft_bkgsig_masscomparison_nn00.pdf')(_.run_singles_test)(['ttH','ttZ','ttbb','ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
-    #save_pdf('eft_bkg_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_pt', ['ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
-    #save_pdf('eft_bkg_masscomparison_nn08.pdf')(_.run_singles_test)(['ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
+    #save_pdf('eft_ttZ_genptcomparison_nn00.pdf')(eft_impacts.run_singles_test)('gen_pt_bin', ['ttZ'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_ttH_genptcomparison_nn00.pdf')(eft_impacts.run_singles_test)('gen_pt_bin', ['ttH'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}', sepSig=True)
+    #save_pdf('eft_bkgsig_masscomparison_nn08.pdf')(eft_impacts.run_singles_test)(['ttH','ttZ','ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
+    #save_pdf('eft_bkgsig_masscomparison_nn00.pdf')(eft_impacts.run_singles_test)(['ttH','ttZ','ttbb','ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
+    #save_pdf('eft_bkg_masscomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_pt', ['ttbb','ttjets'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')
+    #save_pdf('eft_bkg_masscomparison_nn08.pdf')(eft_impacts.run_singles_test)(['ttbb','ttbb'],cut_nntight, 'EFT impact, NN > 0.8, {wc}:{r}')
     #
-    #save_pdf('eft_ttbb_jet_masscomparison_nn00.pdf')(_.run_singles_test)('Zh_M', ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    #save_pdf('eft_ttbb_jet_ptcomparison_nn00.pdf')(_.run_singles_test)('Zh_pt',  ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
-    #save_pdf('eft_ttbb_jet_nncomparison_nn00.pdf')(_.run_singles_test)(nn,       ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_jet_masscomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_M', ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_jet_ptcomparison_nn00.pdf')(eft_impacts.run_singles_test)('Zh_pt',  ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    
+    #save_pdf('eft_ttbb_jet_nncomparison_nn00.pdf')(eft_impacts.run_singles_test)(nn,       ['ttbb','ttbbjet'],cut_nnloose, 'EFT impact, NN > 0.0, {wc}:{r}')    

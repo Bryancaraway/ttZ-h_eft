@@ -44,7 +44,7 @@ class Plotter :
                  doLog=True, doNorm=False, 
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,
-                 alt_weight=None):
+                 alt_weight=None, show_int=False):
 
         import_mpl_settings(2)
 
@@ -66,6 +66,7 @@ class Plotter :
         self.add_d_cuts = add_d_cuts if add_d_cuts is not None else ''
         self.sepGenOpt  = sepGenOpt
         self.alt_weight = alt_weight
+        self.show_int = show_int
         #
         self.prepData()
 
@@ -282,7 +283,8 @@ class Plotter :
         i_    = np.array([self.i_dict[k]             for k in self.data])
         ierr_ = np.array([self.i_err_dict[k]         for k in self.data])
         l_,c_ = np.array([np.array(getLaLabel(k))   for k in self.data]).T
-        l_   = np.array([f'{x} ({y:3.1f}'+r'$\pm$'+f'{z:3.1f})' for x,y,z in zip(l_,i_,ierr_)])
+        if self.show_int:
+            l_   = np.array([f'{x} ({y:3.1f}'+r'$\pm$'+f'{z:3.1f})' for x,y,z in zip(l_,i_,ierr_)])
         #print( h_,w_,i_,c_,l_)
         return k_,h_,w_,i_,c_,l_
 
@@ -327,7 +329,7 @@ class Plotter :
             labels  = labels + ['Stat Unc.']
         self.ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=8)
         self.ax.set_ylim(ymin=(0 if not self.doLog else (.1 if not self.doNorm else .001)), # .1 -> .001
-                         ymax=(self.ax.get_ylim()[1]*(10 if self.doLog else 1.50) if not self.doNorm else 1.05))
+                         ymax=(self.ax.get_ylim()[1]*(30 if self.doLog else 1.50) if not self.doNorm else 1.05))
         if self.doSave: plt.savefig(f'{self.saveDir}{self.xlabel}_.pdf', dpi = 300)
         if self.doShow: 
             plt.show()
@@ -408,7 +410,7 @@ class StackedHist(Plotter) :
                  doLog=True, doNorm=False,
                  doShow = True, doSave = False,
                  doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,
-                 alt_weight=None):
+                 alt_weight=None, show_int=False):
         super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
                          doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData,addSoB,alt_weight)
         #
@@ -480,7 +482,7 @@ class StackedHist(Plotter) :
         self.ax.errorbar(x=bin_c, y = n_data if not self.doNorm else np.divide(n_data,np.sum(n_data)), 
                          xerr=self.bin_w/2, yerr=np.sqrt(n_data),
                          fmt='.',  color='k',
-                         label=f'Data ({sum(n_data)})')
+                         label=(f'Data ({sum(n_data)})' if self.show_int else 'Data'))
         #
         y = n_data/n_mc
         yerr = y*np.sqrt(np.power(np.sqrt(n_data)/n_data,2)+np.power(0/n_mc,2))
@@ -498,7 +500,8 @@ class StackedHist(Plotter) :
         self.ax2.tick_params(which='both', direction='in', top=True, right=True)
         self.ax2.set_ylim(0.3,1.7)
         #self.ax2.set_ylim(0.0,3.0)
-        self.ax2.set_ylabel('data/MC')
+        self.ax2.set_ylabel('Data / MC')
+        self.ax2.yaxis.set_label_coords(-0.07,.82)
         self.ax2.grid(True)
 
     def sortInputs(self):
@@ -521,7 +524,7 @@ class Hist (Plotter) :
                  xlabel=None, n_bins=20, bins=None,
                  doLog=False, doNorm=True, doBinRatio=False, 
                  doShow = True, doSave = False,
-                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,alt_weight=None):
+                 doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,alt_weight=None, show_int=False):
 
         super().__init__(samples,kinem,bin_range,xlabel,n_bins,bins,doLog,doNorm, 
                          doShow,doSave,doCuts,add_cuts,add_d_cuts,sepGenOpt,addData,addSoB,alt_weight)

@@ -36,6 +36,8 @@ class PDFHelper():
         if obj.jec_sys is None and not obj.isData: 
             if obj.sample not in list(self.pdf_sample_dict.keys())+self.pdf_sample_otf+self.pdf_sample_ken:
                 pass
+            elif obj.is4eff:
+                pass
             elif obj.sample in self.pdf_sample_dict.keys():
                 self.pdf_func = self.pdfweight_matcher
             elif obj.sample in self.pdf_sample_otf:

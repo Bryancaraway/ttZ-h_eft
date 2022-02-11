@@ -33,7 +33,8 @@ pre_or_post = 'postfit'
 
 
 #@save_pdf('pas_template_plots_unblind_SMprefit.pdf')
-@save_pdf('pas_template_plots_unblind_SM_final.pdf')
+@save_pdf('pas_template_plots_unblind_SM.pdf')
+#@save_pdf('pas_template_plots_unblind_SM_final.pdf')
 def main():
     #froo = f'fitDiagnostics_inc_run2.root'
     #froo = f'fitDiagnostics_inctest_run2.root'
@@ -94,14 +95,14 @@ class PlotForPas(PostFit):
     def do_data(self, d, ax, ch):
         ax.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=d['data']['values'],
                     xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[d['data']['errdw'],d['data']['errup']], 
-                    fmt='.', label='data', color='k')
+                    fmt='.', label='Data', color='k')
     def do_ratio(self, d, ax, ch):
         y       =  d['data']['values']/d['total']['values']
         yerrdw  =  d['data']['errdw'] /d['total']['values']
         yerrup  =  d['data']['errup'] /d['total']['values']
         ax.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=y,
                      xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[yerrdw,yerrup], 
-                     fmt='.', label='data', color='k')
+                     fmt='.', label='Data', color='k')
         self.make_error_boxes(ax, (self.edges[ch][1:]+self.edges[ch][:-1])/2, np.ones_like(d['total']['values']),
                               xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err']/d['total']['values'], label='stat+sys')
         ax.set_ylim(0,2)
@@ -179,7 +180,8 @@ class PlotForPas(PostFit):
         lumi = cfg.Lumi[re.search(r'201\d',year).group()]
         #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
         #self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
-        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14, opt='')
+        #CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14, opt='')
+        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14)
         self.axs = axs
         self.rat_axs = rat_axs
 
@@ -188,9 +190,12 @@ class PlotForPas(PostFit):
         ax.set_xlim(0,self.edges[ch][-1])
         #ax.set_ylim(0.)
         ch_dict = {
-            'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$ GeV ',
-            'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$ GeV ',
-            'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$ GeV '
+            #'Zhpt1': r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$ GeV ',
+            #'Zhpt2': r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$ GeV ',
+            #'Zhpt3': r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$ GeV '
+            'Zhpt1': r'$\mathsf{200} < \mathsf{p}_{\text{T}}^{\mathrm{Z/H\;cand.}} < \mathsf{300}$ GeV ',
+            'Zhpt2': r'$\mathsf{300} < \mathsf{p}_{\text{T}}^{\mathrm{Z/H\;cand.}} < \mathsf{450}$ GeV ',
+            'Zhpt3': r'$\mathsf{p}_{\text{T}}^{\text{Z/H\;cand.}} > \mathsf{450}$ GeV '
         }
         tick_dict = { 
             'Zhpt1': [np.arange(0,19,3),np.arange(0,19,3)],

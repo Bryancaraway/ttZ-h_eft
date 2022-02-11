@@ -25,6 +25,9 @@ class PostSkim :
         self.lumi    = cfg.Lumi[year]
         self.outfile = f"{out_dir}/{sample if not isData else sample_cfg[sample]['out_name']}{tag}.pkl"
         self.files   = (lambda : re.findall(rf"{out_dir}/{sample}_\d+.{tag.lstrip('.')}(?:_{tag.lstrip('.')}_)?\d+.pkl",' '.join(glob(f'{out_dir}/{sample}_*{tag}*.pkl'))))
+        print(rf"{out_dir}/{sample}_\d+.{tag.lstrip('.')}(?:_{tag.lstrip('.')}_)?\d+.pkl")
+        print(re.findall(rf"{out_dir}/{sample}_\d+.{tag.lstrip('.')}(?:_{tag.lstrip('.')}_)?\d+.pkl",
+                         ' '.join(glob(f'{out_dir}/{sample}_*{tag}*.pkl'))))
         print(out_dir)
         #print(' '.join(glob(f'{out_dir}/{sample}_*{tag}*.pkl')))
         self.metaData  = {'sample':sample,'year':year,
@@ -38,6 +41,7 @@ class PostSkim :
         self.final_pkl = {}
 
     def run(self):
+
         self.concat_files()
         #self.final_pkl['metaData'].update(self.metaData)
         #print(self.final_pkl.keys())

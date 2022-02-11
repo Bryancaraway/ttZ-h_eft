@@ -349,18 +349,21 @@ def clop_pear_ci(k,n,cl=0.68, return_error=False):
     return [np.nan_to_num(lo),np.nan_to_num(hi, nan=1.)]
     
 
-def getLaLabel(str_):
+def getLaLabel(str_, altcolors=False):
     if '_201' in str_:
         str_ = str_.split('_201')[0] # get rid of year suffix
     la_str = ''
     col_str= ''
+    import numpy as np
+    import matplotlib.pyplot as plt
+    colors = np.array(plt.cm.gist_rainbow(np.linspace(0,1,6)))
     la_col_map = {
         'data_obs':       [r'Data',
                            'black'],
-        'ttZ':            [r't$\mathregular{\bar{t}}$Z',
+        'ttZ':            [r'$\mathsf{t\bar{t}Z}$',#[r't$\mathregular{\bar{t}}$Z',
                            'tab:blue'],
-        'ttH':            [r't$\mathregular{\bar{t}}$H',
-                           'gold'],
+        'ttH':            [r'$\mathsf{t\bar{t}H}$',#[r't$\mathregular{\bar{t}}$H',
+                           'tab:orange'],
         'ttH_Hbb':        [r't$\mathregular{\bar{t}}$Htobb',
                            'gold'],
         'ttH_Hnonbb':     [r't$\mathregular{\bar{t}}$HtoNonbb',
@@ -380,22 +383,22 @@ def getLaLabel(str_):
         'ttHbb':            [r't$\mathregular{\bar{t}}$Htobb',
                              'gold'],
         #'ttX':              [r't($\mathregular{\bar{t}}$)X',
-        'ttX':              [r't$\mathregular{\bar{t}}$t$\mathregular{\bar{t}}$, t$\mathregular{\bar{t}}\gamma$, t$\mathregular{\bar{t}}$W tHW, tHq',
-                             'tab:red'],
+        'ttX':              [r'$\mathsf{t\bar{t}t\bar{t}}$, $\mathsf{t\bar{t}\gamma}$, $\mathsf{t\bar{t}W}$ $\mathsf{tHW}$, $\mathsf{tHq}$',#[r't$\mathregular{\bar{t}}$t$\mathregular{\bar{t}}$, t$\mathregular{\bar{t}}\gamma$, t$\mathregular{\bar{t}}$W tHW, tHq',
+                             colors[1] if not altcolors else 'tab:red'],
         'single_t':         [r'single top',
-                             'tab:brown'],
-        'TTBar':            [r't$\mathregular{\bar{t}}+\mathregular{LF}$, t$\mathregular{\bar{t}}+$c$\mathregular{\bar{c}}$',
-                             'tab:orange'],
+                             colors[2] if not altcolors else'tab:brown'],
+        'TTBar':            [r'$\mathsf{t\bar{t}+\text{LF}}$, $\mathsf{t\bar{t}+c\bar{c}}$',#[r't$\mathregular{\bar{t}}+\mathregular{LF}$, t$\mathregular{\bar{t}}+$c$\mathregular{\bar{c}}$',
+                             colors[4] if not altcolors else'tab:orange'],
         'ttbb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
-                         'tab:green'],
-        'tt_B':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
-                             'tab:green'],
+                        'tab:green'],
+        'tt_B':        [r'$\mathsf{t\bar{t}+b\bar{b}}$',#[r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
+                        colors[3] if not altcolors else 'tab:green'],
         'tt_bb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
                              'tab:green'],
         'tt_2b':        [r't$\mathregular{\bar{t}}+$2b',
                              'tab:purple'],
-        'VJets':            [r'V$+$jets',
-                             'cyan'],
+        'VJets':            [r'V$\mathsf{+}$jets',#[r'V$+$jets',
+                             colors[0] if not altcolors else 'cyan'],
         'other':            ['VV',
                              'green'],
         'rare':            ['Rare',
@@ -409,7 +412,7 @@ def getLaLabel(str_):
         #
         'ttZ_genm_Zbb':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb',
                             'blue'],
-        'ttZ_genm_Zbb_bb':    [r't$\mathregular{\bar{t}}$Z$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{matched}}$',
+        'ttZ_genm_Zbb_bb':    [r'$\mathsf{t\bar{t}Z} \rightarrow \mathsf{b\bar{b}}$ ${}_{\text{matched}}$',#[r't$\mathregular{\bar{t}}$Z$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{matched}}$',
                             'tab:blue'],
         'ttZ_genm_Zbb_b':    [r't$\mathregular{\bar{t}}$Z_genm_Zbb&b',
                             'purple'],
@@ -417,15 +420,15 @@ def getLaLabel(str_):
                             'tab:brown'],
         'ttH_genm_Hbb':    [r't$\mathregular{\bar{t}}$H_genm_Hbb',
                             'gold'],
-        'ttH_genm_Hbb_bb':    [r't$\mathregular{\bar{t}}$H$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{matched}}$',
+        'ttH_genm_Hbb_bb':    [r'$\mathsf{t\bar{t}H} \rightarrow \mathsf{b\bar{b}}$ ${}_{\text{matched}}$',#[r't$\mathregular{\bar{t}}$H$\rightarrow \mathrm{b\bar{b}}$ ${}_{\mathrm{matched}}$',
                            'magenta'],
         'ttH_genm_Hbb_b':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&b',
                            'tab:red'],
         'ttH_genm_Hbb_nob':    [r't$\mathregular{\bar{t}}$H_genm_Hbb&nob',
                             'black'],
-        'ttZ_notgenm_Zbb':    [r't$\mathregular{\bar{t}}$Z${}_\mathrm{unmatched}$',
+        'ttZ_notgenm_Zbb':    [r'$\mathsf{t\bar{t}Z}$ ${}_\text{unmatched}$',#[r't$\mathregular{\bar{t}}$Z ${}_\mathrm{unmatched}$',
                             'cyan'],
-        'ttH_notgenm_Hbb':    [r't$\mathregular{\bar{t}}$H${}_\mathrm{unmatched}$',
+        'ttH_notgenm_Hbb':   [r'$\mathsf{t\bar{t}H}$ ${}_\text{unmatched}$', #[r't$\mathregular{\bar{t}}$H ${}_\mathrm{unmatched}$',
                             'tab:red'],
         'TTZ':             [r't$\mathregular{\bar{t}}$Z', 
                             'blue'],
@@ -523,7 +526,8 @@ def t2Run(func):
 def import_mpl_settings(i=1, width=1, length=1, disable_sansmath=False, no_figsize=False):
     import matplotlib.pyplot as plt
     plt.rc("font", size=10, family="sans-serif", **{"sans-serif" : 
-                                                    [u'TeX Gyre Heros', u'Helvetica', u'Arial', u'Palatino']})
+                                                    #[u'TeX Gyre Heros', u'Helvetica', u'Arial', u'Palatino']})
+                                                    [u'TeX Gyre Heros', u'Helvetica', u'Arial']})
     plt.rc("xaxis", labellocation='right')
     plt.rc("yaxis", labellocation='top')
     plt.rc("legend", fontsize=10, scatterpoints=2, numpoints=1, borderpad=0.15, labelspacing=0.3,
@@ -533,13 +537,14 @@ def import_mpl_settings(i=1, width=1, length=1, disable_sansmath=False, no_figsi
     if not no_figsize :
         plt.rc("figure", figsize=(3.375*i*width, 3.375*(6./8.)*i*length), dpi=200)
     #plt.rc("mathtext", rm='sans')
+    plt.rc("text", usetex=True)
     plt.rc("text.latex", preamble='\n'.join([
         r"\usepackage{amsmath}",
         #r"\usepackage{amssymb}",
         r"\usepackage{helvet}",
-        r"\usepackage{sansmath}",
+        #r"\usepackage{sansmath}",
         #r"\sansmath",
-    ])+('\n'+r'\sansmath' if not disable_sansmath else ''))
+    ])+('\n'+r'\usepackage{sansmath}'+'\n'+r'\sansmath' if not disable_sansmath else ''))
     
     
 
@@ -572,11 +577,12 @@ def CMSlabel(fig=None, ax=None, opt=None, altax=None, altloc=False, lumi=None, f
     trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
     if lumi:
         if lumi == 'nl':
-            ax1.text(1, 1, rf"{{\footnotesize 13 TeV}}", usetex=True,
+            ax1.text(1, 1, r"{\footnotesize 13 TeV}", usetex=True,
                      transform=trans, ha='right', va='baseline', fontsize=fontsize)
         else:
             lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
-            ax1.text(1, 1, rf"{{\footnotesize ${{{lumi}}}\,\mathrm{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", usetex=True,
+            ax1.text(1, 1, rf"{{\footnotesize $\text{{{lumi}}}\,\text{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", 
+                     usetex=True,
                      transform=trans, ha='right', va='baseline', fontsize=fontsize)
 
 def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',

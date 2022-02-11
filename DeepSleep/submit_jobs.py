@@ -15,12 +15,12 @@ import config.ana_cff as cfg
 # add parsargs at some point for year, rundata, minibatch
 parser = argparse.ArgumentParser(description='Run analysis over many samples and years using batch system')
 parser.add_argument('-s', dest='samples', type=str, 
-                    choices=list(process_cfg.keys())+['all','data','mc','mc_nosys', 'mc_eft', 'all_nosys', 'jec','trig'],
+                    choices=list(process_cfg.keys())+['all','data','mc','mc_nosys', 'mc_eft', 'all_nosys', 'jec','trig','bbvl'],
                     required=True, help='analyze all, mc only, or data only')
 parser.add_argument('-y', dest='year', type=str, choices=cfg.Years+['all'],
                     required=True, help='year or all years')
 parser.add_argument('-j', dest='jec', type=str, required=False, help='Run with specified jec variation', choices=cfg.jec_variations+['all'], default=None)
-parser.add_argument('--script', type=str, required=False, help='Run Analysis or SKim', choices=['runAna','runSkim','trigSkim'], default='runAna')
+parser.add_argument('--script', type=str, required=False, help='Run Analysis or SKim', choices=['runAna','runSkim','trigSkim','bbvlSkim'], default='runAna')
 parser.add_argument('-q', dest='queue', type=str, required=False, help='Queue to submit jobs to', choices=['hep','econ','james'], default=None)
 #parser.add_argument('-t', dest='tag',     type=str, required=False, help='Optional tag to add to output file', default='')
 args = parser.parse_args()
@@ -36,6 +36,7 @@ sample_dict = {'all' : [k for k in process_cfg.keys() if 'Data' not in k]+cfg.Da
                'mc_eft' : ['Signal_EFT','Bkg_EFT'],
                'jec' : ['ttZ','ttH','ttbb','single_t','TTBar'],
                'trig': ['TTBar']+cfg.Data_samples,
+               'bbvl': ['ttZ','ttH','QCD'],
                'data': cfg.Data_samples,
 }
 
@@ -117,6 +118,9 @@ def execute_runSkim(samples,year,jec):
         if args.script == 'trigSkim':
             if sample == 'TTToHadronic': continue # dont need this for trigger sf
             _args = _args+['--is4trig']
+        elif args.script == 'bbvlSkim':
+            if sample in ['ttHToNonbb','TTZToLLNuNu','TTZToQQ']: continue # dont need this for bbvl eff calc
+            _args = _args+['--is4bbvl']
         if jec is not None :
             tag = jec
             _args += ['-j',jec]

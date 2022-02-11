@@ -33,15 +33,16 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
     print(df)
     #if opt_title is not None:
     #    fig.suptitle(opt_title.format(p_type))
-    CMSlabel(fig, ax, opt='')
-    #im = ax.matshow(df, cmap='viridian', vmin=0, vmax=df.to_numpy().max()*1.20)
+    #CMSlabel(fig, ax, opt='')
+    CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi='nl')
+    #CMSlabel(fig,ax,altloc=False,opt='Simulation Preliminary', lumi='nl')
     c = ax.pcolor(x_bins,y_bins,df.to_numpy(), vmin=0., vmax=df.to_numpy().max()*1.20)
     #c = ax.pcolor(eff_dict['pt_eta_sf'])
     for i in range(1,len(x_bins)):
         for j in range(1,len(y_bins)):
             text = ax.text(x_bins[i] - (x_bins[i]-x_bins[i-1])/2, 
                            y_bins[j] - (y_bins[j]-y_bins[j-1])/2, 
-                           round(df.iloc[j-1,i-1],2) if df.to_numpy().max() < 1 else round(df.iloc[j-1,i-1],1),
+                           f'{round(df.iloc[j-1,i-1],2):.2f}' if df.to_numpy().max() < 1 else f'{round(df.iloc[j-1,i-1],1):.1f}',
                            ha="center", va="center", color="w")
     #
     #ax.set_xscale("Log")
@@ -52,10 +53,12 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
     ax.set_yticklabels(['200','300','450',r'$\infty$'] if len(y_bins) == 4 else [str(i) for i in y_bins])
     plt.minorticks_off()
     #
-    ax.set_xlabel(r"Reconstructed ${p}_{\mathrm{T}}^{\mathrm{Z/H\; cand.}}$ [GeV]", fontsize=10)
-    ax.set_ylabel(rf"Simulated ${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{p_type}}}}}$ [GeV]", usetex=True, fontsize=10)
+    #ax.set_xlabel(r"Reconstructed ${p}_{\mathrm{T}}^{\mathrm{Z/H\; cand.}}$ [GeV]", fontsize=10)
+    #ax.set_ylabel(rf"Simulated ${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{p_type}}}}}$ [GeV]", usetex=True, fontsize=10)
+    ax.set_xlabel(r"Reconstructed $\mathsf{p}_{\text{T}}^{\text{Z/H\;cand.}}$ \raisebox{0.25ex}{[}$\text{GeV}$\raisebox{0.25ex}{]}", fontsize=10, usetex=True)
+    ax.set_ylabel(rf"Simulated $\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{p_type}}}}}$ "+r"\raisebox{0.25ex}{[}$\text{GeV}$\raisebox{0.25ex}{]}", usetex=True, fontsize=10)
     #fig.suptitle(f'{lep}_{year}')
-    cbar = fig.colorbar(c, pad=.01)
+    cbar = fig.colorbar(c, pad=.01, format='%.2f' if df.to_numpy().max() < 1 else '%.1f')
     cbar.ax.tick_params('y', direction='in', which='both', right=True)
     cbar.ax.set_ylabel(c_label, fontsize=10)
     plt.tight_layout()
@@ -71,6 +74,7 @@ def make_stxs_sigsens_yields(sel):
         r_df = sel[p]
         make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), opt_title='NN > 0.8, {} mass bin')        
 
+#@save_pdf("stxs_sigsens_response_paper.pdf")
 @save_pdf("stxs_sigsens_response_paper_final.pdf")
 def make_stxs_sigsens_response(inc,sel):
     x_bins = [200,300,450,600]
@@ -79,7 +83,7 @@ def make_stxs_sigsens_response(inc,sel):
     for p in ['ttZ','ttH']:
         inc_y = np.array([inc[p][p+str(i)] for i in range(5-len(y_bins),4)])
         r_df = sel[p].divide(inc_y,axis='rows') * 100
-        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (%)')        
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (\%)')        
 
 
 @save_pdf("stxs_yields.pdf")
@@ -100,7 +104,7 @@ def make_stxs_response(inc,sel):
         #inc_y = np.array([inc[p][p+str(i)] for i in range(1,4)])#range(4)])
         inc_y = np.array([inc[p][p+str(i)] for i in range(5-len(y_bins),4)])
         r_df = sel[p].divide(inc_y,axis='rows') * 100
-        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (%)')        
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (\%)')        
 
 
 @save_pdf("inc_response.pdf")

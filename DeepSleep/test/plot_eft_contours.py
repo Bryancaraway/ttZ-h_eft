@@ -52,16 +52,25 @@ p_to_wc = {
     'ttZ':'ctZ', 
     'ttH':'cpt'}
 wc_latex = {
-    'cbW'  : r'${c}_{\mathrm{bW}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
-    'cptb' : r'${c}_{\phi \mathrm{tb}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
-    'cpt'  : r'${c}_{\phi \mathrm{t}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
-    'ctp'  : r'${c}_{\mathrm{t} \phi}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
-    'ctZ'  : r'${c}_{\mathrm{tZ}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
-    'ctW'  : r'${c}_{\mathrm{tW}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
-    'cpQ3' : r'${c}_{\phi \mathrm{Q}}^{3}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
-    'cpQM' : r'${c}_{\phi \mathrm{Q}}^{-}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'cbW'  : r'${c}_{\mathrm{bW}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'cptb' : r'${c}_{\varphi \mathrm{tb}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'cpt'  : r'${c}_{\varphi \mathrm{t}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'ctp'  : r'${c}_{\mathrm{t} \varphi}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'ctZ'  : r'${c}_{\mathrm{tZ}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'ctW'  : r'${c}_{\mathrm{tW}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'cpQ3' : r'${c}_{\varphi \mathrm{Q}}^{3}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    #'cpQM' : r'${c}_{\varphi \mathrm{Q}}^{-}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
+    'ctp'  : r'$\mathsf{c_{t \varphi}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
+    'cpQM' : r'$\mathsf{c^{-}_{\varphi Q}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
+    'cpQ3' : r'$\mathsf{c^3_{\varphi Q}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
+    'cpt'  : r'$\mathsf{c_{\varphi t}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
+    'cptb' : r'$\mathsf{c_{\varphi t b}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
+    'ctW'  : r'$\mathsf{c_{tW}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
+    'cbW'  : r'$\mathsf{c_{bW}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
+    'ctZ'  : r'$\mathsf{c_{tZ}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
 }
 
+#@save_pdf("eft_process_contours_nolumi_final.pdf")
 @save_pdf("eft_process_contours_nolumi.pdf")
 def main():
     #eft_dict = np.load(EFT_param, allow_pickle=True)
@@ -91,7 +100,10 @@ def plot_eft_y_contours(x, y, z, process):
     fig, ax = beginPlt()
     #levels = [2,5,10]
     levels = [1.2,1.5,2.0]
-    tslabels = [r'$\frac{\sigma_{\mathrm{EFT}}}{\sigma_{\mathrm{SM}}}=$'+str(i) for i in levels]
+    #tslabels = [r'$\frac{\sigma_{\mathrm{EFT}}}{\sigma_{\mathrm{SM}}}=$'+str(i) 
+    #            for i in levels]
+    tslabels = [r'$\frac{\mathsf{\sigma}_{\text{EFT}}}{\mathsf{\sigma}_{\text{SM}}}\mathsf{=}$'+str(i) 
+                for i in levels]
     #triang = tri.Triangulation(x, y) # broken
     #ts = ax.tricontour(x, y , z, levels=levels, colors=['gold','blue','green','magenta']) # broken
     X,Y = np.meshgrid(x,y)
@@ -116,7 +128,8 @@ def plot_eft_y_contours(x, y, z, process):
                     loc='upper right',
                     bbox_to_anchor=(1.01, 1.05) if p_to_wc[process] == 'ctZ' else (.55,.8),
                     #title=r'$\frac{\sigma_{\mathrm{EFT}}}{\sigma_{\mathrm{SM}}}=$' )
-                    title=r'$\sigma_{\mathrm{EFT}}/\sigma_{\mathrm{SM}}=$' )
+                    #title=r'$\sigma_{\mathrm{EFT}}/\sigma_{\mathrm{SM}}=$' )
+                    title=r'$\mathsf{\sigma}_{\text{EFT}}/\mathsf{\sigma}_{\text{SM}}\mathsf{=}$' )
     leg._legend_box.align = 'left'
     #
     ax.set_xlim(0,600)
@@ -124,7 +137,8 @@ def plot_eft_y_contours(x, y, z, process):
     #    ts.collections[i].set_label(tslabels[i])
     z_or_h = re.search(r'(Z|H)',process).group()
     #ax.set_xlabel(rf"Simulated ${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
-    ax.set_xlabel(rf"${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
+    #ax.set_xlabel(rf"${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
+    ax.set_xlabel(rf"$\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{z_or_h}}}}} \; \left[\smash{{\text{{GeV}}}}\right]$", usetex=True)
     ax.set_ylabel(wc_latex[p_to_wc[process]])
     plt.xlim(50,600)
     plt.tight_layout()
@@ -157,18 +171,22 @@ def plot_eft_z_contours(x, y, z, process):
     ]
     #labels = ['1.0' , '1.2' , '1.5', '2.0']
     labels = ["0.0"]+[f'{i:.1f}' for i in levels]
-    leg = ax.legend(handles, labels, handlelength=1.0, fontsize=6.0, ncol=len(labels), framealpha=0, 
-                    loc='upper right',
-                    bbox_to_anchor=(.55, 1.05),
-                    title=tlabel+r'$=$')
+    leg = ax.legend(handles, labels, handlelength=1.0, fontsize=10.0, ncol=len(labels), framealpha=0, 
+                    loc='upper left',
+                    bbox_to_anchor=(-.02, 1.07),
+                    title=tlabel+r'$\mathsf{=}$')
 
     leg._legend_box.align = 'left'
     #
     ax.set_xlim(0,600)
-    ax.set_ylim(0.5,2)
+    ax.set_ylim(0.8,2)
     z_or_h = re.search(r'(Z|H)',process).group()
-    ax.set_xlabel(rf"${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
-    ax.set_ylabel(r'$\sigma_{\mathrm{EFT}}/\sigma_{\mathrm{SM}}$')
+    #ax.set_xlabel(rf"${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
+    #ax.set_ylabel(r'$\sigma_{\mathrm{EFT}}/\sigma_{\mathrm{SM}}$')
+    #ax.set_xlabel(rf"$\mathsf{{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}} \; \left[\mathrm{{GeV}}\right]$")
+    #ax.set_xlabel(rf"$\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{z_or_h}}}}} \; \left[\smash{{\text{{GeV}}}}\right]$", usetex=True)
+    ax.set_xlabel(rf"$\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{z_or_h}}}}} $ \raisebox{{0.25ex}}{{[}}$\text{{GeV}}$\raisebox{{0.25ex}}{{]}}")
+    ax.set_ylabel(r'$\mathsf{\sigma}_{\text{EFT}}/\mathsf{\sigma}_{\text{SM}}$', usetex=True)
     plt.xlim(50,600)
     plt.tight_layout()
     #plt.show()
@@ -194,7 +212,8 @@ def bin_2d_eft_effects(df):
 def beginPlt():
     fig, ax = plt.subplots()
     fig.subplots_adjust(top=0.88,bottom=0.11,left=0.11,right=0.88,wspace=0.0,hspace=0.0)
-    CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi='nl')
+    CMSlabel(fig,ax,altloc=False,opt='Simulation Preliminary', lumi='nl')
+    #CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi='nl')
     return fig, ax
 
 class getBeta(TestEFTFitParams):
@@ -245,5 +264,5 @@ def get_eft_df(roofile):
         return _df
 
 if __name__ == '__main__':
-    import_mpl_settings()
+    import_mpl_settings(disable_sansmath=True)
     main()

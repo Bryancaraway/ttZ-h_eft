@@ -17,14 +17,22 @@ from lib.fun_library import save_pdf, import_mpl_settings, upperlefttext, CMSlab
 
 
 wc_latex = {
-    'cbW'  : r'$\frac{{c}_{\mathrm{bW}}}{{\Lambda}^{2}}$',
-    'cptb' : r'$\frac{{c}_{\varphi \mathrm{tb}}}{{\Lambda}^{2}}$',
-    'cpt'  : r'$\frac{{c}_{\varphi \mathrm{t}}}{{\Lambda}^{2}}$',
-    'ctp'  : r'$\frac{{c}_{\mathrm{t} \varphi}}{{\Lambda}^{2}}$',
-    'ctZ'  : r'$\frac{{c}_{\mathrm{tZ}}}{{\Lambda}^{2}}$',
-    'ctW'  : r'$\frac{{c}_{\mathrm{tW}}}{{\Lambda}^{2}}$',
-    'cpQ3' : r'$\frac{{c}_{\varphi \mathrm{Q}}^{3}}{{\Lambda}^{2}}$',
-    'cpQM' : r'$\frac{{c}_{\varphi \mathrm{Q}}^{-}}{{\Lambda}^{2}}$',
+    #'cbW'  : r'$\frac{{c}_{\mathrm{bW}}}{{\Lambda}^{2}}$',
+    #'cptb' : r'$\frac{{c}_{\varphi \mathrm{tb}}}{{\Lambda}^{2}}$',
+    #'cpt'  : r'$\frac{{c}_{\varphi \mathrm{t}}}{{\Lambda}^{2}}$',
+    #'ctp'  : r'$\frac{{c}_{\mathrm{t} \varphi}}{{\Lambda}^{2}}$',
+    #'ctZ'  : r'$\frac{{c}_{\mathrm{tZ}}}{{\Lambda}^{2}}$',
+    #'ctW'  : r'$\frac{{c}_{\mathrm{tW}}}{{\Lambda}^{2}}$',
+    #'cpQ3' : r'$\frac{{c}_{\varphi \mathrm{Q}}^{3}}{{\Lambda}^{2}}$',
+    #'cpQM' : r'$\frac{{c}_{\varphi \mathrm{Q}}^{-}}{{\Lambda}^{2}}$',
+    'ctZ'  : r'$ \frac{\mathsf{c_{tZ}}}{\Lambda^\mathsf{2}}$',
+    'cbW'  : r'$\frac{\mathsf{c_{bW}}}{\Lambda^\mathsf{2}}$',
+    'ctW'  : r'$ \frac{\mathsf{c_{tW}}}{\Lambda^\mathsf{2}}$',
+    'cptb' : r'$ \frac{\mathsf{c_{\varphi t b}}}{\Lambda^\mathsf{2}}$',
+    'cpt'  : r'$\frac{\mathsf{c_{\varphi t}}}{\Lambda^\mathsf{2}}$',
+    'cpQ3' : r'$ \frac{\mathsf{c^3_{\varphi Q}}}{\Lambda^\mathsf{2}}$',
+    'cpQM' : r'$\frac{\mathsf{c^{-}_{\varphi Q}}}{\Lambda^\mathsf{2}}$',
+    'ctp'  : r'$\frac{\mathsf{c_{t \varphi}}}{\Lambda^\mathsf{2}}$',
 }
 wc_bf_ffl = { # best-fit value
     'fixed':{'cbW' : -2.34,'cptb': 0.56,'cpt' : -0.26,'ctp' : 15.30,'ctZ' : 0.01,'ctW' : -0.05,'cpQ3': -0.54,'cpQM': -0.04,},
@@ -53,6 +61,7 @@ wc_nfive_ffl = { # 95% CL lower, upper with respect to best-fit
 #}
 
 @save_pdf('eft_results_table_final.pdf')
+#@save_pdf('eft_results_table.pdf')
 def main():
     fig, ax = beginPlt()
     for i,k in enumerate(wc_bf_ffl):
@@ -82,6 +91,7 @@ def beginPlt(year=None):
     fig, ax = plt.subplots()
     fig.subplots_adjust(top=0.88,bottom=0.11,left=0.18,right=0.95,wspace=0.0)
     CMSlabel(fig,ax,lumi= round(cfg.Lumi[year],1) if year is not None else round(cfg.Lumi['Total']), opt='')
+    #CMSlabel(fig,ax,lumi= round(cfg.Lumi[year],1) if year is not None else round(cfg.Lumi['Total']))
     return fig, ax
 
 def endPlt(fig,ax):
@@ -90,7 +100,9 @@ def endPlt(fig,ax):
     ax.set_yticks(np.arange(len(wc_latex)))
     ax.set_yticklabels([wc_latex[wc] for wc in wc_latex], fontsize=16, usetex=True)
     # xaxis
-    ax.set_xlabel(r'Wilson coefficient limit [$\mathrm{TeV}^{-2}$]', usetex=True)
+    #ax.set_xlabel(r'Wilson coefficient limit [$\text{TeV}^{-2}$]', usetex=True)
+    #ax.set_xlabel(r'Wilson coefficient limit $\left[\smash{\text{TeV}}^\mathsf{-2}\right]$', usetex=True)
+    ax.set_xlabel(r'CL interval \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}', usetex=True)
     ax.set_xticks([-10, -5, 0, 5, 10, 15, 20, 25, 30])
     ax.set_xticklabels(['-10', '', '0', '', '10', '', '20', '', '30'])
     ax.set_xlim(-15,35)
@@ -103,13 +115,24 @@ def endPlt(fig,ax):
         lines.Line2D([],[], linestyle='-', linewidth=2, color='k'),
         lines.Line2D([],[], linestyle='-', linewidth=2, color='r'),
     ]
+    #labels  = [
+    #    'Others profiled (95% CL)', 
+    #    'Others fixed to SM (95% CL)', 
+    #    'Others profiled (68% CL)', 
+    #    'Others fixed to SM (68% CL)'
+    #]
     labels  = [
-        'Others profiled (95% CL)', 
-        'Others fixed to SM (95% CL)', 
-        'Others profiled (68% CL)', 
-        'Others fixed to SM (68% CL)'
+        'Others profiled', 
+        'Others fixed to SM', 
+        #'Others profiled',
+        #'Others fixed to SM',
     ]
-    ax.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.0, 0.72), fontsize=7, framealpha=1)
+    #leg_68 = ax.legend(handles[2:], labels, loc='upper right', bbox_to_anchor=(1.03, 0.89), fontsize=10, framealpha=1, title='68\% CL interval')
+    #ax.legend(handles[:2], labels, loc='upper right', bbox_to_anchor=(1.03, 0.67), fontsize=10, framealpha=1, title='95\% CL interval')
+    leg_68 = ax.legend(handles[2:], labels, loc='upper right', bbox_to_anchor=(1.03, 0.44), fontsize=10, framealpha=1, title='68\% CL interval')
+    ax.legend(handles[:2], labels, loc='upper right', bbox_to_anchor=(1.03, 0.22), fontsize=10, framealpha=1, title='95\% CL interval')
+    ax.add_artist(leg_68)
+    #plt.show()
 
         
 
