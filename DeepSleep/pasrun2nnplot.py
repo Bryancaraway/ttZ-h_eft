@@ -66,7 +66,7 @@ def plot_nn(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
         #w = np.divide(w,i)   # to nomralize
         #w2 = np.divide(w2,i) # to normalize
         #i_err = np.sqrt(np.sum(w2,axis=0))
-        l,c   = np.array([np.array(getLaLabel(p)) for p in l_p]).T
+        l,c   = np.array([np.array(getLaLabel(p, altcolors=True)) for p in l_p]).T
         c = [_.replace('gold','magenta') for _ in c]
         #l   = np.array([f'{x} ({y:3.1f}+/-{z:3.1f})' for x,y,z in zip(l,i,i_err)])
         return h,w,w2,i,c,l
@@ -139,12 +139,14 @@ def endplt(fig,ax,add_cut_str):
     #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = self.fontsize)
     #fig.text(0.105,0.89, r"\textbf{CMS} {\footnotesize \textit{Simulation}}", usetex=True, fontsize = 10)
     #fig.text(0.635,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
-    CMSlabel(fig=fig, ax=ax, opt='Simulation')
-    fig.text(0.50,0.63, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=6)
+    #
+    #CMSlabel(fig=fig, ax=ax, opt='Simulation', lumi='nl')
+    CMSlabel(fig=fig, ax=ax, opt='Simulation Preliminary', lumi='nl')
+    fig.text(0.50,0.62, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=7)
     #fig.text(0.635,0.62, r'DNN score $>0.80$', usetex=True, fontsize=10)
     ax.set_xlabel(r'DNN score', usetex=True)
     #ax.set_ylabel('fraction of yield / bin', usetex=True) # hardcoded
-    ax.set_ylabel('a.u.', usetex=True) # hardcoded
+    ax.set_ylabel('A.U.', usetex=True) # hardcoded
     #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )        
     #plt.xlim(self.bin_range)
     ax.set_yscale('log')
@@ -153,11 +155,12 @@ def endplt(fig,ax,add_cut_str):
     #ax.set_ylim(ymin=ax.get_ylim()[0],ymax=ax.get_ylim()[1]*7.5)
     ax.set_ylim(0.001,ymax=ax.get_ylim()[1]*15)
     #plt.grid(True)
-    ax.legend(framealpha = 0, ncol=2, fontsize=6)
+    ax.legend(framealpha = 0, ncol=2, fontsize=7)
     plt.tight_layout()
     #plt.show()
 
 @save_pdf(f'pas_nncomp_ptcut_run2.pdf')   
+#@save_pdf(f'pas_nncomp_ptcut_run2_final.pdf')   
 def main():
     pas_data_file = cfg.dataDir+'/pas_plot_info/pas_data_file.pkl'
     data = AnaDict.read_pickle(pas_data_file)
@@ -166,7 +169,7 @@ def main():
     plot_nn(
         data,
         add_cut=(lambda _df: ((_df['Zh_pt'] >= 400) & (_df['Zh_pt'] < np.inf)) ),
-        add_cut_str=r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 300$'
+        add_cut_str=r'$\mathsf{p}_{\text{T}}^{\text{Z/H\;cand.}} > \mathsf{300}$'
     )
 
 if __name__ == '__main__':

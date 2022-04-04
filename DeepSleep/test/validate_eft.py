@@ -38,7 +38,7 @@ class main():
 
     @save_pdf('eft_validation_ttbb.pdf')
     def run(self):
-        for y in ['2018']:
+        for y in ['2016','2017','2018']:
             for k,v in self.sig_p.items():
                 self.worker(k,v,self.f_dir.replace('year',y), y)
 
@@ -55,11 +55,11 @@ class main():
         #self.sig_k = {'TTbb':'Zh_pt'}
         #self.sig_k = {'TTbb':'Zh_M'}
         #self.sig_k = {'TTbb':'n_ak4jets'}
-        #self.sig_k = {'TTbb':'NN'}
+        #self.sig_k = {'TTbb':cfg.nn}
         #self.sig_k = {'TTbb':'ttbb_genbb_invm'}
         for sp in sub_p:
             fig, ax = plt.subplots()
-            cut = (lambda df: (df['NN']>= 0) & (df[sp] == True))
+            cut = (lambda df: (df[cfg.nn]>= 0) & (df[sp] == True))
             print(f'Raw counts: \nCentral for {p},{y} with {sp}, passing NN cuts: {len(nom[cut(nom)])}\nPrivate for {p},{y} with {sp}, passing NN cuts: {len(eft[cut(eft)])}')
             self.plots_with_stats(nom[self.sig_k[p]][cut(nom)].clip(0,600),
                                   nom['genWeight'][cut(nom)]/sum(nom['genWeight'][cut(nom)]),
@@ -99,7 +99,7 @@ class main():
             #exit()
             #
             fig, ax = plt.subplots()
-            cut = (lambda df: (df['NN']>= 0) & (df[sp] == True))
+            cut = (lambda df: (df[cfg.nn]>= 0) & (df[sp] == True))
          
             self.plots_with_stats(nom[self.sig_k[p]][cut(nom)].clip(0,600),
                                   nom['genWeight'][cut(nom)]/sum(nom['genWeight'][cut(nom)]),

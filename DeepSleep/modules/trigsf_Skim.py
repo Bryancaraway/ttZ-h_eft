@@ -98,5 +98,5 @@ if __name__ == '__main__':
     year = '2016'
     golden_json=json.load(open(cfg.goodLumis_file[year]))
     test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTTo2L2Nu_2016/8D57A168-9993-A34B-A743-E04C47F32D1D_Skim_7.root'
-    _ = TrigSkim(test_file, 'TTTo2L2Nu', year, isData=False, jec_sys=None, golden_json=golden_json)
+    _ = TrigSkim(test_file, 'TTTo2L2Nu', year, isData=False, is4eff=True, jec_sys=None, golden_json=golden_json)
     print(_.get_skim())

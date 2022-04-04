@@ -197,8 +197,9 @@ def plot_exp_xsec(p_xs, p_asymlim, bins, p_type):
     ax_r.set_ylim(.5,19)
     #
     ax.set_xticks(bins['stxs'])
-    #endPlt(ax,p_type, ylabel=r'$\sigma$ [fb]', errorbox=True)
-    endPlt(ax,p_type, ylabel=r'$\sigma$ [fb]', errorbox=True, ax_r=ax_r)
+    #endPlt(ax,p_type, ylabel=r'$\sigma$ [fb]', errorbox=True) # no limit to SM ratio
+    #endPlt(ax,p_type, ylabel=r'$\sigma$ [fb]', errorbox=True, ax_r=ax_r)
+    endPlt(ax,p_type, ylabel=r'$\mathsf{\sigma}$ \raisebox{0.25ex}{[}$\text{fb}$\raisebox{0.25ex}{]}', errorbox=True, ax_r=ax_r)
     plt.tight_layout(h_pad=0)
     #plt.show()
     #exit()
@@ -210,7 +211,8 @@ def y_label_format(mu_dict, bin_dict):
         bin_num = re.search(r'(\d)?$',mu).group()
         l1 = f"{bin_dict[bin_num]} GeV\n"
         p = re.search(r'tt(Z|H)',mu).group()
-        l2 = rf"${{\mu}}_{{\mathrm{{{p}}}}} = 1.00_{{{mu_dict[mu][1]}}}^{{+{mu_dict[mu][0]}}}$"
+        #l2 = rf"${{\mu}}_{{\mathrm{{{p}}}}} = 1.00_{{{mu_dict[mu][1]}}}^{{+{mu_dict[mu][0]}}}$"
+        l2 = rf"${{\mu}}_{{\mathsf{{{p}}}}} = 1.00_{{{mu_dict[mu][1]}}}^{{+{mu_dict[mu][0]}}}$"
         l_list.append(l1+l2)
     return l_list
 
@@ -219,9 +221,9 @@ def beginPlt():
     fig, axs = plt.subplots(2,1, sharex=True, gridspec_kw={'height_ratios':[2,1]})
     fig.subplots_adjust(top=0.88,bottom=0.11,left=0.11,right=0.88,wspace=0.0,hspace=0.0)
     ax = axs if len(axs) == '1' else axs[0]
-    #fig.text(0.15,0.89, r"$\bf{CMS}$ $Preliminary$", fontsize = 10)
-    #fig.text(0.70,0.89, f'137'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
-    CMSlabel(fig,ax, opt='')
+    #
+    CMSlabel(fig,ax, opt='') # final, no preliminary
+    #CMSlabel(fig,ax) 
     return fig, axs
 
 def endPlt(ax,p_type, ylabel, doLog=True, errorbox=False, ax_r=None):
@@ -236,26 +238,27 @@ def endPlt(ax,p_type, ylabel, doLog=True, errorbox=False, ax_r=None):
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     if ax_r is None:
         ax.set_xticklabels(f'{t:.0f}' if t != 600 else r'$\infty$' for t in ax.get_xticks())
-        ax.set_xlabel(rf"Simulated ${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{process}}}}}$ [GeV]", usetex=True)
+        #ax.set_xlabel(rf"Simulated ${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{process}}}}}$ [GeV]", usetex=True)
+        ax.set_xlabel(rf"Simulated $\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{process}}}}}$ \raisebox{{0.25ex}}{{[}}$\text{{GeV}}$\raisebox{{0.25ex}}{{]}}", usetex=True)
     else:
         ax_r.set_xticklabels(f'{t:.0f}' if t != 600 else r'$\infty$' for t in ax.get_xticks())
-        ax_r.set_xlabel(rf"Simulated ${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{process}}}}}$ [GeV]", usetex=True)
+        #ax_r.set_xlabel(rf"Simulated ${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{process}}}}}$ [GeV]", usetex=True)
+        ax_r.set_xlabel(rf"Simulated $\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{process}}}}}$ \raisebox{{0.25ex}}{{[}}$\text{{GeV}}$\raisebox{{0.25ex}}{{]}}", usetex=True)
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.set_yticks([10,100,1000,10000],minor=False)
     if doLog:
         ax.set_yscale('Log')
     scal_er = 4 if process == 'Z' else 4
     bott_er = 5 if process == 'Z' else 2
-    #ax.set_ylim(bott_er if ax.get_yscale() == 'log' else 0, ax.get_ylim()[1] * (scal_er if ax.get_yscale() == 'log' else 1.5))
-    #ax.set_ylim(bott_er, ax.get_ylim()[1]*scal_er)
-    ax.set_ylim(2, 7000)
+    #ax.set_ylim(2, 7000)
+    ax.set_ylim(2, 8000)
     #ax.set_yticklabels(f'{t:.0f}' if t != 1 else '' for t in ax.get_yticks())
     if errorbox:
         handles, labels = ax.get_legend_handles_labels()
         from matplotlib import lines
-        extra_patch = Patch(label='95% CL interval',  fc='w', snap=True, alpha=0.0)
-        seight_patch = Patch(label='68% Expected',  fc=brazil_green, snap=True, edgecolor='k', linewidth=.3, alpha=1)
-        nfive_patch = Patch(label='95% Expected',  fc=brazil_yellow, snap=True, edgecolor='k', linewidth=.3, alpha=1)
+        extra_patch = Patch(label='95\% CL interval',  fc='w', snap=True, alpha=0.0)
+        seight_patch = Patch(label='68\% Expected',  fc=brazil_green, snap=True, edgecolor='k', linewidth=.3, alpha=1)
+        nfive_patch = Patch(label='95\% Expected',  fc=brazil_yellow, snap=True, edgecolor='k', linewidth=.3, alpha=1)
         pred_patch = Patch(label='SM',  fc='#ea7dfd', snap=True, alpha=0.3)
         obs_hline = lines.Line2D([], [],  linestyle='-', color='k', 
                                  markersize=10, markeredgewidth=1.5, solid_capstyle='butt')
@@ -265,17 +268,20 @@ def endPlt(ax,p_type, ylabel, doLog=True, errorbox=False, ax_r=None):
                                   markersize=10, markeredgewidth=1.5, solid_capstyle='butt')
         #handles = [(asi_patch,handles[0]),(theo_patch,handles[0])]#[(asi_patch,handles[0])]
         handles = [obs_hline,exp_hline,seight_patch,nfive_patch,obs_hline,(pred_patch,pred_hline)]
-        labels  = ['Observed','Median expected','68% expected','95% expected']
+        #labels  = ['Observed','Median expected','68% expected','95% expected']
+        labels  = ['Obs.','Median exp.','68\% exp.','95\% exp.']
         leg_nf = ax.legend(handles,labels, #bbox_to_anchor=(1.00,1), 
-                           fontsize=6.5, framealpha = 0, loc='upper right', handlelength=1.2, title='95% CL upper limits', title_fontsize=6.5, ncol=2)
-        p_type_latex = { 'ttH' : r't$\mathregular{\bar{t}}$H', 'ttZ': r't$\mathregular{\bar{t}}$Z'}
+                           fontsize=8, framealpha = 0, loc='upper right', handlelength=1.2, title='95\% CL upper limits', title_fontsize=8, ncol=2)
+        #p_type_latex = { 'ttH' : r't$\mathregular{\bar{t}}$H', 'ttZ': r't$\mathregular{\bar{t}}$Z'}
+        p_type_latex = { 'ttH' : r'$\mathsf{t\bar{t}H}$', 'ttZ': r'$\mathsf{t\bar{t}Z}$'}
         ax.legend([(pred_patch,pred_hline)],[f'SM {p_type_latex[p_type]}'], #bbox_to_anchor=(1.00,1), 
-                  fontsize=6.5, framealpha = 0, loc='upper left', handlelength=1.2)
+                  fontsize=8, framealpha = 0, loc='upper left', handlelength=1.2)
         ax.add_artist(leg_nf)
     else:
         plt.legend()
 
 @save_pdf("exp_diffxsec_limits_lowptfrozen_ratio_final.pdf")
+#@save_pdf("exp_diffxsec_limits_lowptfrozen_ratio.pdf")
 def make_exp_xsec(p_xs, p_asymlim):
     bins = {'inc':np.array([200,600]),'stxs':np.array([200,300,450,600])}
     for p in p_xs:

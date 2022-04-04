@@ -24,6 +24,7 @@ import re
 c_dict = {
     'stxs': [p+str(i) for p in ['r_ttZ','r_ttH'] for i in range(4)],
     'inc' : ['r_ttZ','r_ttH'],
+    'eft' : ['ctW','ctZ','ctp','cpQM','cbW','cpQ3','cptb','cpt']
 }
 
 l_dict = {
@@ -37,6 +38,14 @@ l_dict = {
     'r_ttH1': '[200,300]',
     'r_ttH2': '[300,450]',
     'r_ttH3': r'$[450,\infty]$',
+    'cbW'  : r'${c}_{\mathrm{bW}}$',
+    'cptb' : r'${c}_{\phi \mathrm{tb}}$',
+    'cpt'  : r'${c}_{\phi \mathrm{t}}$',
+    'ctp'  : r'${c}_{\mathrm{t} \phi}$',
+    'ctZ'  : r'${c}_{\mathrm{tZ}}$',
+    'ctW'  : r'${c}_{\mathrm{tW}}$',
+    'cpQ3' : r'${c}_{\phi \mathrm{Q}}^{3}$',
+    'cpQM' : r'${c}_{\phi \mathrm{Q}}^{-}$',
 }
 
 
@@ -45,9 +54,23 @@ def main():
     #for _file,_list in c_dict.items():
     #dodiffCorr('robustHesse_stxs.root', c_dict['stxs'])
     fdir = 'fitdiag_roots/corr/'
-    dodiffCorr(fdir+'robustHesse_stxs.root', c_dict['stxs'])
-    doincCorr( fdir+'robustHesse_inc.root',  c_dict['inc'])
-    doincCorr( fdir+'robustHesse_inc_blind.root',  c_dict['inc'])
+    #dodiffCorr(fdir+'robustHesse_stxs.root', c_dict['stxs'])
+    #doincCorr( fdir+'robustHesse_inc.root',  c_dict['inc'])
+    #doincCorr( fdir+'robustHesse_inc_blind.root',  c_dict['inc'])
+    relwc_list = ['cbW','cpQ3','cpQM','cpt','cptb','ctW','ctZ','ctp']
+    corr_df = None
+    for i in range(len(relwc_list)):
+        for j in range(i+1,len(relwc_list)):
+            if corr_df is not None:
+                corr_df = corr_df.add(doincCorr( fdir+f'robustHesse{relwc_list[i]}_{relwc_list[j]}_fixedunblinded.root',  c_dict['eft']).replace(1, 0)  )
+            else:
+                corr_df = doincCorr( fdir+f'robustHesse{relwc_list[i]}_{relwc_list[j]}_fixedunblinded.root',  c_dict['eft']).replace(1, 0)
+    corr_df.values[[np.arange(corr_df.shape[0])]*2] = 1.0
+    print(corr_df)
+    exit()
+    #doincCorr( fdir+'robustHessecpt_cpQ3_fixedunblinded.root',  c_dict['eft'])
+    #
+    doincCorr( fdir+'robustHesse_eft.root',  c_dict['eft'])
 
 class TH2D:
 
@@ -55,8 +78,12 @@ class TH2D:
         self.th2d = th2d_from_root
     
     def getbylabels(self, str_1, str_2):
-        i = self.th2d.xlabels.index(str_1)
-        j = self.th2d.ylabels.index(str_2)
+        try:
+            i = self.th2d.xlabels.index(str_1)
+            j = self.th2d.ylabels.index(str_2)
+        except ValueError:
+            i = 0
+            j = 0
         return self.th2d.values[i,j]
     
 
@@ -64,13 +91,14 @@ def dodiffCorr(i_file, c_list):
     roo =  uproot.open(i_file)
     h_corr = TH2D(roo["h_correlation"])
     #print(h_corr.getbylabels('r_ttZ0','r_ttZ2'))
-    print("Post-fit correlation between Signal POIs")
+    #print("Post-fit correlation between Signal POIs")
     df = pd.DataFrame()
     for c_i in c_list:
         for c_j in c_list:
             df.loc[c_i,c_j] = h_corr.getbylabels(c_i,c_j)  
+
     df=df.reindex(index=df.index[::-1])
-    print(df)
+    #print(df)
 
     fig, (ax) = plt.subplots(2,2, figsize=(6.75,6.75))#, sharex=True)#, sharey=True)#,  sharex=True)
     fig.subplots_adjust(
@@ -151,19 +179,19 @@ def doincCorr(i_file, c_list):
     roo =  uproot.open(i_file)
     h_corr = TH2D(roo["h_correlation"])
     #print(h_corr.getbylabels('r_ttZ0','r_ttZ2'))
-    print("Post-fit correlation between Signal POIs")
+    #print("Post-fit correlation between Signal POIs")
     df = pd.DataFrame()
     for c_i in c_list:
         for c_j in c_list:
             df.loc[c_i,c_j] = h_corr.getbylabels(c_i,c_j)  
-    print(df)
+    #print(df)
     # print out correlation matrix between signal and tt+LF, tt+bb
-    print(['r_ttH','r_ttZ','tt_qsc','CMS_ttbbnorm'])
+    #print(['r_ttH','r_ttZ','tt_qsc','CMS_ttbbnorm'])
     for i in ['r_ttH','r_ttZ','tt_qsc','CMS_ttbbnorm']:
         h_line = i+': '
         for j in ['r_ttH','r_ttZ','tt_qsc','CMS_ttbbnorm']:
             h_line += str(h_corr.getbylabels(i,j))+'\t'
-        print(h_line)
+        #print(h_line)
     #
 
     fig, ax = plt.subplots(figsize=(6.75,6.75))
@@ -201,6 +229,7 @@ def doincCorr(i_file, c_list):
     #plt.show()
     plt.savefig(f"../pdf/inc_new_corr{'_blinded' if 'blind' in i_file else ''}.pdf")
     plt.close('all')
+    return df
     #plt.minorticks_off()
 
 

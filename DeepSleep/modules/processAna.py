@@ -243,6 +243,18 @@ class processAna :
         c2 = getTLVm(*map((lambda c: c.pad(2)[:,1]), list(map(ext_cc,[gen_pt,gen_eta,gen_phi, gen_mass]))))
         self.val_df['ttcc_gencc_invm'] = (c1+c2).mass
         self.val_df['ttcc_gencc_pt'] = (c1+c2).pt
+        # check if a Z is from the hard process
+        self.val_df['has_Z'] = ((gen_mom <= 0) & (abs(gen_ids) == 23)).sum() > 0
+        self.val_df['has_H'] = ((gen_mom <= 0) & (abs(gen_ids) == 25)).sum() > 0
+        print('has Z, <0 mom ',sum(self.val_df['has_Z']))
+        print('has H, <0 mom ',sum(self.val_df['has_H']))
+        print('has Z ',sum((abs(gen_ids) == 23).sum() >0))
+        print('has H ',sum((abs(gen_ids) == 25).sum() >0))
+        print('No Z Total', len(is_tt_B [self.val_df['has_Z'] == False]))
+        print('No Z tt+B',  sum(is_tt_B [self.val_df['has_Z'] == False]))
+        print('No Z tt+b',  sum(is_tt_b [self.val_df['has_Z'] == False]))
+        print('No Z tt+2b', sum(is_tt_2b[self.val_df['has_Z'] == False]))
+        print('No Z tt+bb', sum(is_tt_bb[self.val_df['has_Z'] == False]))
         #
         # calculate toppt weight for powheg only
         tt_pt = gen_pt[(abs(gen_ids) == 6)]
@@ -255,6 +267,7 @@ class processAna :
         toppt_rwgt = np.sqrt(sf(tt_pt[:,0]) * sf(tt_pt[:,1])) 
         toppt_rwgt_up = np.where(toppt_rwgt > 1.0, toppt_rwgt**2,  1.0)
         toppt_rwgt_dn = np.where(toppt_rwgt < 1.0, toppt_rwgt**2,  1.0)
+        self.val_df['tt_pt1'], self.val_df['tt_pt2'] = tt_pt[:,0], tt_pt[:,1]
         self.val_df['topptWeight']      = toppt_rwgt
         self.val_df['topptWeight_Up']   = toppt_rwgt_up
         self.val_df['topptWeight_Down'] = toppt_rwgt_dn
@@ -618,6 +631,14 @@ class processAna :
 
             self.add_weights_to_ttbb()
             self.add_tt_2b_rate_unc()
+        def handleTT_bb_EFT():
+            self.val_df.loc[((self.val_df['tt_B'] != True)),'process'] = 'non_tt_B'
+            self.val_df.loc[((self.val_df['has_Z'] == True)),'process'] = 'non_tt_B'
+            self.val_df.loc[((self.val_df['tt_B'] == True) & (self.val_df['has_Z'] == False)),'process'] = 'tt_B' 
+            self.val_df['LHE_HTIncoming'] = self.gen_df['LHE_HTIncoming'].flatten()
+            self.val_df['LHE_HT'] = self.gen_df['LHE_HT'].flatten()
+            self.add_weights_to_ttbb()
+            self.add_tt_2b_rate_unc()
         def handleST():
             #self.val_df['process'] = 'single_t'
             self.val_df['process'] = 'old_single_t'
@@ -650,7 +671,7 @@ class processAna :
                              'TTBar'                                : handleTTBar,
                              'TTJets_EFT'                           : handleTTBar,
                              'ttbb'                                 : handleTT_bb,
-                             'TTbb_EFT'                             : handleTT_bb,
+                             'TTbb_EFT'                             : handleTT_bb_EFT,
                              'single_t'                             : handleST,
                              'ttX'                                  : handleTTX,
                              'VJets'                                : handleVjets,
@@ -665,7 +686,7 @@ class processAna :
         self.val_df["sample"] = self.sample
         process = sample_cfg[self.sample]['out_name'].replace('_sys','') # replace to handle TTBar_sys, ttbb_sys
         sample_to_process.get(process, handleOther)()
-        print(np.unique(self.val_df['process']))
+        print(np.unique(self.val_df['process'], return_counts=True))
 
     def add_weights_to_ttbb(self):
         tt_bb_nw_files = f'{cfg.dataDir}/process_norms/process_norms_ttbbw_run2.json'

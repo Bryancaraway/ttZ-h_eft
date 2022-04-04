@@ -24,6 +24,8 @@ class AnaDict (UserDict): # may want to move this to different file
         return sum(self.data.values())
     def values(self):
         return self.data.values()
+    def flatten(self):
+        return self({k: self.data[k].flatten() for k in self.data})
     @property
     def size(self): # returns the size of the first key (assumes every entry has the same size)
         return len(self.data[next(iter(self.data))])

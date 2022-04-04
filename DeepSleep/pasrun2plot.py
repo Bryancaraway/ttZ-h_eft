@@ -88,8 +88,9 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
         i     = [np.sum(w_i) for w_i in w]
         i_err     = [np.sqrt(np.sum(w2_i)) for w2_i in w2]
         #i_err = np.sqrt(np.sum(w2,axis=0))
-        l,c   = np.array([np.array(getLaLabel(p)) for p in p_]).T
-        c = [_.replace('gold','magenta') for _ in c]
+        l,c   = np.array([np.array(getLaLabel(p, altcolors=True)) for p in p_]).T
+        if issig:
+            c = [_.replace('tab:orange','magenta').replace('tab:blue','blue') for _ in c]
         #l   = np.array([f'{x} ({y:3.1f}+/-{z:3.1f})' for x,y,z in zip(l,i,i_err)])
         if issig is not None:
             #xfactor = [int(issig/i_p) for i_p in i]
@@ -118,13 +119,14 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
     make_error_boxes(ax,x,y,xerr,yerr,label='Stat unc.')
     #plot step sig
     sig_h, sig_w, sig_w2, sig_i, sig_c, sig_l = get_hist_essentials(sig_p,issig=sum(n))
-    sig_ls = [':','--']
+    sig_ls = ['--','--']#[':','--'] # ttZ, ttH
+    sig_lw = [1.0,1.0]
     for i_ in range(len(sig_h)):
         _ = ax.hist(
             sig_h[i_],
             bins=tbins_map[mass],
             histtype='step',
-            linewidth = 1.0, # i think default is 1
+            linewidth = sig_lw[i_], # i think default is 1
             linestyle = sig_ls[i_],
             weights   = sig_w[i_],
             color     = sig_c[i_],
@@ -183,13 +185,16 @@ def endplt(fig,ax,add_cut_str):
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(which='both', direction='in', top=True, right=True)
     #
-    CMSlabel(fig=fig, ax=ax, opt='Simulation')
-    #fig.text(0.635,0.66, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=10)
-    #fig.text(0.635,0.62, r'DNN score $>0.80$', usetex=True, fontsize=10)
-    tex_x_corr = 0.55 if '> 450' not in add_cut_str else 0.60
-    fig.text(tex_x_corr,0.59, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=6)
-    fig.text(tex_x_corr,0.55, r'DNN score $>0.80$', usetex=True, fontsize=6)
-    ax.set_xlabel(r'${m}_{\mathrm{SD}}^{\mathrm{Z/H\; cand.}}$ [GeV]', usetex=True)
+    CMSlabel(fig=fig, ax=ax, opt='Simulation', lumi='nl')
+    #CMSlabel(fig=fig, ax=ax, opt='Simulation Preliminary', lumi='nl')
+    tex_x_corr = 0.55 if '> \mathsf{450}' not in add_cut_str else 0.62
+    tex_x_corr = 0.53 if '\mathsf{200} <' in add_cut_str else tex_x_corr
+    #fig.text(tex_x_corr,0.59, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=6)
+    #fig.text(tex_x_corr,0.55, r'DNN score $>\mathsf{0.80}$', usetex=True, fontsize=6)
+    fig.text(tex_x_corr,0.59, rf'{{{add_cut_str}}} GeV', usetex=True, fontsize=7)
+    fig.text(tex_x_corr,0.53, r'DNN score $>\mathsf{0.80}$', usetex=True, fontsize=7)
+    #ax.set_xlabel(r'${m}_{\mathrm{SD}}^{\mathrm{Z/H\; cand.}}$ [GeV]', usetex=True)
+    ax.set_xlabel(r'$\mathsf{m}_{\text{SD}}^{\text{Z/H\;cand.}}$ \raisebox{0.25ex}{[}$\text{GeV}$\raisebox{0.25ex}{]}', usetex=True)
     #self.ax.set_ylabel(f"{'%' if self.doNorm else 'Events'} / {(self.bin_w[0].round(2) if len(np.unique(self.bin_w.round(4))) == 1 else 'bin')}")#fontsize = self.fontsize)
     ax.set_ylabel('Events / 5 GeV', usetex=True) # hardcoded
     #print(self.ax.get_ylim()[1], self.ax.get_ylim()[1] * 1.10 )        
@@ -197,19 +202,20 @@ def endplt(fig,ax,add_cut_str):
     #ax.set_yscale('log')
     ax.set_xlim(tbins_map[mass][0],tbins_map[mass][-1])
     #
-    y_scale_upper = 1.7 if '300 <' in add_cut_str else 1.5
-    y_scale_upper = 1.2 if '200 <' in add_cut_str else y_scale_upper
+    y_scale_upper = 1.70 if '\mathsf{300} <' in add_cut_str else 1.5
+    y_scale_upper = 1.2 if '\mathsf{200} <' in add_cut_str else y_scale_upper
     ax.set_ylim(0,ymax=ax.get_ylim()[1]*y_scale_upper)
     #plt.grid(True)
     handles, labels = ax.get_legend_handles_labels()
     hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w', alpha=0.99)
     handles = handles + [hatch_patch]
     labels  = labels + ['Stat Unc.']
-    ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=6)
+    ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=7)
     plt.tight_layout()
     #plt.show()
 
-@save_pdf(f'pas_zhm_80newnn_ptcut_run2.pdf')
+#@save_pdf(f'pas_zhm_80newnn_ptcut_run2.pdf')
+@save_pdf(f'pas_zhm_80newnn_ptcut_run2_final.pdf')
 def main():
     pas_data_file = cfg.dataDir+'/pas_plot_info/pas_data_file.pkl'
     if not os.path.exists(pas_data_file):
@@ -227,13 +233,16 @@ def main():
     
     initDF(data, 
            add_cut=(lambda _df: ((_df['Zh_pt'] >= 200) & (_df['Zh_pt'] < 300)) ),
-           add_cut_str=r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$')
+           #add_cut_str=r'$200 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 300$')
+           add_cut_str=r'$\mathsf{200} < \mathsf{p}_{\text{T}}^{\text{Z/H\;cand.}} < \mathsf{300}$')
     initDF(data,
            add_cut=(lambda _df: ((_df['Zh_pt'] >= 300) & (_df['Zh_pt'] < 450)) ), 
-           add_cut_str=r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$')
+           #add_cut_str=r'$300 < {p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} < 450$')
+           add_cut_str=r'$\mathsf{300} < \mathsf{p}_{\text{T}}^{\text{Z/H\;cand.}} < \mathsf{450}$')
     initDF(data,
            add_cut=(lambda _df: ((_df['Zh_pt'] >= 450) & (_df['Zh_pt'] < np.inf)) ), 
-           add_cut_str=r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$')
+           #add_cut_str=r'${p}_{\mathrm{T}}^{\mathrm{Z/H\;cand.}} > 450$')
+           add_cut_str=r'$\mathsf{p}_{\text{T}}^{\text{Z/H\;cand.}} > \mathsf{450}$')
 
 
 if __name__ == '__main__':

@@ -37,5 +37,8 @@ fi
 if [ ! -z "$is4trig" ]; then
     args="$args --is4trig"
 fi
+if [ ! -z "$is4bbvl" ]; then
+    args="$args --is4bbvl"
+fi
 echo "$args"
 eval 'python runSkim.py $args'
