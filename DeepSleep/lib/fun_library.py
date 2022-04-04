@@ -393,6 +393,8 @@ def getLaLabel(str_, altcolors=False):
                         'tab:green'],
         'tt_B':        [r'$\mathsf{t\bar{t}+b\bar{b}}$',#[r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
                         colors[3] if not altcolors else 'tab:green'],
+        'tt_B_EFT':        [r'$\mathsf{t\bar{t}+b\bar{b}}$ EFT',#[r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
+                            'k'],
         'tt_bb':        [r't$\mathregular{\bar{t}}+$b$\mathregular{\bar{b}}$',
                              'tab:green'],
         'tt_2b':        [r't$\mathregular{\bar{t}}+$2b',
@@ -537,6 +539,7 @@ def import_mpl_settings(i=1, width=1, length=1, disable_sansmath=False, no_figsi
     if not no_figsize :
         plt.rc("figure", figsize=(3.375*i*width, 3.375*(6./8.)*i*length), dpi=200)
     #plt.rc("mathtext", rm='sans')
+    #if not disable_sansmath:
     plt.rc("text", usetex=True)
     plt.rc("text.latex", preamble='\n'.join([
         r"\usepackage{amsmath}",

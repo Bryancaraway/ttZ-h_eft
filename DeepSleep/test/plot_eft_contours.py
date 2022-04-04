@@ -16,12 +16,12 @@ from lib.fun_library import save_pdf, getLaLabel, import_mpl_settings, upperleft
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib import rc, lines
-from matplotlib.ticker import AutoMinorLocator
+from matplotlib.ticker import AutoMinorLocator, FuncFormatter
 rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 from modules.eftParam import TestEFTFitParams
 
-EFT_param = 'EFT_Parameterization_test.npy'
+#EFT_param = 'EFT_Parameterization_test.npy'
 dummy_y = '2018'
 
 i_file_dict = {
@@ -33,9 +33,14 @@ pt_name = 'genZHpt'
 pt_bins = np.linspace(0,1000,15)
 wc_bins = {'ctp':np.arange(-15, 50, 1),
            'cpt':np.arange(-20, 20, .5),
+           'cptb':np.arange(-20, 20, .5),
            'ctZ':np.arange(-3,3, .2),} # cant do -8, 8
 norm_bins = {'cpt':np.arange(1,5,.1),
+             'cptb':np.arange(1,5,.1),
              'ctZ':np.arange(1,5,.1)}
+level_dict = {'ctZ':[0.6,1.0,1.2],
+              'cpt':[5.0,8.0,10.0],
+              'cptb':[6.0,10.0,12.0]}
 #>>> a.max(), a.min()
 #ctW       5.949762   -5.890477
 #ctp      61.349454  -16.477814
@@ -46,11 +51,10 @@ norm_bins = {'cpt':np.arange(1,5,.1),
 #cpt      19.332344  -35.709867
 #cptb     26.947300  -26.654921
 
-
-
 p_to_wc = {
     'ttZ':'ctZ', 
-    'ttH':'cpt'}
+    #'ttH':'cpt'}
+    'ttH':'cptb'}
 wc_latex = {
     #'cbW'  : r'${c}_{\mathrm{bW}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
     #'cptb' : r'${c}_{\varphi \mathrm{tb}}\,/\,{\Lambda}^{2} \; [{\mathrm{TeV}}^{-2}]$',
@@ -70,8 +74,8 @@ wc_latex = {
     'ctZ'  : r'$\mathsf{c_{tZ}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
 }
 
-#@save_pdf("eft_process_contours_nolumi_final.pdf")
-@save_pdf("eft_process_contours_nolumi.pdf")
+@save_pdf("eft_process_contours_nolumi_final.pdf")
+#@save_pdf("eft_process_contours_nolumi.pdf")
 def main():
     #eft_dict = np.load(EFT_param, allow_pickle=True)
     #
@@ -140,6 +144,8 @@ def plot_eft_y_contours(x, y, z, process):
     #ax.set_xlabel(rf"${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
     ax.set_xlabel(rf"$\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{z_or_h}}}}} \; \left[\smash{{\text{{GeV}}}}\right]$", usetex=True)
     ax.set_ylabel(wc_latex[p_to_wc[process]])
+    #ax.xaxis.set_major_formatter(FuncFormatter('%d'))
+    #ax.yaxis.set_major_formatter(FuncFormatter('%d'))
     plt.xlim(50,600)
     plt.tight_layout()
     #plt.show()
@@ -148,8 +154,6 @@ def plot_eft_y_contours(x, y, z, process):
 def plot_eft_z_contours(x, y, z, process):
     fig, ax = beginPlt()
     #levels = [2,5,10]
-    level_dict = {'ctZ':[0.6,1.0,1.2],
-                  'cpt':[5.0,8.0,10.0]}
     levels = level_dict[p_to_wc[process]]
     tlabel = wc_latex[p_to_wc[process]]
     tslabels = [tlabel+r'$=$'+str(i) for i in levels]
@@ -178,8 +182,7 @@ def plot_eft_z_contours(x, y, z, process):
 
     leg._legend_box.align = 'left'
     #
-    ax.set_xlim(0,600)
-    ax.set_ylim(0.8,2)
+    #ax.set_xlim(0,600)
     z_or_h = re.search(r'(Z|H)',process).group()
     #ax.set_xlabel(rf"${{p}}_{{\mathrm{{T}}}}^{{\mathrm{{{z_or_h}}}}}$ [GeV]")
     #ax.set_ylabel(r'$\sigma_{\mathrm{EFT}}/\sigma_{\mathrm{SM}}$')
@@ -187,10 +190,13 @@ def plot_eft_z_contours(x, y, z, process):
     #ax.set_xlabel(rf"$\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{z_or_h}}}}} \; \left[\smash{{\text{{GeV}}}}\right]$", usetex=True)
     ax.set_xlabel(rf"$\mathsf{{p}}_{{\text{{T}}}}^{{\text{{{z_or_h}}}}} $ \raisebox{{0.25ex}}{{[}}$\text{{GeV}}$\raisebox{{0.25ex}}{{]}}")
     ax.set_ylabel(r'$\mathsf{\sigma}_{\text{EFT}}/\mathsf{\sigma}_{\text{SM}}$', usetex=True)
+    ax.set_ylim(0.8,2)
     plt.xlim(50,600)
     plt.tight_layout()
-    #plt.show()
-    #exit()
+    ax.set_xticklabels([l_.get_text().replace('mathdefault','textsf') for l_ in  ax.get_xticklabels()])
+    ax.set_yticks([1.0,1.25,1.5,1.75,2.0]) 
+    ax.set_yticklabels(['1.00','1.25','1.50','1.75','2.00']) # for some stupid reason, I have to hard code this :(
+
 
 def bin_2d_eft_effects(df):
     # create new column with pt bin labels
@@ -212,8 +218,8 @@ def bin_2d_eft_effects(df):
 def beginPlt():
     fig, ax = plt.subplots()
     fig.subplots_adjust(top=0.88,bottom=0.11,left=0.11,right=0.88,wspace=0.0,hspace=0.0)
-    CMSlabel(fig,ax,altloc=False,opt='Simulation Preliminary', lumi='nl')
-    #CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi='nl')
+    #CMSlabel(fig,ax,altloc=False,opt='Simulation Preliminary', lumi='nl')
+    CMSlabel(fig,ax,altloc=False,opt='Simulation', lumi='nl')
     return fig, ax
 
 class getBeta(TestEFTFitParams):

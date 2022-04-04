@@ -46,7 +46,7 @@ class Plotter :
                  doCuts=True,add_cuts=None,add_d_cuts=None,sepGenOpt=None,addData=False,addSoB=False,
                  alt_weight=None, show_int=False):
 
-        import_mpl_settings(2)
+        import_mpl_settings(2, disable_sansmath=True)
 
         self.samples    = samples
         self.kinem      = kinem

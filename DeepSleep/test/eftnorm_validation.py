@@ -33,12 +33,18 @@ single_points = {
         'cpt': [[ -20,.5477/.4461], [ 15, .5094/.4461] ], 'cptb': [[ -15,.4856/.4461], [ 15,.4839/.4461] ], 'ctW': [[ -2, .5820/.4461], [ 2, .6182/.4461] ], 'ctZ': [[ -2,.5617/.4461], [ 2,.5439/.4461] ],
         'ctp': [[ -11,1.264/.4461], [ 40,1.016/.4461] ]
     },
-    'ttbb' : {
+    'ttbb' : { # "noreweight"
         'SM': [[0,1]], 
         'cbW':[[-7,9.975/8.763],[7,10.0/8.763]], 'cpQ3': [[ -7, 8.375/8.763], [ 7, 10.64/8.763] ], 'cpQM': [[ -12, 8.763/8.763], [ 16,8.763/8.763] ],
         'cpt': [[ -20,8.762/8.763], [ 15, 8.764/8.763] ], 'cptb': [[ -15, 9.178/8.763], [ 15,9.262/8.763] ], 'ctW': [[ -2, 8.914/8.763], [ 2, 8.853/8.763] ], 'ctZ': [[ -2, 8.851/8.763], [ 2, 8.774/8.763] ],
         'ctp': [[ -11, 8.762/8.763], [ 40, 8.763/8.763] ]
     },
+    #'ttbb' : { # v13?
+    #    'SM': [[0,1]], 
+    #    'cbW':[[-7,10.06/8.830],[7,10.10/8.830]], 'cpQ3': [[ -7, 8.378/8.830], [ 7, 10.75/8.830] ], 'cpQM': [[ -12, 8.838/8.830], [ 16,8.843/8.830] ],
+    #    'cpt': [[ -20,8.839/8.830], [ 15, 8.988/8.830] ], 'cptb': [[ -15, 9.189/8.830], [ 15,9.245/8.830] ], 'ctW': [[ -2, 8.973/8.830], [ 2, 8.920/8.830] ], 'ctZ': [[ -2, 8.885/8.830], [ 2, 8.888/8.830] ],
+    #    'ctp': [[ -11, 8.842/8.830], [ 40, 8.838/8.830] ]
+    #},
 }
 
 wc_ranges = {
@@ -60,7 +66,7 @@ def main(input_files, samples):
         norm_change[sample] = process(input_file,re.sub(r'_201\d','',sample))
         #plot_overal_norm(norm_change, sample)
     #
-    save_pdf(re.sub(r'_201\d','',samples[0])+"_incxs_impacts.pdf")(plot_overall_norm)(norm_change, samples)
+    save_pdf(re.sub(r'_201\d','',samples[0])+"_incxs_impacts_test.pdf")(plot_overall_norm)(norm_change, samples)
     #plot_overall_norm_compare(norm_change, samples)
 
 
@@ -146,12 +152,15 @@ def __worker(lines):
 
 def get_eft_df(roofile):
     print(roofile)
+    _df = pd.DataFrame()
     with uproot.open(roofile) as roo:
         t = roo['Events']
         eft_reweight = t.array('LHEReweightingWeight', executor=executor)
-        _df = pd.DataFrame()
         for i in range(184):
             _df[f'EFT{i}'] = eft_reweight[:,i]
+        if 'TTbb' in roofile:
+            gen_ids = t.array('GenPart_pdgId', executor=executor)
+            _df = _df[(gen_ids == 23).sum()==0]
         return _df
                 
 
@@ -178,11 +187,15 @@ if __name__ == '__main__':
         #"files/ttz_eft_2017.txt",
         #"files/ttz_eft_2018.txt",
         
+        "files/tt_B_eft_2016.txt",
+        #"files/tt_B_efttest_2016.txt",
+        "files/tt_B_eft_2017.txt",
         "files/tt_B_eft_2018.txt"
     ]
     #main(input_files, ['ttZ','ttH'])
     #main(input_files, ['ttH_2016','ttH_2017','ttH_2018'])
     #main(input_files, ['ttZ_2017','ttZ_2018'])
-    main(input_files, ['ttbb_2018'])
+    #main(input_files, ['ttbb_2016'])
+    main(input_files, ['ttbb_2016','ttbb_2017','ttbb_2018'])
     #main(input_files, ['ttbb'])
 

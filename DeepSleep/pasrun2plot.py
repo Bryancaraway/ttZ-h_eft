@@ -90,7 +90,7 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
         #i_err = np.sqrt(np.sum(w2,axis=0))
         l,c   = np.array([np.array(getLaLabel(p, altcolors=True)) for p in p_]).T
         if issig:
-            c = [_.replace('tab:orange','magenta') for _ in c]
+            c = [_.replace('tab:orange','magenta').replace('tab:blue','blue') for _ in c]
         #l   = np.array([f'{x} ({y:3.1f}+/-{z:3.1f})' for x,y,z in zip(l,i,i_err)])
         if issig is not None:
             #xfactor = [int(issig/i_p) for i_p in i]
@@ -119,13 +119,14 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
     make_error_boxes(ax,x,y,xerr,yerr,label='Stat unc.')
     #plot step sig
     sig_h, sig_w, sig_w2, sig_i, sig_c, sig_l = get_hist_essentials(sig_p,issig=sum(n))
-    sig_ls = [':','--']
+    sig_ls = ['--','--']#[':','--'] # ttZ, ttH
+    sig_lw = [1.0,1.0]
     for i_ in range(len(sig_h)):
         _ = ax.hist(
             sig_h[i_],
             bins=tbins_map[mass],
             histtype='step',
-            linewidth = 1.0, # i think default is 1
+            linewidth = sig_lw[i_], # i think default is 1
             linestyle = sig_ls[i_],
             weights   = sig_w[i_],
             color     = sig_c[i_],

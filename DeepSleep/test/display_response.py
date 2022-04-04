@@ -49,6 +49,7 @@ def make_heatmap(df,x_bins,y_bins,p_type, opt_title=None, c_label='Exptected Yie
     ax.tick_params('both', direction='in', which='both', color='k', top=True, right=True)
     ax.set_xticks(x_bins)
     ax.set_xticklabels(['200','300','450',r'$\infty$'] if len(x_bins) == 4 else [str(i) for i in x_bins])
+    ax.tick_params(axis='x', pad=5)
     ax.set_yticks(y_bins)
     ax.set_yticklabels(['200','300','450',r'$\infty$'] if len(y_bins) == 4 else [str(i) for i in y_bins])
     plt.minorticks_off()

@@ -322,15 +322,17 @@ class TestEFTImpact():
         #
         return out_
 
-@save_pdf("eft_impacts_template.pdf")
+@save_pdf("eft_impacts_template_ttbb2017.pdf")
 def plot_template_impacts(eft_impacts):
     pt_bins = [200,300,450,np.inf]
     mass_bins = [50,75,105,145,200]
-    for sig in ['ttZ','ttH','ttbb']:
-        for i_bin in range(1,len(pt_bins)):
+    #for sig in ['ttZ','ttH','ttbb']:
+    for sig in ['ttbb']:
+        for i_bin in range(2,len(pt_bins)):
+            #for i_bin in range(1,len(pt_bins)):
             for j_bin in range(1,len(mass_bins)):
                 cut_fun = (lambda _x : _x[(_x['Zh_pt']>pt_bins[i_bin-1]) & (_x['Zh_pt']<pt_bins[i_bin]) & (_x['Zh_M']>mass_bins[j_bin-1]) & (_x['Zh_M']<mass_bins[j_bin]) & (_x[nn]>0.0)])
-                eft_impacts.run_singles_test(nn, [sig], cut_fun, f'Z/H pT {i_bin}, Z/H mass {j_bin},'+' {wc}', pt_int=str(pt_bins[i_bin-1]))
+                eft_impacts.run_singles_test(nn, [sig], cut_fun, f'Z/H pT {i_bin}, Z/H mass {j_bin},'+' {wc}', pt_int=str(pt_bins[i_bin-1]), year='2017')
         
 
     

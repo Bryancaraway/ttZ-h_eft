@@ -20,7 +20,8 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #@save_pdf('control_plots_anastrat.pdf')
 #@save_pdf('control_plots_tight.pdf')
 #@save_pdf('EFTLO_vs_NLO.pdf')
-@save_pdf('EFTLO_vs_NLO_templates.pdf')
+#@save_pdf('EFTLO_vs_NLO_templates_ttbb.pdf')
+#@save_pdf('EFTLO_vs_NLO_mass_ttbb.pdf')
 #@save_pdf('single_top_mcstats_v2.pdf')
 #@save_pdf('control_plots_genzhpt.pdf')
 #@save_pdf('sigbkg_purity.pdf')
@@ -37,18 +38,18 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #@save_pdf("nn_comparison.pdf")
 #@save_pdf("ttx_contamination.pdf")
 def main():
-    for y in cfg.Years: 
-        #for y in ['2018']: 
+    #for y in cfg.Years: 
+    for y in ['2018']: 
         print(y)
         #for jec in jec_list:
         #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
-        #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+['QCD'], addBSF=False, byprocess=True)
+        Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+['QCD'], addBSF=False, byprocess=True)
         #Plotter.load_data(y, samples=['single_t'], addBSF=False, byprocess=True)
         #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+["QCD"]+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
-        Plotter.load_data(y, samples=cfg.Sig_MC+['ttbb']+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
+        #Plotter.load_data(y, samples=cfg.Sig_MC+['ttbb']+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
         ''' LOOK AT STACKED DATA VS MC '''
         # AN, Paper Draft
-        #make_control_plots_tight()
+        make_control_plots_tight()
         #make_control_plots_anastrat()
         #make_met_withqcd()
         #make_NN_compare()
@@ -56,7 +57,7 @@ def main():
         # = ==== = # 
         # extra
         #make_plots_ttX_cont()
-        make_plots_EFTLO_vs_NLO(y)
+        #make_plots_EFTLO_vs_NLO(y)
         #make_plots_singlet_stats()
         #make_genZhpt_plots()
         #make_sigbkg_purity()
@@ -66,6 +67,10 @@ def main():
 
 def make_control_plots_tight():
     # --- control plots tight
+    Hist(processes,    cfg.nn, xlabel= r'NN with bbvl match', bin_range=[0,1],    n_bins=10,      doNorm=False, doCuts=True, add_cuts='bbvl_genmatch==1', doShow=True)  
+    Hist(processes,    cfg.nn, xlabel= r'NN with no bbvl match', bin_range=[0,1],    n_bins=10,   doNorm=False, doCuts=True, add_cuts='bbvl_genmatch==0', doShow=True)  
+    #StackedHist(processes,    'HT', xlabel= r'HT', bin_range=[0,2000],    n_bins=35,   doCuts=True,  addData=True, doShow=True)  
+    exit()
     StackedHist(processes,    'PV_npvsGood', xlabel= r'nPVs', bin_range=[0,70],    n_bins=35,   doCuts=True,  addData=True, doShow=False)  
     #
     StackedHist(processes,    'Lep_pt', xlabel= r'lepton $p_{T}$ (GeV)', bin_range=[20,750],    n_bins=30,   doCuts=True,  addData=True, doShow=False)  
@@ -144,7 +149,8 @@ def make_plots_ttX_cont():
 def make_plots_EFTLO_vs_NLO(y):
     alt_weight = getWeightsWithEFT
     nn = cfg.nn
-    sig_processes = ['ttZ','ttH','tt_B']
+    #sig_processes = ['ttZ','ttH','tt_B']
+    sig_processes = ['tt_B']
     common_kwargs =  {'alt_weight':alt_weight, 'sepGenOpt':'sepByEFT', 'doCuts':True, 'doLog':False, 'doNorm':True, 'addData':False, 'doShow':False}
     nn_bins = { 
         '2016': {
@@ -166,12 +172,19 @@ def make_plots_EFTLO_vs_NLO(y):
     pt_bins = [200,300,450, np.inf]
     mass_bins = [50,75,105,145,200]
     for sig in sig_processes:
+        #Hist([sig],    'ttbb_genbb_invm',  xlabel='ttbb_genbb_invm ', bin_range=[0,200], n_bins=20, add_cuts=f'{nn}>0.0', **common_kwargs)
+        #Hist([sig],    'ttbb_genbb_invm',  xlabel='ttbb_genbb_invm (NN > 0.8)', bin_range=[0,200], n_bins=20, add_cuts=f'{nn}>0.8', **common_kwargs)
+        #Hist([sig],    'ttbb_genbb_invm',  xlabel='ttbb_genbb_invm (NN > 0.8,Zh_pt>300,Zh_M>75,Zh_M<105)', bin_range=[0,200], n_bins=20, add_cuts=f'{nn}>0.8;Zh_pt>300;Zh_M>75;Zh_M<105', **common_kwargs)
+        #Hist([sig],    'ttbb_genbb_pt',    xlabel='ttbb_genbb_pt ', bin_range=[0,600], n_bins=20, add_cuts=f'{nn}>0.0', **common_kwargs)
+        #Hist([sig],    'ttbb_genbb_pt',    xlabel='ttbb_genbb_pt (NN > 0.8)', bin_range=[0,600], n_bins=20, add_cuts=f'{nn}>0.8', **common_kwargs)
+        #Hist([sig],    'ttbb_genbb_pt',    xlabel='ttbb_genbb_pt (NN > 0.8,Zh_pt>300,Zh_M>75,Zh_M<105)', bin_range=[0,600], n_bins=20, add_cuts=f'{nn}>0.8;Zh_pt>300;Zh_M>75;Zh_M<105', **common_kwargs)
         #Hist([sig],    'Zh_pt', xlabel=r'Z/H $p_{\mathrm{T}}$ [GeV]', bins=[200,300,450,600], **common_kwargs)
         #Hist([sig], nn, xlabel='DNN score', bin_range=[0,1],  n_bins=10, **common_kwargs)
         #Hist([sig],'Zh_M', xlabel=r'Z/H $m_{\mathrm{SD}}$ [GeV]', bin_range=[50,200],  bins=cfg.sdm_bins, **common_kwargs)  
         for i_bin in range(1,len(pt_bins)):
             for j_bin in range(1,len(mass_bins)):
-                Hist([sig], nn, xlabel=f'DNN score (Z/H pT {i_bin}, Z/H mass {j_bin})', bins=nn_bins[y][str(pt_bins[i_bin-1])], 
+                #Hist([sig], nn, xlabel=f'DNN score (Z/H pT {i_bin}, Z/H mass {j_bin})', bins=nn_bins[y][str(pt_bins[i_bin-1])], 
+                Hist([sig], nn, xlabel=f'DNN score (Z/H pT {i_bin}, Z/H mass {j_bin})', bins=[0.0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0], 
                      add_cuts=f'Zh_pt>{pt_bins[i_bin-1]};Zh_pt<{pt_bins[i_bin]};Zh_M>{mass_bins[j_bin-1]};Zh_M<{mass_bins[j_bin]}', **common_kwargs)
     
 
