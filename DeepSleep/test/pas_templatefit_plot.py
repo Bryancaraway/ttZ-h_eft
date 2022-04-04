@@ -60,7 +60,7 @@ class PlotForPas(PostFit):
         #self.fig.suptitle(ch, fontsize=10) # maybe get rid of 
         for y in cfg.Years:
             self.init_axes(year=y)
-            self.make_stackhist(ch_groups[y])
+            self.make_stackhist(ch_groups[y], year=y)
 
     def do_stack(self, d,ax,ch):
         ycumm = None
@@ -125,7 +125,7 @@ class PlotForPas(PostFit):
                        color='k', linewidth='0.5', linestyle='--', dashes=(4,8), snap=True)
         
 
-    def make_stackhist(self, ch_list):
+    def make_stackhist(self, ch_list, year):
         axs = self.axs # # 0,0 lt # 0,1 rt
         rat_axs = self.rat_axs
         for i, ch in enumerate(ch_list):
@@ -144,16 +144,16 @@ class PlotForPas(PostFit):
         axs[0].set_ylim(ymin=.05, ymax=axs[0].get_ylim()[1] * 10)
         rat_axs[-1].set_xlabel('Analysis bins',fontsize=14)
         rat_axs[0].set_ylabel('Data / MC', fontsize=14)
-        self.nn_text_bins(axs[0])
+        self.nn_text_bins(axs[0], year)
         self.addlegend(opt='blind')
         #plt.tight_layout(h_pad=0,w_pad=0)
         #plt.show()
 
 
-    def nn_text_bins(self, ax):
+    def nn_text_bins(self, ax, year):
         trans = ax.transAxes + transforms.ScaledTranslation(0/72, 3/72, self.fig.dpi_scale_trans)
         ext_args = {'usetex':True, 'transform':trans}
-        ax.text(0.05, .92, rf"$\textit{{{'P'+pre_or_post[1:]}}}$" , **ext_args)
+        ax.text(0.05, .92, rf"{year} $\textit{{{'P'+pre_or_post[1:]}}}$" , **ext_args)
         ax.text(0.05, .85, r'NN${}_{\mathrm{bin}}$' , **ext_args)
         ax.text(0.04, .80, '1', **ext_args)
         ax.text(0.215, .80, '2', **ext_args)
@@ -227,7 +227,7 @@ class PlotForPas(PostFit):
         hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w', alpha=0.99)
         handles = handles[0:2]+handles[-3:-1]+handles[2:-3] + [handles[-1]] + [hatch_patch]
         labels  = labels[0:2]+labels[-3:-1]+labels[2:-3] + [labels[-1]] + ['stat+sys.']
-        ax.legend(handles,labels, bbox_to_anchor=(-.505,.565), 
+        ax.legend(handles,labels, bbox_to_anchor=(-.530,.565), 
                   ncol = 2, columnspacing=8.0,
                   fontsize=10.5, framealpha = 0, loc='lower left')
 

@@ -204,7 +204,13 @@ def endplt(fig,ax,add_cut_str):
     #
     y_scale_upper = 1.70 if '\mathsf{300} <' in add_cut_str else 1.5
     y_scale_upper = 1.2 if '\mathsf{200} <' in add_cut_str else y_scale_upper
-    ax.set_ylim(0,ymax=ax.get_ylim()[1]*y_scale_upper)
+    if '\mathsf{200} <' in add_cut_str:
+        ax.set_ylim(0, 62)
+    elif '\mathsf{300} <' in add_cut_str:
+        ax.set_ylim(0, 45)
+    else:
+        ax.set_ylim(0, 16)
+    #ax.set_ylim(0,ymax=ax.get_ylim()[1]*y_scale_upper)
     #plt.grid(True)
     handles, labels = ax.get_legend_handles_labels()
     hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w', alpha=0.99)
