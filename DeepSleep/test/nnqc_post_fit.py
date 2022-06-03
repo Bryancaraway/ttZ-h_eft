@@ -26,10 +26,12 @@ rc("figure", max_open_warning=600)
 rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 fit_vars = cfg.withbbvl_dnn_ZHgenm_vars
+#fit_vars = ['Zh_bbvLscore', 'n_b_inZh','outZH_b1_q_mindr',]
 #fit_vars = [f'NN_{i}' for i in range(64)]
 
-@save_pdf('qc_nn_postfits.pdf')
+#@save_pdf('qc_nn_postfits.pdf')
 #@save_pdf('qc_nn_postfits_hl2.pdf')
+@save_pdf('nn_pas_validation.pdf')
 ####@save_pdf('qc_zhm_postfit.pdf')
 def main():
     print(len(fit_vars))
@@ -54,6 +56,7 @@ class QCNNPostFit(PostFit):
         # stack portion
         #ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_2b','tt_bb','TTBar']
         ordered_list = re.findall(rf'tt[H,Z]', ' '.join(list(d.keys()))) + ['single_t','VJets','ttX','tt_B','TTBar']
+        #ordered_list = ['ttZ','ttH','VJets','ttX','single_t','tt_B','TTBar']
         #colors =  plt.cm.gist_rainbow(np.linspace(0,1,len(ordered_list)))
         colors =  plt.cm.tab10(np.linspace(0,1,10))[0:2]
         colors = np.append(colors, plt.cm.gist_rainbow(np.linspace(0,1,6)), axis=0)
@@ -73,9 +76,9 @@ class QCNNPostFit(PostFit):
             top_axs.fill_between(self.edges[ch],ycumm,ycumm-y,step="post", 
                                  linewidth=0, color=c, label=label)
             # add total error and data points
-        top_axs.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=d['data']['values'],
-                     xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[d['data']['errdw'],d['data']['errup']], 
-                     fmt='.', label='data', color='k')
+        #top_axs.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=d['data']['values'],
+        #             xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[d['data']['errdw'],d['data']['errup']], 
+        #             fmt='.', label='data', color='k')
         self.make_error_boxes(top_axs, (self.edges[ch][1:]+self.edges[ch][:-1])/2, d['total']['values'],
                               xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err'], label='stat+sys')
     

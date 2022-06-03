@@ -116,7 +116,7 @@ def initDF(data, add_cut=(lambda _df: _df['Zh_pt'] >= 0), add_cut_str=''):
     )
     n, _ = np.histogram(np.hstack(bkg_h),bins=bins, weights=np.hstack(bkg_w),range=(bins[0],bins[-1]))
     x,xerr,y,yerr =getMCStat_info(n, np.hstack(bkg_h),np.hstack(bkg_w), bins)
-    make_error_boxes(ax,x,y,xerr,yerr,label='Stat unc.')
+    make_error_boxes(ax,x,y,xerr,yerr,label='Stat. unc.')
     #plot step sig
     sig_h, sig_w, sig_w2, sig_i, sig_c, sig_l = get_hist_essentials(sig_p,issig=sum(n))
     sig_ls = ['--','--']#[':','--'] # ttZ, ttH
@@ -213,9 +213,9 @@ def endplt(fig,ax,add_cut_str):
     #ax.set_ylim(0,ymax=ax.get_ylim()[1]*y_scale_upper)
     #plt.grid(True)
     handles, labels = ax.get_legend_handles_labels()
-    hatch_patch = Patch(hatch=10*'X', label='Stat Unc.',  fc='w', alpha=0.99)
+    hatch_patch = Patch(hatch=10*'X', label='Stat. unc.',  fc='w', alpha=0.99)
     handles = handles + [hatch_patch]
-    labels  = labels + ['Stat Unc.']
+    labels  = labels + ['Stat. unc.']
     ax.legend(handles,labels, framealpha = 0, ncol=2, fontsize=7)
     plt.tight_layout()
     #plt.show()

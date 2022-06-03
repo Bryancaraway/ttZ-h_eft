@@ -88,10 +88,10 @@ def main():
         p_df = getBeta(p).calcBeta(eft_df,p)  
         del eft_df
         eft_pt_zbin_content, norm_pt_zbin_content = bin_2d_eft_effects(p_df) 
-        plot_eft_y_contours(x= (pt_bins[1:]+pt_bins[:-1])/2, 
-                           y= wc_bins[p_to_wc[p]], 
-                           z= eft_pt_zbin_content,
-                           process= p)
+        #plot_eft_y_contours(x= (pt_bins[1:]+pt_bins[:-1])/2, 
+        #                   y= wc_bins[p_to_wc[p]], 
+        #                   z= eft_pt_zbin_content,
+        #                   process= p)
         plot_eft_z_contours(x= (pt_bins[1:]+pt_bins[:-1])/2, 
                             y= norm_bins[p_to_wc[p]], 
                             z= norm_pt_zbin_content,
@@ -106,12 +106,12 @@ def plot_eft_y_contours(x, y, z, process):
     levels = [1.2,1.5,2.0]
     #tslabels = [r'$\frac{\sigma_{\mathrm{EFT}}}{\sigma_{\mathrm{SM}}}=$'+str(i) 
     #            for i in levels]
-    tslabels = [r'$\frac{\mathsf{\sigma}_{\text{EFT}}}{\mathsf{\sigma}_{\text{SM}}}\mathsf{=}$'+str(i) 
+    tslabels = [r'$\frac{\mathsf{\sigma}_{\text{EFT}}}{\mathsf{\sigma}_{\text{SM}}}\;\mathsf{=}$'+str(i) 
                 for i in levels]
     #triang = tri.Triangulation(x, y) # broken
     #ts = ax.tricontour(x, y , z, levels=levels, colors=['gold','blue','green','magenta']) # broken
     X,Y = np.meshgrid(x,y)
-    ts = ax.contour(X, Y , z, levels=levels, colors=['orange','green','blue'], linewidths=0.5)
+    ts = ax.contour(X, Y , z, levels=levels, colors=['orange','green','blue'], linestyles=['dotted','dashed','dashdot'], linewidths=0.5)
     ax.axhline(0, color='red', linewidth=.5, snap=True)
     # === works filled contour
     #cntr = ax.contourf(x, y , z, levels=np.arange(0,5+.5,.5))
@@ -122,10 +122,10 @@ def plot_eft_y_contours(x, y, z, process):
     #ax.clabel(ts, fmt={l:ls for l,ls in zip(levels, tslabels)}, inline=1, fontsize=8, manual=False)
     # setup labels, handles for legend
     handles = [
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='red'),
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='orange'),
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='green'),
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='blue'),
+        lines.Line2D([],[], linestyle='solid', linewidth=.5, color='red'),
+        lines.Line2D([],[], linestyle='dotted', linewidth=.5, color='orange'),
+        lines.Line2D([],[], linestyle='dashed', linewidth=.5, color='green'),
+        lines.Line2D([],[], linestyle='dashdot', linewidth=.5, color='blue'),
     ]
     labels = ['1.0' , '1.2' , '1.5', '2.0']
     leg = ax.legend(handles, labels, handlelength=1.0, fontsize=6.0, ncol=len(labels), framealpha=0, 
@@ -156,29 +156,29 @@ def plot_eft_z_contours(x, y, z, process):
     #levels = [2,5,10]
     levels = level_dict[p_to_wc[process]]
     tlabel = wc_latex[p_to_wc[process]]
-    tslabels = [tlabel+r'$=$'+str(i) for i in levels]
+    tslabels = [tlabel+r' $=$'+str(i) for i in levels]
     X,Y = np.meshgrid(x,y)
     import scipy.ndimage
     #z = scipy.ndimage.zoom(z,3)
     z = scipy.ndimage.filters.gaussian_filter(z, sigma=.6)
     #X = scipy.ndimage.zoom(X,3)
     #Y = scipy.ndimage.zoom(Y,3)
-    ts = ax.contour(X, Y , z, levels=levels, colors=['orange','green','blue'], linewidths=0.5, antialiased=True,)
+    ts = ax.contour(X, Y , z, levels=levels, colors=['orange','green','blue'], linestyles=['dashed','dotted','dashdot'], linewidths=0.5, antialiased=True,)
     #ts = ax.contour(z, levels=levels, colors=['orange','green','blue'], linewidths=0.5, antialiased=True,)
     ax.axhline(1, color='red', linewidth=.5, snap=True)
     # setup labels, handles for legend
     handles = [
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='red'),
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='orange'),
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='green'),
-        lines.Line2D([],[], linestyle='-', linewidth=.5, color='blue'),
+        lines.Line2D([],[], linestyle='solid', linewidth=.5, color='red'),
+        lines.Line2D([],[], linestyle='dashed', linewidth=.5, color='orange'),
+        lines.Line2D([],[], linestyle='dotted', linewidth=.5, color='green'),
+        lines.Line2D([],[], linestyle='dashdot', linewidth=.5, color='blue'),
     ]
     #labels = ['1.0' , '1.2' , '1.5', '2.0']
     labels = ["0.0"]+[f'{i:.1f}' for i in levels]
     leg = ax.legend(handles, labels, handlelength=1.0, fontsize=10.0, ncol=len(labels), framealpha=0, 
                     loc='upper left',
                     bbox_to_anchor=(-.02, 1.07),
-                    title=tlabel+r'$\mathsf{=}$')
+                    title=tlabel+r' $\mathsf{=}$')
 
     leg._legend_box.align = 'left'
     #

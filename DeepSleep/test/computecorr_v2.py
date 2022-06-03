@@ -55,7 +55,8 @@ def main():
     #dodiffCorr('robustHesse_stxs.root', c_dict['stxs'])
     fdir = 'fitdiag_roots/corr/'
     #dodiffCorr(fdir+'robustHesse_stxs.root', c_dict['stxs'])
-    #doincCorr( fdir+'robustHesse_inc.root',  c_dict['inc'])
+    print(doincCorr( fdir+'robustHesse_inc.root',  c_dict['inc']))
+    exit()
     #doincCorr( fdir+'robustHesse_inc_blind.root',  c_dict['inc'])
     relwc_list = ['cbW','cpQ3','cpQM','cpt','cptb','ctW','ctZ','ctp']
     corr_df = None

@@ -385,7 +385,7 @@ def getLaLabel(str_, altcolors=False):
         #'ttX':              [r't($\mathregular{\bar{t}}$)X',
         'ttX':              [r'$\mathsf{t\bar{t}t\bar{t}}$, $\mathsf{t\bar{t}\gamma}$, $\mathsf{t\bar{t}W}$, $\mathsf{tHW}$, $\mathsf{tHq}$',#[r't$\mathregular{\bar{t}}$t$\mathregular{\bar{t}}$, t$\mathregular{\bar{t}}\gamma$, t$\mathregular{\bar{t}}$W tHW, tHq',
                              colors[1] if not altcolors else 'tab:red'],
-        'single_t':         [r'single top',
+        'single_t':         [r'Single top',
                              colors[2] if not altcolors else'tab:brown'],
         'TTBar':            [r'$\mathsf{t\bar{t}+\text{LF}}$, $\mathsf{t\bar{t}+c\bar{c}}$',#[r't$\mathregular{\bar{t}}+\mathregular{LF}$, t$\mathregular{\bar{t}}+$c$\mathregular{\bar{c}}$',
                              colors[4] if not altcolors else'tab:orange'],
@@ -580,13 +580,14 @@ def CMSlabel(fig=None, ax=None, opt=None, altax=None, altloc=False, lumi=None, f
     trans = ax1.transAxes + transforms.ScaledTranslation(0/72, 3/72, fig.dpi_scale_trans)
     if lumi:
         if lumi == 'nl':
-            ax1.text(1, 1, r"{\footnotesize 13 TeV}", usetex=True,
-                     transform=trans, ha='right', va='baseline', fontsize=fontsize)
+            ax1.text(1, 1, r"{ 13 TeV}", usetex=Trxoue,
+                     transform=trans, ha='right', va='baseline', fontsize=int(fontsize*.7))
         else:
             lumi = f'{lumi:.1f}' if float(lumi) < 100 else str(lumi)
-            ax1.text(1, 1, rf"{{\footnotesize $\text{{{lumi}}}\,\text{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", 
+            #ax1.text(1, 1, rf"{{\footnotesize $\text{{{lumi}}}\,\text{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", 
+            ax1.text(1, 1, rf"{{ $\text{{{lumi}}}\,\text{{fb}}^{{\text{{-1}}}}$ (13 TeV)}}", 
                      usetex=True,
-                     transform=trans, ha='right', va='baseline', fontsize=fontsize)
+                     transform=trans, ha='right', va='baseline', fontsize=int(fontsize*.7))
 
 def make_error_boxes(ax, xdata, ydata, xerror, yerror,  facecolor='r',
                      edgecolor='None', alpha=0.0, hatch=10*'X', label=''):

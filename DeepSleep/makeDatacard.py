@@ -126,7 +126,7 @@ class MakeDataCard:
         'mu_r_Up','mu_r_Down',
         'mu_f_Up','mu_f_Down',
         'mu_rf_Up','mu_rf_Down',
-        'topptWeight_Up' ,'topptWeight_Down',
+        #'topptWeight_Up' ,'topptWeight_Down',
         #'PrefireWeight_Up','PrefireWeight_Down',
         #'lep_trigeffsf_Up', 'lep_trigeffsf_Down',
         'electron_sf_up','electron_sf_down',
@@ -373,7 +373,7 @@ class MakeDataCard:
         Systematic('ttz_ggpdf', 'lnN', ttz_sig, 1.035)       
         Systematic('tth_qsc' ,  'lnN', tth_sig, 1.058,0.908) 
         Systematic('ttz_qsc'  , 'lnN', ttz_sig, 1.081,0.907) 
-        if 'recoeft' not in self.tag:
+        if 'recoeft' not in self.tag and 'NNcuts' not in self.tag:
             Systematic('tth_ggpdf0', 'lnN', ['ttH0'], 1.036)       
             Systematic('ttz_ggpdf0', 'lnN', ['ttZ0'], 1.035)       
             Systematic('tth_qsc0' ,  'lnN', ['ttH0'], 1.058,0.908) 
@@ -438,7 +438,7 @@ class MakeDataCard:
         self.histos = ShapeSystematic(f'btgcferr2', 'shape', 'up/down', all_mc, 1, 'BTagWeight_up_cferr2','BTagWeight_down_cferr2').get_shape()
         self.histos = ShapeSystematic(f'pref_2016', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
         self.histos = ShapeSystematic(f'pref_2017', 'shape', 'up/down', all_mc, 1, 'PrefireWeight_Up' ,'PrefireWeight_Down').get_shape()
-        self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'topptWeight_Up' ,'topptWeight_Down').get_shape() # using hacky unc.
+        #self.histos = ShapeSystematic(f'toppt', 'shape', 'up/down', ttbar_mc, 1, 'topptWeight_Up' ,'topptWeight_Down').get_shape() # using hacky unc.
         #
         self.histos = ShapeSystematic(f'mu_r_tt', 'shape', 'normup/down', ['TTBar'], 1, 'mu_r_Up','mu_r_Down').get_shape()
         self.histos = ShapeSystematic(f'mu_f_tt', 'shape', 'normup/down', ['TTBar'], 1, 'mu_f_Up','mu_f_Down').get_shape()
@@ -492,12 +492,33 @@ class MakeDataCard:
         self.write2dc(100*'-'+'\n')
         self.write2dc('# Group definitions \n') 
         self.write2dc('sig_rtheo group = tth_qsc ttz_qsc tth_ggpdf ttz_ggpdf\n')
-        if 'recoeft' not in self.tag:
+        if 'recoeft' not in self.tag and 'NNcuts' not in self.tag:
             self.write2dc('antisig_rtheo group = tth_qsc0 ttz_qsc0 tth_ggpdf0 ttz_ggpdf0\n')
-        self.write2dc('theo group = CMS_ttbbnorm tt2bxsec ttCxsec hdamp_ttbb hdamp UE toppt pdf_ttbb pdf alphas\n')
+        self.write2dc('theo group = CMS_ttbbnorm tt2bxsec ttCxsec hdamp_ttbb hdamp UE pdf_ttbb pdf alphas\n')
         self.write2dc('theo group += mu_f_ttbb mu_r_ttbb mu_f_tt mu_r_tt mu_f_tth mu_r_tth mu_f_ttz mu_r_ttz\n')
         self.write2dc('theo group += isr_ttbb fsr_ttbb isr_tt fsr_tt isr_tth fsr_tth isr_ttz fsr_ttz\n')
         self.write2dc('theo group += tth_ggpdf ttz_ggpdf tth_qsc ttz_qsc ggpdf qqpdf qgpdf tt_qsc ttx_qsc singlet_qsc v_qsc\n')
+        self.write2dc('btg group = btglfstats1_2016 btglfstats1_2017 btglfstats1_2018 btglfstats2_2016 btglfstats2_2017 btglfstats2_2018 btghfstats1_2016 btghfstats1_2017 btghfstats1_2018 btghfstats2_2016 btghfstats2_2017 btghfstats2_2018 btglf btghf btgjes btgcferr1 btgcferr2\n')
+        self.write2dc('lepsf group = eleclepsf_2016 eleclepsf_2017 eleclepsf_2018 mulepsf_2016 mulepsf_2017 mulepsf_2018\n')
+        self.write2dc('trigsf group = electrigeffsf_2016 electrigeffsf_2017 electrigeffsf_2018 mutrigeffsf_2016 mutrigeffsf_2017 mutrigeffsf_2018\n')
+        self.write2dc('pileup group = pu_2016 pu_2017 pu_2018\n')
+        self.write2dc('bbvlsf group = bbvlsf_2016 bbvlsf_2017 bbvlsf_2018\n')
+        self.write2dc('JES group = jesRelativeSample2016 jesRelativeSample2017 jesRelativeSample2018 jesHF2016 jesHF2017 jesHF2018 jesAbsolute2016 jesAbsolute2017 jesAbsolute2018 jesEC22016 jesEC22017 jesEC22018 jesBBEC12016 jesBBEC12017 jesBBEC12018 jesRelativeBal jesFlavorQCD jesHF jesAbsolute jesEC2 jesBBEC1 jesHEMIssue\n')
+        self.write2dc('JER group = ak4jer_2016 ak4jer_2017 ak4jer_2018 ak8jer_2016 ak8jer_2017 ak8jer_2018\n')
+        self.write2dc('JMS group = jmssig_2016 jmssig_2017 jmssig_2018 jmsbkg_2016 jmsbkg_2017 jmsbkg_2018\n')
+        self.write2dc('JMR group = jmrsig_2016 jmrsig_2017 jmrsig_2018 jmrbkg_2016 jmrbkg_2017 jmrbkg_2018\n')
+        self.write2dc('prefire group = pref_2016 pref_2017\n')
+        self.write2dc('mu_r group = mu_r_tt mu_r_tth mu_r_ttz mu_r_ttbb\n')
+        self.write2dc('mu_f group = mu_f_tt mu_f_tth mu_f_ttz mu_f_ttbb\n')
+        self.write2dc('parton_shower group = isr_tt isr_tth isr_ttz isr_ttbb fsr_tt fsr_tth fsr_ttz fsr_ttbb\n')
+        self.write2dc('partondf group = pdf pdf_ttbb alphas tth_ggpdf ttz_ggpdf ggpdf qqpdf qgpdf\n')
+        self.write2dc('qscale group = tt_qsc ttx_qsc singlet_qsc v_qsc tth_qsc ttz_qsc\n')
+        self.write2dc('lumi group = lumi_13TeV_2016 lumi_13TeV_2017 lumi_13TeV_2018 lumi_13TeV_correlated lumi_13TeV_1718\n')
+        self.write2dc('hdampME group = hdamp hdamp_ttbb\n')
+        self.write2dc('underlyingE group = UE\n')
+        self.write2dc('ttcccrosssec group = ttCxsec\n')
+        self.write2dc('tt2bcrosssec group = tt2bxsec\n')
+        self.write2dc('ttbbcrosssec group = CMS_ttbbnorm\n')
         #
 
     def make_eftparam_file(self):

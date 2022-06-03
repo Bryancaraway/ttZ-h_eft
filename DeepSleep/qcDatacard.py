@@ -73,7 +73,8 @@ tbins_map = {**DataCardShapes_NN().out_nn_bins_dict,**{
     'outZh_q2_pt':[30,60,90,150,210,300,500,np.inf],
     'outZh_q1_btag':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
     'outZh_q2_btag':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],    
-    'outZH_b1_q_mindr':[0.4, 0.8, 1.2, 2.4, np.inf],
+    #'outZH_b1_q_mindr':[0.4, 0.8, 1.2, 2.4, np.inf],
+    'outZH_b1_q_mindr':[0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, np.inf],
     'outZH_b2_q_mindr':[0.4, 0.8, 1.2, 2.4, np.inf],
     'outZH_q_q_dr_nearb1': [0.4, 0.8, 1.2, 2.4, 3.6, np.inf],
     'outZH_q_q_dr_nearb2': [0.4, 0.8, 1.2, 2.4, 3.6, np.inf],
@@ -90,7 +91,7 @@ tbins_map = {**DataCardShapes_NN().out_nn_bins_dict,**{
     'ZH_lbb2qq_dr': [0.0, 0.8, 1.2, 2.4, 3.6, np.inf], 
     'l_b2_mtb': [0,50,100,150,200,np.inf],
     'Zh_closeb_invM': [0,100,150,200,300,np.inf],  
-    'n_ak8jets':[-0.5,0.5,1.5,2.5,np.inf],    
+    'n_ak8jets':[0.5,1.5,2.5,np.inf],    
     'n_ak4jets':[3.5,4.5,5.5,6.5,7.5,np.inf], # NN
     'n_ak8_Zhbb':[-0.5,0.5,1.5,np.inf],
     'outZh_max_ak8sdM' : [50,100,150,200,np.inf],
@@ -102,10 +103,12 @@ tbins_map = {**DataCardShapes_NN().out_nn_bins_dict,**{
     'Zh_bestb_sj':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
     'Zh_worstb_sj':[0,.25,.5,.75,1.0],
     'ak4_bestb_inZH':[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0],
-    'ak4_worstb_inZH':[0,.25,.5,.75,1.0],
+    #'ak4_worstb_inZH':[0,.25,.5,.75,1.0],
+    'ak4_worstb_inZH':[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     'nonZhbb_b1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
     'nonZhbb_q1_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
-    'inZhb_outZhb_dr': [0.0, 0.8, 1.2, 1.6, 2.0, 2.4, np.inf], 
+    #'inZhb_outZhb_dr': [0.0, 0.8, 1.2, 1.6, 2.0, 2.4, np.inf], 
+    'inZhb_outZhb_dr': [0.0, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, np.inf], 
     'Zh_l_dr':[0.8, 1.2, 1.6, 2.0, 2.4, np.inf],
     'Zh_l_invM_sd':[50,100,125,150,175,200,np.inf],
     'l_b1_invM':[50,100,125,150,175,200,np.inf],
@@ -118,7 +121,8 @@ tbins_map = {**DataCardShapes_NN().out_nn_bins_dict,**{
     'n_q_inZh':[-0.5,0.5,1.5,np.inf],
     'n_q_outZh':[-0.5,0.5,1.5,2.5,3.5,4.5,np.inf],# NN
     'n_b_outZh':[1.5,2.5,3.5,4.5,np.inf], 
-    'Zh_bbvLscore':[.8,.85,.9,1.0], # NN
+    #'Zh_bbvLscore':[.8,.85,.9,1.0], # NN
+    'Zh_bbvLscore':[.8,.825,.85,.875,.9,.925,.95,.975,1.0], # NN
     # ---
     # Control Plots
     # ---

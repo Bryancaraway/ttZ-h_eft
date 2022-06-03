@@ -84,7 +84,7 @@ def make_stxs_sigsens_response(inc,sel):
     for p in ['ttZ','ttH']:
         inc_y = np.array([inc[p][p+str(i)] for i in range(5-len(y_bins),4)])
         r_df = sel[p].divide(inc_y,axis='rows') * 100
-        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (\%)')        
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding matrix ${M}_{ij}$ [\%]')        
 
 
 @save_pdf("stxs_yields.pdf")
@@ -105,7 +105,7 @@ def make_stxs_response(inc,sel):
         #inc_y = np.array([inc[p][p+str(i)] for i in range(1,4)])#range(4)])
         inc_y = np.array([inc[p][p+str(i)] for i in range(5-len(y_bins),4)])
         r_df = sel[p].divide(inc_y,axis='rows') * 100
-        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding Matrix ${M}_{ij}$ (\%)')        
+        make_heatmap(r_df.clip(0,np.inf), x_bins, y_bins, p.replace('tt',''), c_label='Folding matrix ${M}_{ij}$ [\%]')        
 
 
 @save_pdf("inc_response.pdf")

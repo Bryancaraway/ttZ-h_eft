@@ -23,107 +23,49 @@ pt_bins = [0,200,300,450,600]
 brazil_green  = '#78c72c'
 brazil_yellow = '#f9c754'
 
-asym_def_limits = { # default, all parameters float > 0
-    'r_ttZ1':'''
-    Observed Limit: r_ttZ1 < 3.5817
-    Expected  2.5%: r_ttZ1 < 2.5205
-    Expected 16.0%: r_ttZ1 < 3.3947
-    Expected 50.0%: r_ttZ1 < 4.8516
-    Expected 84.0%: r_ttZ1 < 7.0755
-    Expected 97.5%: r_ttZ1 < 10.0445''',
-    'r_ttZ2':'''
-    Observed Limit: r_ttZ2 < 5.0510
-    Expected  2.5%: r_ttZ2 < 1.7778
-    Expected 16.0%: r_ttZ2 < 2.4072
-    Expected 50.0%: r_ttZ2 < 3.4219
-    Expected 84.0%: r_ttZ2 < 4.9632
-    Expected 97.5%: r_ttZ2 < 7.0253''',
-    'r_ttZ3':'''
-    Observed Limit: r_ttZ3 < 3.8909
-    Expected  2.5%: r_ttZ3 < 2.2296
-    Expected 16.0%: r_ttZ3 < 3.0400
-    Expected 50.0%: r_ttZ3 < 4.3906
-    Expected 84.0%: r_ttZ3 < 6.4733
-    Expected 97.5%: r_ttZ3 < 9.3212''',
-    'r_ttH1':'''
-    Observed Limit: r_ttH1 < 8.7522
-    Expected  2.5%: r_ttH1 < 7.7043
-    Expected 16.0%: r_ttH1 < 10.3895
-    Expected 50.0%: r_ttH1 < 14.7188
-    Expected 84.0%: r_ttH1 < 20.9964
-    Expected 97.5%: r_ttH1 < 29.0715''',
-    'r_ttH2':'''
-    Observed Limit: r_ttH2 < 3.4171
-    Expected  2.5%: r_ttH2 < 1.3656
-    Expected 16.0%: r_ttH2 < 1.8567
-    Expected 50.0%: r_ttH2 < 2.6484
-    Expected 84.0%: r_ttH2 < 3.8519
-    Expected 97.5%: r_ttH2 < 5.4439''',
-    'r_ttH3':'''
-    Observed Limit: r_ttH3 < 2.0159
-    Expected  2.5%: r_ttH3 < 1.7430
-    Expected 16.0%: r_ttH3 < 2.3667
-    Expected 50.0%: r_ttH3 < 3.4062
-    Expected 84.0%: r_ttH3 < 5.0084
-    Expected 97.5%: r_ttH3 < 7.1398''',
-}
-# -- AsymptoticLimits ( CLs ) --
-#Observed Limit: r_ttZ3 < 4.2061
-#Expected  2.5%: r_ttZ3 < 2.1106
-#Expected 16.0%: r_ttZ3 < 2.8777
-#Expected 50.0%: r_ttZ3 < 4.1562
-#Expected 84.0%: r_ttZ3 < 6.1277
-#Expected 97.5%: r_ttZ3 < 8.7982
-# -- AsymptoticLimits ( CLs ) --
-#Observed Limit: r_ttH3 < 1.9426
-#Expected  2.5%: r_ttH3 < 1.7031
-#Expected 16.0%: r_ttH3 < 2.3125
-#Expected 50.0%: r_ttH3 < 3.3281
-#Expected 84.0%: r_ttH3 < 4.8935
-#Expected 97.5%: r_ttH3 < 6.9557
 asym_fro_limits = { # r_ttZ0 and r_ttH0 float are fixed to SM
     'r_ttZ1':'''
-    Observed Limit: r_ttZ1 < 3.4157
-    Expected  2.5%: r_ttZ1 < 2.4536
-    Expected 16.0%: r_ttZ1 < 3.3262
-    Expected 50.0%: r_ttZ1 < 4.6875
-    Expected 84.0%: r_ttZ1 < 6.7428
-    Expected 97.5%: r_ttZ1 < 9.3541''',
+    Observed Limit: r_ttZ1 < 3.3800
+    Expected  2.5%: r_ttZ1 < 2.4596
+    Expected 16.0%: r_ttZ1 < 3.3035
+    Expected 50.0%: r_ttZ1 < 4.6641
+    Expected 84.0%: r_ttZ1 < 6.6905
+    Expected 97.5%: r_ttZ1 < 9.2952''',
     'r_ttZ2':'''
-    Observed Limit: r_ttZ2 < 4.8772
+    Observed Limit: r_ttZ2 < 4.8860
     Expected  2.5%: r_ttZ2 < 1.6727
-    Expected 16.0%: r_ttZ2 < 2.2583
+    Expected 16.0%: r_ttZ2 < 2.2466
     Expected 50.0%: r_ttZ2 < 3.1719
-    Expected 84.0%: r_ttZ2 < 4.5373
-    Expected 97.5%: r_ttZ2 < 6.2732''',
+    Expected 84.0%: r_ttZ2 < 4.5247
+    Expected 97.5%: r_ttZ2 < 6.2449''',
     'r_ttZ3':'''
-    Observed Limit: r_ttZ3 < 4.0213
-    Expected  2.5%: r_ttZ3 < 2.1431
-    Expected 16.0%: r_ttZ3 < 2.8980
-    Expected 50.0%: r_ttZ3 < 4.1562
-    Expected 84.0%: r_ttZ3 < 6.0449
-    Expected 97.5%: r_ttZ3 < 8.5175''',
+    Observed Limit: r_ttZ3 < 4.0174
+    Expected  2.5%: r_ttZ3 < 2.1350
+    Expected 16.0%: r_ttZ3 < 2.8871
+    Expected 50.0%: r_ttZ3 < 4.1406
+    Expected 84.0%: r_ttZ3 < 6.0387
+    Expected 97.5%: r_ttZ3 < 8.4702''',
     'r_ttH1':'''
-    Observed Limit: r_ttH1 < 8.0190
+    Observed Limit: r_ttH1 < 8.0311
     Expected  2.5%: r_ttH1 < 7.4956
-    Expected 16.0%: r_ttH1 < 10.0791
+    Expected 16.0%: r_ttH1 < 10.0274
     Expected 50.0%: r_ttH1 < 14.1094
     Expected 84.0%: r_ttH1 < 19.7897
     Expected 97.5%: r_ttH1 < 26.7422''',
     'r_ttH2':'''
-    Observed Limit: r_ttH2 < 3.2375
-    Expected  2.5%: r_ttH2 < 1.3372
-    Expected 16.0%: r_ttH2 < 1.8033
-    Expected 50.0%: r_ttH2 < 2.5547
-    Expected 84.0%: r_ttH2 < 3.6646
-    Expected 97.5%: r_ttH2 < 5.0593''',
+    Observed Limit: r_ttH2 < 3.2512
+    Expected  2.5%: r_ttH2 < 1.3290
+    Expected 16.0%: r_ttH2 < 1.7923
+    Expected 50.0%: r_ttH2 < 2.5391
+    Expected 84.0%: r_ttH2 < 3.6422
+    Expected 97.5%: r_ttH2 < 5.0283''',
     'r_ttH3':'''
-    Observed Limit: r_ttH3 < 1.9578
-    Expected  2.5%: r_ttH3 < 1.7128
-    Expected 16.0%: r_ttH3 < 2.3192
+    Observed Limit: r_ttH3 < 1.9635
+    Expected  2.5%: r_ttH3 < 1.7000
+    Expected 16.0%: r_ttH3 < 2.3113
     Expected 50.0%: r_ttH3 < 3.2969
-    Expected 84.0%: r_ttH3 < 4.7819
-    Expected 97.5%: r_ttH3 < 6.6662''',
+    Expected 84.0%: r_ttH3 < 4.7556
+    Expected 97.5%: r_ttH3 < 6.6288''',
 }
 
 asym_limits = asym_fro_limits

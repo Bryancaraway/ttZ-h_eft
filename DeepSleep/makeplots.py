@@ -38,24 +38,26 @@ processes = ['ttZ','ttH','TTBar','tt_B','ttX','single_t','VJets']
 #@save_pdf("nn_comparison.pdf")
 #@save_pdf("ttx_contamination.pdf")
 def main():
-    #for y in cfg.Years: 
-    for y in ['2018']: 
+    for y in cfg.Years: 
+    #for y in ['2018']: 
         print(y)
         #for jec in jec_list:
         #Plotter.load_data(y, addBSF=False, tag=f'{jjec}{jec}') #tag='ak4JESUp'
         Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+['QCD'], addBSF=False, byprocess=True)
+        
         #Plotter.load_data(y, samples=['single_t'], addBSF=False, byprocess=True)
         #Plotter.load_data(y, samples=cfg.Sig_MC+cfg.Bkg_MC+["QCD"]+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
         #Plotter.load_data(y, samples=cfg.Sig_MC+['ttbb']+['TTZ_EFT','TTH_EFT','TTbb_EFT'], addBSF=False, byprocess=True)
         ''' LOOK AT STACKED DATA VS MC '''
         # AN, Paper Draft
-        make_control_plots_tight()
+        #make_control_plots_tight()
         #make_control_plots_anastrat()
         #make_met_withqcd()
         #make_NN_compare()
         #make_qcd_study_by_year_alt()
         # = ==== = # 
         # extra
+        test_nn_inputs()
         #make_plots_ttX_cont()
         #make_plots_EFTLO_vs_NLO(y)
         #make_plots_singlet_stats()
@@ -63,7 +65,12 @@ def main():
         #make_sigbkg_purity()
         
     return 1
-        
+
+def test_nn_inputs():
+    #StackedHist(processes,    'outZH_b1_q_mindr', xlabel= r'outZH b1 q mindr', bins=[0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2],   doCuts=True,  addData=True, doLog=True, doShow=True)  
+    Hist(['TTBar'],    'HT', xlabel= r'HT', bin_range=[0,3000], n_bins=75,   doCuts=True,  doNorm=False, doLog=True, doShow=True)  
+    #StackedHist(processes,'Zh_bbvLscore', xlabel='Z/H deepAK8MD bbvL', bins=[.8,.825,.85,.875,.9,.925,.95,.975,1.0],  doCuts=True, addData=True, doLog=True, doShow=True)  
+    #StackedHist(processes,'n_b_inZh', xlabel='n b inZh', bins=[-0.5,0.5,1.5,2.5,3.5],  doCuts=True, addData=True, doLog=True, doShow=True)  
 
 def make_control_plots_tight():
     # --- control plots tight

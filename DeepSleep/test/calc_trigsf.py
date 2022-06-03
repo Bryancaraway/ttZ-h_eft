@@ -87,19 +87,16 @@ class Calc_LepEffSF :
         #
         self.alpha = self.get_alpha()
         self.sf, self.sf_up, self.sf_down, self.sf_stat_up, self.sf_stat_down, self.sf_sys, self.sf_bins = self.calc_trig_eff_sf()
-        self.store_sf()
-        save_pdf(f'{self.channel}_trigeff_{self.year}.pdf')(self.plot_datamc_eff)()
-        #self.plot_test('nBottoms',[-.5,0.5,1.5,2.5,3.5,4.5])
-        #self.plot_test(f'{self.of_lep[channel]}_pt',[30,  40,  50,  60, 120, 200, 500])
-        #self.plot_test(f'{self.of_lep[channel]}_eta',[0,  0.9, 1.2, 2.1, 2.5])
+        #self.store_sf()
+        #save_pdf(f'{self.channel}_trigeff_{self.year}.pdf')(self.plot_datamc_eff)()
         
         #pt_bins  = [30,  40,  50,  60, 120, 200, 500]
         #eta_bins = [0,  0.9, 1.2, 2.1, 2.4]
 
     def store_sf(self):
         # store like pt bin -> eta bin 
-        print(self.sf)
-        print(self.sf_bins)
+        #print(self.sf)
+        #print(self.sf_bins)
         out_dict = {self.channel :{'pt_bins' : self.bins_dict[self.channel][self.year]['pt'],
                                    'eta_bins': self.bins_dict[self.channel][self.year]['eta'],
                                    'pt_eta_sf': self.sf.tolist(),
@@ -120,8 +117,8 @@ class Calc_LepEffSF :
         target_eff  = sum(self.pass_targetTrig(df))/len(df)
         both_eff    = sum( (self.pass_refTrig(df)) & (self.pass_targetTrig(df)) )/len(df)
         alpha = (reftrig_eff * target_eff)/both_eff
-        print("reftrig eff | target eff | both eff | alpha")
-        print(reftrig_eff, target_eff, both_eff, alpha)
+        #print("reftrig eff | target eff | both eff | alpha")
+        #print(reftrig_eff, target_eff, both_eff, alpha)
         return alpha
 
     def calc_trig_eff_sf(self):
@@ -150,8 +147,10 @@ class Calc_LepEffSF :
         num_data, den_data, eff_data_up, eff_data_down, _ = get_eff(self.data_df)
         eff_data = num_data/den_data
         self.eff_data, self.eff_data_up, self.eff_data_down = eff_data, eff_data_up-eff_data, eff_data-eff_data_down
-        print("MC eff per pt/eta bin",  num_mc/den_mc)
-        print("Data eff per pt/eta bin",num_data/den_data)
+        #print("MC eff per pt/eta bin",  num_mc/den_mc)
+        #print("Data eff per pt/eta bin",num_data/den_data)
+        print("total MC eff ==========",  sum(num_mc.flatten())/sum(den_mc.flatten()))
+        print("total Data eff =========",sum(num_data.flatten())/sum(den_data.flatten()))
         #SF
         sf_nom = eff_data/eff_mc
         sf_nom_stat_up  = sf_nom*np.sqrt( ((eff_data_up-eff_data)/eff_data)**2 + ((eff_mc_up-eff_mc)/eff_mc)**2)
@@ -310,7 +309,7 @@ class Calc_LepEffSF :
             return (events, gen)
 
     def get_jspi_ups_veto(self, softe, softmu, df):
-        print(softe['Electron_pt'][softe['Electron_pt'].counts > 0])
+        #print(softe['Electron_pt'][softe['Electron_pt'].counts > 0])
         from uproot_methods import TLorentzVectorArray
         getTLVm  = TLorentzVectorArray.from_ptetaphim
         common_k = ['pt','eta','phi','mass']

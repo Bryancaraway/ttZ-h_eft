@@ -33,8 +33,8 @@ pre_or_post = 'postfit'
 
 
 #@save_pdf('pas_template_plots_unblind_SMprefit.pdf')
-@save_pdf('pas_template_plots_unblind_SM.pdf')
-#@save_pdf('pas_template_plots_unblind_SM_final.pdf')
+#@save_pdf('pas_template_plots_unblind_SM.pdf')
+@save_pdf('pas_template_plots_unblind_SM_final.pdf')
 def main():
     #froo = f'fitDiagnostics_inc_run2.root'
     #froo = f'fitDiagnostics_inctest_run2.root'
@@ -90,7 +90,7 @@ class PlotForPas(PostFit):
             #
         #
         self.make_error_boxes(ax, (self.edges[ch][1:]+self.edges[ch][:-1])/2, d['total']['values'],
-                              xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err'], label='stat+sys')
+                              xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err'], label='Stat+sys')
         
     def do_data(self, d, ax, ch):
         ax.errorbar(x=(self.edges[ch][1:]+self.edges[ch][:-1])/2, y=d['data']['values'],
@@ -104,13 +104,13 @@ class PlotForPas(PostFit):
                      xerr=(self.edges[ch][1:]-self.edges[ch][:-1])/2 ,yerr=[yerrdw,yerrup], 
                      fmt='.', label='Data', color='k')
         self.make_error_boxes(ax, (self.edges[ch][1:]+self.edges[ch][:-1])/2, np.ones_like(d['total']['values']),
-                              xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err']/d['total']['values'], label='stat+sys')
+                              xerror=(self.edges[ch][1:]-self.edges[ch][:-1])/2, yerror=d['total']['err']/d['total']['values'], label='Stat+sys')
         ax.set_ylim(0,2)
         ax.set_yticks([.5,1,1.5])
         if 'Zhpt1' in ch:
-            ax.tick_params(which='both', direction='in', bottom=True, left=True, right=False, top=False) 
+            ax.tick_params(which='both', direction='in', bottom=True, left=True, right=False, top=False, labelsize=12) 
         else:
-            ax.tick_params(which='both', direction='in', bottom=True, left=False, right=False, top=False) 
+            ax.tick_params(which='both', direction='in', bottom=True, left=False, right=False, top=False, labelsize=12) 
         ax.grid(True)
         #ax.yaxis.set_minor_locator(AutoMinorLocator())
         ax.set_xlim(0,self.edges[ch][-1])
@@ -119,7 +119,7 @@ class PlotForPas(PostFit):
         m_factor = 3 if i_ == 0 else 4
         m_lines = [ self.edges[ch][i] for i in range(m_factor,len(self.edges[ch]), m_factor)]
         for l in m_lines:
-            ymax = 0.60 if i_ != 0  else 0.8
+            ymax = 0.55 if i_ != 0  else 0.8
             ymax = 1.0 if isratio else ymax
             ax.axvline(l, ymin=-.05, ymax=ymax,
                        color='k', linewidth='0.5', linestyle='--', dashes=(4,8), snap=True)
@@ -142,7 +142,7 @@ class PlotForPas(PostFit):
         axs[0].set_ylabel('Events / bin', fontsize=14)
         axs[0].set_yscale('log')
         axs[0].set_ylim(ymin=.05, ymax=axs[0].get_ylim()[1] * 10)
-        rat_axs[-1].set_xlabel('Analysis bins',fontsize=14)
+        rat_axs[-1].set_xlabel(f'{year} analysis bins',fontsize=14)
         rat_axs[0].set_ylabel('Data / MC', fontsize=14)
         self.nn_text_bins(axs[0], year)
         self.addlegend(opt='blind')
@@ -152,16 +152,16 @@ class PlotForPas(PostFit):
 
     def nn_text_bins(self, ax, year):
         trans = ax.transAxes + transforms.ScaledTranslation(0/72, 3/72, self.fig.dpi_scale_trans)
-        ext_args = {'usetex':True, 'transform':trans}
-        ax.text(0.05, .92, rf"{year} $\textit{{{'P'+pre_or_post[1:]}}}$" , **ext_args)
-        ax.text(0.05, .85, r'NN${}_{\mathrm{bin}}$' , **ext_args)
-        ax.text(0.04, .80, '1', **ext_args)
-        ax.text(0.215, .80, '2', **ext_args)
-        ax.text(0.39, .80, '3', **ext_args)
+        ext_args = {'usetex':True, 'transform':trans, 'fontsize':12}
+        ax.text(0.04, .92, rf"$\textit{{{'P'+pre_or_post[1:]}}}$" , **ext_args)
+        ax.text(0.04, .83, r'DNN${}_{\mathrm{bin}}$' , **ext_args)
+        ax.text(0.07, .78, '1', **ext_args)
+        ax.text(0.23, .78, '2', **ext_args)
+        ax.text(0.40, .78, '3', **ext_args)
 
-        ax.text(0.565, .80, '4', **ext_args)
-        ax.text(0.73, .80, '5', **ext_args)
-        ax.text(0.895, .80, '6', **ext_args)
+        ax.text(0.57, .78, '4', **ext_args)
+        ax.text(0.73, .78, '5', **ext_args)
+        ax.text(0.90, .78, '6', **ext_args)
 
 
     def init_axes(self, opt='', year=''):
@@ -180,8 +180,8 @@ class PlotForPas(PostFit):
         lumi = cfg.Lumi[re.search(r'201\d',year).group()]
         #self.fig.text(0.105,0.89, r"$\bf{CMS}$ $Simulation$", fontsize = 10)
         #self.fig.text(0.70,0.89, f'{lumi:.1f}'+r' fb$^{-1}$ (13 TeV)',  fontsize = 10)
-        #CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14, opt='')
-        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14)
+        CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=16, opt='')
+        #CMSlabel(fig, axs[0], lumi=lumi, altax=axs[-1], fontsize=14)
         self.axs = axs
         self.rat_axs = rat_axs
 
@@ -206,30 +206,36 @@ class PlotForPas(PostFit):
         #else:
         #     axt.yaxis.set_minor_locator(AutoMinorLocator())
         if 'Zhpt1' in ch:
-            ax.tick_params(which='both', direction='in', bottom=True, left=True, top=False, right=False)
+            ax.tick_params(which='both', direction='in', bottom=True, left=True, top=False, right=False, labelsize=12)
         else:
-            ax.tick_params(which='both', direction='in', bottom=True, left=True, top=False, right=False)
+            ax.tick_params(which='both', direction='in', bottom=True, left=True, top=False, right=False, labelsize=12)
         ax.tick_params(which='both', direction='in')
         channel = re.search(r'Zhpt\d',ch).group()
         ax.set_xticks(tick_dict[channel][0])
         ax.set_xticklabels(tick_dict[channel][1])
         #ax.set_title(f"{ch_dict[channel]}", loc='right', y=1.0, pad=-15, fontsize=10, usetex=True)
         trans = ax.transAxes + transforms.ScaledTranslation(0/72, 3/72, self.fig.dpi_scale_trans)
-        ext_args = {'usetex':True, 'transform':trans}
-        ax.text( .95, .92, f"{ch_dict[channel]}", ha='right', **ext_args)
+        ext_args = {'usetex':True, 'transform':trans, 'fontsize':12}
+        ax.text( .97, .92, f"{ch_dict[channel]}", ha='right', **ext_args)
         #ax.xaxis.set_minor_locator(AutoMinorLocator(5))
 
     def addlegend(self, opt=''):
         #ax = self.axs[0,1]
-        ax = self.axs[-1]
-        handles, labels = ax.get_legend_handles_labels()
+        ax1 = self.axs[1] # second pane
+        ax2 = self.axs[-1] # third/last pane
+        handles, labels = ax2.get_legend_handles_labels()
         print(labels)
-        hatch_patch = Patch(hatch=10*'X', label='stat+sys',  fc='w', alpha=0.99)
-        handles = handles[0:2]+handles[-3:-1]+handles[2:-3] + [handles[-1]] + [hatch_patch]
-        labels  = labels[0:2]+labels[-3:-1]+labels[2:-3] + [labels[-1]] + ['stat+sys.']
-        ax.legend(handles,labels, bbox_to_anchor=(-.530,.565), 
-                  ncol = 2, columnspacing=8.0,
-                  fontsize=10.5, framealpha = 0, loc='lower left')
+        hatch_patch = Patch(hatch=10*'X', label='Stat.+sys',  fc='w', alpha=0.99)
+        #handles = handles[0:2]+handles[-3:-1]+handles[2:-3] + [handles[-1]] + [hatch_patch]
+        #labels  = labels[0:2]+labels[-3:-1]+labels[2:-3] + [labels[-1]] + ['Stat+sys.']
+        handles = handles[:-1][::-1] + [handles[-1]] +[hatch_patch]
+        labels = labels[:-1][::-1] + [labels[-1]] +['Stat.+sys.']
+        ax1.legend(handles[:4],labels[:4], bbox_to_anchor=(1.05,.930), 
+                   #ncol = 2,
+                  fontsize=12, framealpha = 0, loc='upper right')
+        ax2.legend(handles[4:], labels[4:], bbox_to_anchor=(.35,.930), 
+                   #ncol = 2,
+                   fontsize=12, framealpha = 0, loc='upper left')
 
 if __name__ == '__main__':
     import_mpl_settings(1, length=2, width=3)

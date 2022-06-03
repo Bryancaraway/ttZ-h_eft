@@ -28,8 +28,8 @@ rc("figure", max_open_warning=600)
 #rc("figure", figsize=(8, 6*(6./8.)), dpi=200)                                                            
 
 
-pre_or_post = 'postfit'
-#pre_or_post = 'prefit'
+#pre_or_post = 'postfit'
+pre_or_post = 'prefit'
 
 wc_latex = {
     'ctp'  : r'$\mathsf{c_{t \varphi}} \,/\, \Lambda^\mathsf{2} $ \raisebox{0.25ex}{[}$\text{TeV}^\mathsf{-2}$\raisebox{0.25ex}{]}',
@@ -43,9 +43,9 @@ wc_latex = {
 }
 
 #@save_pdf('pas_eftfit_plots_unblind_test.pdf')
-#@save_pdf('pas_eftfit_plots_unblind_prefit.pdf')
+@save_pdf('pas_eftfit_plots_unblind_prefit_ttbb.pdf')
 #@save_pdf('pas_eftfit_plots_unblind_postfit_ttbb.pdf')
-@save_pdf('pas_eftfit_plots_unblind_fixed_testformat.pdf')
+#@save_pdf('pas_eftfit_plots_unblind_fixed_testformat.pdf')
 def main():
     froo = 'fitDiagnostics_unblind_SM_run2.root'# unblind fixed to SM
     wc_ranges ={
@@ -263,9 +263,9 @@ class EFTFitForPas(PostFit):
         eft_ycumm = None
         #print(self.ycumm)
         for s in samples:
-            if s in ['tt_B','ttZ','ttH']:
+            #if s in ['tt_B','ttZ','ttH']:
             #if s in ['ttZ','ttH']:
-            #if s in ['tt_B']:
+            if s in ['tt_B']:
                 y = np.append(d[s]['values']*get_eft_w(s,index),0)
             else:
                 y = np.append(d[s]['values'],0)
