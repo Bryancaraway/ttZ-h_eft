@@ -39,7 +39,7 @@ mkl-service==2.4.0
 multidict==5.1.0
 multiprocess==0.70.12.2
 numba==0.53.1
-numpy==1.20.3
+numpy==1.22.0
 oauthlib==3.1.1
 olefile==0.46
 opt-einsum==3.3.0
