@@ -591,6 +591,7 @@ class Hist (Plotter) :
         self.ax2.tick_params(which='both', direction='in', top=True, right=True)
         #self.ax2.set_ylim(0.0,5)
         self.ax2.set_ylabel(r'S/$\sqrt{\mathrm{B}}$')
+        self.ax2.yaxis.set_label_coords(-0.06,1.00)
         self.ax2.grid(True)
 
 

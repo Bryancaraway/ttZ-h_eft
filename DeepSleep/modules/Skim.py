@@ -98,9 +98,15 @@ class Skim :
         #self.subjets    = self.build_dict(cfg.ana_vars['ak8sj'])
         # wont keep
         self.filters    = self.build_dict(cfg.ana_vars['filters_all']+cfg.ana_vars['filters_year'][self.year]) 
+        #
+        self.checkpoints = AnaDict({'before_precut':0,'after_precut':0,'after_njet':0,'after_nfatjet':0,'after_met':0,'after_nlep':0,'after_eventmask':0,'after_btagmask':0})
+        self.checkpoints['before_precut'] = sum(np.sign(self.tarray(['genWeight'])))
+        #
         #del self.precut # need later i think
         self.f.close()
         # ===================== #
+        
+        self.checkpoints['after_precut'] = sum(np.sign(self.events['genWeight'])) # cut flow
         # apply object criteria
         self.soft_electrons = self.electrons[self.is_a_soft_electron()]
         self.electrons      = self.electrons[self.is_a_electron()]
@@ -110,6 +116,11 @@ class Skim :
         self.fatjets        = self.fatjets[  self.is_a_fatjet()]
         # define event selection
         self.event_mask   = self.get_event_selection()
+        #
+        self.checkpoints['after_njet'] = sum(self.jets['Jet_pt'].counts >= (5) * np.sign(self.events['genWeight']))  # n_jets >= 5 is the norm
+        self.checkpoints['after_nfatjet'] = sum(((self.jets['Jet_pt'].counts >= (5)) & (self.fatjets['FatJet_pt'].counts >= 1)) * np.sign(self.events['genWeight']))
+        self.checkpoints['after_met'] = sum(((self.events['MET_pt'] > 20) & (self.jets['Jet_pt'].counts >= (5)) & (self.fatjets['FatJet_pt'].counts >= 1)) * np.sign(self.events['genWeight']))
+        self.checkpoints['after_nlep'] = sum(((self.electrons['Electron_pt'].counts + self.muons['Muon_pt'].counts == 1) & (self.events['MET_pt'] > 20) & (self.jets['Jet_pt'].counts >= (5)) & (self.fatjets['FatJet_pt'].counts >= 1)) * np.sign(self.events['genWeight']))
         # apply event selection
         self.jets            = self.jets[          self.event_mask]
         self.fatjets         = self.fatjets[       self.event_mask]
@@ -122,6 +133,8 @@ class Skim :
             self.geninfo    = self.geninfo[   self.event_mask]
             self.lheweights = self.lheweights[self.event_mask]
         self.hlt        = self.hlt[       self.event_mask]
+        #
+        self.checkpoints['after_eventmask'] = sum(np.sign(self.events['genWeight']))
         # might drop subjets
         #self.subjets    = self.subjets[   self.event_mask]
         #print(len(self.events['genWeight']))
@@ -146,6 +159,9 @@ class Skim :
         self.soft_muons      = self.soft_muons[    self.btag_event_mask]
         self.hlt             = self.hlt[           self.btag_event_mask]
         self.events          = self.events [       self.btag_event_mask]
+        #
+        self.checkpoints['after_btagmask'] = sum(np.sign(self.events['genWeight']))
+        #
         if not self.isData:
             self.geninfo = self.geninfo[  self.btag_event_mask]
             # add full list of weights to metaData and apply cuts
@@ -167,6 +183,8 @@ class Skim :
         if not self.isData:
             __out_dict['gen'] = self.geninfo
             __out_dict['metaData'] = self.Meta.get_metadata()
+            __out_dict['metaData'] = {**__out_dict['metaData'],**self.checkpoints}
+
         # close root file
         #self.f.close()
         #
@@ -351,6 +369,7 @@ class Skim :
         tree         =  self.f.get('Events') # hardcoded
         self.tarray  = self.tarray_wrapper(functools.partial(tree.array,      entrystart=estart, entrystop=estop))
         self.tpandas = functools.partial(tree.pandas.df , entrystart=estart, entrystop=estop)
+        #
         self.precut  = self.set_pre_cuts()
         return tree
 
@@ -408,13 +427,15 @@ if __name__ == '__main__':
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/TTToSemiLeptonic_2017/DEDD55D3-8B36-3342-8531-0F2F4C462084_Skim_134.root' 
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTToSemiLeptonic_2016/CA4521C3-F903-8E44-93A8-28F5D3B8C5E8_Skim_121.root'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/ttHTobb_2016/A1490EBE-FA8A-DE40-97F8-FCFBAB716512_Skim_11.root'
-    #sample = "ttHTobb"
+    sample = "ttHTobb"
+    import glob
+    test_file   = glob.glob('/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/ttHTobb_2017/*.root')[0]
     #sample = 'TTbb_2L2Nu'
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2017/TTbb_2L2Nu_2017/prod2017MC_v7_NANO_2_Skim_11.root'
     #sample= 'TTZToBB'
     #test_file   = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2016/TTZToBB_2016/CA01B0AA-229F-E446-B4FE-9F2EA2969FAB_Skim_2.root'
-    sample = 'ttHToNonbb'
-    test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2016/ttHToNonbb_2016/6D0E1ED8-6F95-FE45-8967-96805FBF1818_Skim_25.root'
+    #sample = 'ttHToNonbb'
+    #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed//2016/ttHToNonbb_2016/6D0E1ED8-6F95-FE45-8967-96805FBF1818_Skim_25.root'
     #sample = 'Data_SingleMuon'
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2017/Data_SingleMuon_2017_PeriodD/9A53E75E-4E0E-5A4A-A8C3-A91333DA906D_Skim_8.root'
     #test_file = '/cms/data/store/user/bcaraway/NanoAODv7/PostProcessed/2018/Data_SingleMuon_2018_PeriodC/C8A1B18B-F06D-7D4B-80AC-3FD4774625AF_Skim_14.root'
@@ -423,6 +444,7 @@ if __name__ == '__main__':
     year = re.search(r"201\d", test_file).group()
     golden_json=json.load(open(cfg.goodLumis_file[year]))
     _ = Skim(test_file, sample, year, isData='Data' in sample, jec_sys=None, golden_json=golden_json)
-    _.local_test()
+    #_.local_test()
+    print(_.get_skim())
     #AnaDict(_.get_skim()).to_pickle('SingleE_2017.pkl')
     

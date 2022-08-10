@@ -336,6 +336,8 @@ class MakeDataCard:
             #print(s)
             y = re.search(r'201\d',s).group() # better than previous method
             w = getZhbbWeight(v,y) if 'data' not in s else np.ones_like((v[nn] if nn in v else v.iloc[:,0]).to_numpy()) # which should be 1 to handle data
+            #if 'data' in s:
+            #    w = w * ((cfg.Lumi['Total'] + 190)/cfg.Lumi['Total'])
             sumw, sumw2 = self.get_sumw_sumw2(v, w, y)
             self.histos[s] = {'sumw':sumw, # dim 1,2,3 is zh_pt, nn, zh_m
                               'sumw2':sumw2}

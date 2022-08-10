@@ -58,6 +58,7 @@ def ak_crosscleaned(eta1,phi1,eta2,phi2, cut) : # cross cleaned for arbitrary le
     # jet should be ph2,eta2
     from awkward import JaggedArray as aj
     import math
+    from numba import njit
     c1_ = np.array(eta1.counts)
     c2_ = np.array(eta2.counts)
     out_ = np.ones(len(eta2.flatten()))
@@ -287,6 +288,7 @@ def getZhbbWeight(df_, year):
                   * (df_['HEM_weight']  if year == '2018' else 1.0 )
                   #* (df_['lep_trigeffsf'])
                   #* df_['lep_sf']
+                  #* ((cfg.Lumi['Total'] + 190)/cfg.Lumi['Total'])
                   * df_['electron_sf']
                   * df_['muon_sf']
                   * df_['electron_trigeffsf']

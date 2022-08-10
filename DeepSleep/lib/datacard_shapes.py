@@ -18,7 +18,8 @@ import config.ana_cff as cfg
 from lib.fun_library import weighted_quantile, getZhbbWeight, getZhbbBaseCuts, t2Run
 
 class DataCardShapes():
-    years = cfg.Years
+    #years = cfg.Years
+    years = ['2017']
     file_dir = './files/'
     #
     ref_samples = ['ttZ','ttH']
