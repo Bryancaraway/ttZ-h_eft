@@ -40,7 +40,7 @@ multidict==5.1.0
 multiprocess==0.70.12.2
 numba==0.53.1
 numpy==1.20.3
-oauthlib==3.1.1
+oauthlib==3.2.1
 olefile==0.46
 opt-einsum==3.3.0
 pandas==1.2.1
