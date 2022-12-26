@@ -83,7 +83,7 @@ uproot==3.12.0
 uproot-methods==0.9.2
 urllib3==1.26.6
 Werkzeug==1.0.1
-wheel==0.36.2
+wheel==0.38.1
 wrapt==1.12.1
 xrootd==5.3.0
 yarl==1.6.3
